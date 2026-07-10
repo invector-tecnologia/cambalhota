@@ -1,5 +1,6 @@
 # Project's scope
-#### Place it at `/docs/scope.md`
+
+Place it at `/docs/scope.md`.
 
 ## Proposal
 - Must have
