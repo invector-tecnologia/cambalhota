@@ -1,5 +1,7 @@
 # Project instrumentation
 
+Place it at /docs/instrumentation.md
+
 A documentação é "Única Fonte da Verdade". Escreva especificações claras e detalhadas antes de iniciar qualquer código utilizando arquivos Markdown Padronizados. Todos os arquivos em `/docs/` devem ser referênciados entre si e com os arquivos padrões contidos em `/.agents/` e `README.md` do projeto, para que os agentes de ia possam consultá-los sem esforço cognitivo.
 
 ## Documentos
