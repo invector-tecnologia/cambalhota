@@ -1,10 +1,10 @@
 # Project instrumentation
 
-A documentação é "Única Fonte da Verdade". Escreva especificações claras e detalhadas antes de iniciar qualquer código utilizando arquivos Markdown Padronizados. Todos os arquivos em /docs/ devem ser referênciados entre si e com os arquivos padrões contidos em /.agents/ e README.md do projeto, para que os agentes de ia possam consultá-los sem esforço cognitivo.
+A documentação é "Única Fonte da Verdade". Escreva especificações claras e detalhadas antes de iniciar qualquer código utilizando arquivos Markdown Padronizados. Todos os arquivos em `/docs/` devem ser referênciados entre si e com os arquivos padrões contidos em `/.agents/` e `README.md` do projeto, para que os agentes de ia possam consultá-los sem esforço cognitivo.
 
-    O projeto é organizado com arquivos específicos que o agente de ia entende com facilidade, como:
-        features_map.md: define o objetivo e a regra de negócio, todas as funcionalidades, seus comportamentos de tela, seu valor de negócio, qual a versão do produto a feature está prevista de ser implementada e seus status de implementação. Contido na pasta /docs/product. Esse documento é vivo.
-        product_roadmap.md: define o escopo das versões futuras do produto, tomando como base o features_map.md e contendo um benchmark de concorrentes e liste os top 5 concorrentes. Existe um desse por versão de lançamento o produto. Contido na pasta /docs/product/roadmaps/.
+O projeto é organizado com arquivos específicos que o agente de ia entende com facilidade, como:
+- `features_map.md`: define o objetivo e a regra de negócio, todas as funcionalidades, seus comportamentos de tela, seu valor de negócio, qual a versão do produto a feature está prevista de ser implementada e seus status de implementação. Contido na pasta /docs/product. Esse documento é vivo.
+- `product_roadmap.md`: define o escopo das versões futuras do produto, tomando como base o features_map.md e contendo um benchmark de concorrentes e liste os top 5 concorrentes. Existe um desse por versão de lançamento o produto. Contido na pasta /docs/product/roadmaps/.
         architecture_map: define o plano técnico e a arquitetura da camada de classes e eventos do frontend e do backend do projeto e da camada de banco de dados do projeto. Contido na pasta /docs/engineering/. Esse documento é vivo.
         constitution.md: Lista as regras imutáveis que o agente de ia jamais deve quebrar (ex: bibliotecas proibidas). Contido na pasta /docs/engineering/.
         Arquivos ADRs: define o plano técnico de implementação. Esse arquivo é distinto por atuação do agente de ia eng e deve ter prefixo numerado seguindo o modelo: ###_descrição_curta_da_demanda.md. Contido na pasta /docs/engineering/adrs/.
