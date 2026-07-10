@@ -1,4 +1,4 @@
-# Project instrumentation
+# Project's instrumentation
 
 Place it at `/docs/instrumentation.md`.
 
