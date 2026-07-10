@@ -1,6 +1,6 @@
 # Escopo Estratégico do Projeto (PRD)
 
-Este documento estabelece as diretrizes fundamentais de negócios, as fronteiras de atuação e as fundações tecnológicas do produto. Ele atua como o contrato principal entre as áreas de Produto, Liderança Técnica e Engenharia.
+Este documento estabelece as diretrizes fundamentais de negócios, as fronteiras de atuação e as fundações tecnológicas do produto. Ele atua como o contrato principal entre as áreas de Produto, Liderança Técnica e Engenharia. Coloque-o na pasta `docs/` do seu projeto.
 
 ## 1. Proposta de Valor e Priorização (Matriz MoSCoW)
 A definição de escopo segue uma ordem estrita de prioridade focada em viabilidade, ROI e tempo de lançamento (Time-to-Market).
