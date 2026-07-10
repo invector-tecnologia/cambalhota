@@ -1,7 +1,7 @@
 # Etapas do BRO para AiDD  
 ## Iniciando um projeto com AiDD
 ### Estapa de descrição do projeto
-Descreva no arquivo `/docs/product/scope.md`:   
+Descreva no arquivo `/docs/scope.md`:   
 - O propósito do projeto e seu público alvo.
 - As funcionalidades principais do projeto (MLP), em forma de listagem ranqueada.
 - O estilo de  layout do projeto.
