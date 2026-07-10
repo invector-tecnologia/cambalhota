@@ -1,6 +1,6 @@
 # Diretrizes de Instrumentação para AI-Driven Development
 
-Este documento estabelece os contratos arquiteturais e operacionais para o ecossistema *Spec-Driven Development* do projeto. A premissa central é que a documentação atua como a Única Fonte da Verdade.
+Este documento estabelece os contratos arquiteturais e operacionais para o ecossistema *Spec-Driven Development* do projeto. A premissa central é que a documentação atua como a Única Fonte da Verdade. Coloque-o na pasta `docs/` do seu projeto.
 
 Nenhuma linha de código deve ser gerada por humanos ou agentes sem a prévia especificação detalhada em arquivos Markdown padronizados.
 
