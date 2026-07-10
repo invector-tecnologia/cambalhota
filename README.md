@@ -24,7 +24,7 @@ Todos os arquivos em `/docs/` devem ser referênciados entre si e com os arquivo
     - Antes de iniciar a criação do código, o agente analisa a especificação e interage com o humano para remover qualquer dúvida. Isso garante que a máquina compreendeu o resultado esperado antes de gastar tempo e recursos (tokens) escrevendo o código.
     - O agente de ia lê essas regras e cria o software baseando-se estritamente nelas, o que diminui o risco de invenções ou códigos desnecessários. Divisão de Agentes em Cadeia Em vez de usar apenas um agente para tudo, a estratégia utiliza múltiplos agentes especializados em uma linha de montagem.
 
-### Estapa de instrumentação:
+#### Agents:
 O projeto seja Instrumentado para utilizar todos os recursos que o antigravity pode proporcionar para um AI Driven Development assertivo e de qualidade, levando em conta os documentos contidos na pasta de documentação.
 Deve conter agentes customizados garantindo o spec driven development:   
 - Agente `prod`:
