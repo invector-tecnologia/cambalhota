@@ -1,0 +1,116 @@
+apiVersion: antigravity.google.com/v1alpha1
+kind: BootstrapRunbook
+metadata:
+  name: veterin-ai-driven-ignition
+  description: "Ignition file para instrumentação automática da arquitetura multiagentes do projeto Veterin."
+  author: "Max (AI Driven Engineer)"
+
+# ---------------------------------------------------------------------------
+# INSTRUÇÕES PARA O AGENTE EXECUTOR (AI INSTRUCTIONS):
+# 1. Leia este arquivo sequencialmente.
+# 2. Execute os comandos de shell na ordem especificada.
+# 3. Crie os arquivos com os paths exatos mapeados na seção de scaffolding.
+# 4. Valide a topologia no final utilizando o Antigravity CLI.
+# ---------------------------------------------------------------------------
+
+phases:
+  - name: 01-workspace-initialization
+    description: "Inicializa a malha de observabilidade e FinOps"
+    execution:
+      type: shell
+      commands:
+        - "ag init agents --strategy event-driven"
+        - "ag config set telemetry.enabled true"
+        - "ag config set finops.budget.action alert_and_throttle"
+
+  - name: 02-structural-scaffolding
+    description: "Criação da árvore de diretórios conforme plano de instrumentação"
+    execution:
+      type: shell
+      commands:
+        # Diretórios de documentação e produto
+        - "mkdir -p docs/product/roadmaps/"
+        - "mkdir -p docs/engineering/adrs/"
+        - "mkdir -p docs/engineering/qa_plans/"
+        # Diretórios de agentes e skills
+        - "mkdir -p .agents/arch .agents/eng .agents/prod .agents/qa"
+        - "mkdir -p .agents/skills/adr-generator"
+        - "mkdir -p .agents/skills/rust-backend"
+        - "mkdir -p .agents/skills/flutter-frontend"
+        - "mkdir -p .agents/skills/qa-gherkin"
+        # Criação de placeholders para rules globais e docs core
+        - "touch AGENTS.md README.md docs/instrumentation.md docs/scope.md"
+        - "touch docs/engineering/constitution.md docs/engineering/architecture_map.md docs/product/features_map.md"
+
+  - name: 03-mcp-and-hooks-configuration
+    description: "Configuração do Model Context Protocol e Guardrails"
+    execution:
+      type: file-generation
+      files:
+        - path: ".agents/mcp.json"
+          content: |
+            {
+              "mcp_servers": {
+                "postgres-heroku": {
+                  "type": "database",
+                  "description": "MCP para PostgreSQL (Heroku).",
+                  "connection_env": ["DATABASE_URL", "DATABASE_SCHEMA"]
+                }
+              }
+            }
+        - path: ".agents/hooks.json"
+          content: |
+            {
+              "hooks": [
+                {
+                  "name": "constitution-guard",
+                  "trigger": "PreToolUse",
+                  "description": "Valida ausência do schema public e credenciais hardcoded antes da escrita de código."
+                },
+                {
+                  "name": "adr-prerequisite",
+                  "trigger": "PreToolUse",
+                  "description": "Verifica existência de ADR correspondente antes da geração em backend/ ou frontend/."
+                }
+              ]
+            }
+
+  - name: 04-skills-injection
+    description: "Provisionamento das habilidades granulares de domínio"
+    execution:
+      type: file-generation
+      files:
+        - path: ".agents/skills/rust-backend/SKILL.md"
+          content: "# Padrões Rust\n- Actix-web, sqlx, serde, tracing, DDD em camadas, thiserror.\n- Regras de schema PostgreSQL rigorosas."
+        - path: ".agents/skills/flutter-frontend/SKILL.md"
+          content: "# Padrões Flutter\n- Design system dark-mode, go_router, Riverpod/Bloc."
+        - path: ".agents/skills/adr-generator/SKILL.md"
+          content: "# Template de ADR\n- Seções obrigatórias: Contexto, Decisão, Trade-offs, Consequências, Status. Nomenclatura NNN_nome.md."
+        - path: ".agents/skills/qa-gherkin/SKILL.md"
+          content: "# Padrões QA\n- Cenários Gherkin pt-BR. Cobertura: happy path, edge cases, erro, multi-tenant."
+
+  - name: 05-agents-manifests
+    description: "Instanciação dos subagentes no workspace"
+    execution:
+      type: file-generation
+      files:
+        - path: ".agents/prod/agent.md"
+          content: "> [!NOTE]\n> Agente configurado via runbook. Referência ao manifesto Antigravity principal da arquitetura de produto."
+        - path: ".agents/arch/agent.md"
+          content: "> [!NOTE]\n> Agente configurado via runbook. Referência ao manifesto Antigravity principal da arquitetura de sistemas."
+        - path: ".agents/eng/agent.md"
+          content: "> [!NOTE]\n> Agente configurado via runbook. Referência ao manifesto Antigravity principal de engenharia de software."
+        - path: ".agents/qa/agent.md"
+          content: "> [!NOTE]\n> Agente configurado via runbook. Referência ao manifesto Antigravity principal de validação e testes."
+
+  - name: 06-final-binding
+    description: "Aplica e valida a configuração na CLI"
+    execution:
+      type: shell
+      commands:
+        # Vincula os servidores MCP descritos no JSON
+        - "ag mcp apply -f .agents/mcp.json"
+        # Habilita os hooks de segurança (Constitution Guard)
+        - "ag hooks apply -f .agents/hooks.json"
+        # Realiza a validação da topologia
+        - "ag status --check-topology"

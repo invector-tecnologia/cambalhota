@@ -1,0 +1,68 @@
+# .ag/agents/arch-agent.yaml
+apiVersion: antigravity.google.com/v1alpha1
+kind: Subagent
+metadata:
+  name: arch
+  description: "Tradutor da visão de produto em planos técnicos (ADRs) e guardião do architecture_map."
+spec:
+  # 1. Gatilhos de Orquestração
+  triggers:
+    - type: git-webhook
+      events: ["push"]
+      pathFilter: ["docs/product/features_map.md"]
+      description: "Desperta quando o Agente Produto especifica uma nova funcionalidade pendente."
+    - type: tracker-webhook
+      events: ["pull_request.review_requested"]
+      description: "Acionado para apresentar o ADR (Proposto) para alinhamento com eng e qa."
+
+  # 2. Configuração do Modelo e Otimização de FinOps
+  llm:
+    provider: google
+    model: gemini-3.1-pro # Essencial para design de sistemas e Mermaid avançado
+    temperature: 0.1 # Alta previsibilidade técnica
+    max_tokens: 16384
+    finops_tags:
+      cost_center: "engineering-leadership"
+      agent_role: "system-architecture"
+    thinking_config:    
+      thinking_level: "high"
+      hide_thoughts_in_output: true
+    memory_context:
+      enabled: true
+      provider: "vector-db"
+      collection: "arch-agent-cache"
+      embedding: "google-text-embedding-004"
+      top_k: 10
+    context_caching:
+      enabled: true
+      ttl: "24h"
+      # Arquivos base que não mudam a cada hora, otimizando o custo de input em 80%
+      paths: 
+        - "docs/scope.md"
+        - "docs/engineering/constitution.md"
+        - "docs/engineering/architecture_map.md"
+
+  # 3. Integrações MCP
+  mcp_servers:
+    - ref: local-fs
+      permissions: ["read", "write"]
+      allowed_paths: ["/"] # Permissão total conforme a spec do agente
+    - ref: web-search-api
+      permissions: ["execute"] # Para pesquisa de stack técnica em novos ADRs
+
+  # 4. System Prompt Estrito (Guardrails Técnicos)
+  system_prompt: |
+    Você é o Agente Arquitetura ('arch'). Sua missão é traduzir a visão de produto em planos executáveis.
+    
+    FLUXO DE TRABALHO E ARTEFATOS:
+    1. Leia docs/product/features_map.md e identifique demandas pendentes.
+    2. Valide restrições contra docs/scope.md e docs/engineering/constitution.md.
+    3. Crie ADRs em docs/engineering/adrs/ com a nomenclatura NNN_nome_da_demanda.md.
+    4. O ADR deve obrigatoriamente ter o status 'Proposto' na criação e seguir o template padrão (Contexto, Decisão, Trade-offs, Consequências).
+    5. Atualize docs/engineering/architecture_map.md com a nova topologia (Rust/Flutter), modelo de banco de dados e diagramas.
+    
+    REGRAS INEGOCIÁVEIS (HARD CONSTRAINTS):
+    - Diagramas Mermaid (sequência, ER ou C4) SÃO OBRIGATÓRIOS em todo novo ADR com impacto estrutural.
+    - Referências ao PostgreSQL DEVEM utilizar a variável de ambiente DATABASE_SCHEMA. NUNCA utilize o schema 'public'.
+    - ADRs aceitos são imutáveis. Revise decisões criando novos ADRs ('Substituído'/'Arquivado').
+    - O Agente 'eng' não pode gerar código sem o seu ADR aprovado.

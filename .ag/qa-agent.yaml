@@ -1,0 +1,75 @@
+# .ag/agents/qa-agent.yaml
+apiVersion: antigravity.google.com/v1alpha1
+kind: Subagent
+metadata:
+  name: qa
+  description: "Guardião da qualidade. Executa testes unitários e de integração, gera planos Gherkin e publica relatórios centralizados."
+spec:
+  # 1. Gatilhos de Orquestração
+  triggers:
+    - type: tracker-webhook
+      events: ["issue.updated"]
+      labels: ["ready-for-qa"]
+
+  # 2. Configuração do Modelo e Limites FinOps
+  llm:
+    provider: google
+    model: gemini-3.1-pro 
+    temperature: 0.1
+    max_tokens: 65536 # Janela ampliada para suportar logs de testes de integração
+    finops_tags:
+      cost_center: "engineering-quality"
+      agent_role: "automated-integration-qa"
+    thinking_config:    
+      thinking_level: "high"
+      hide_thoughts_in_output: true
+    memory_context:
+      enabled: true
+      provider: "vector-db"
+      collection: "arch-agent-cache"
+      embedding: "google-text-embedding-004"
+      top_k: 10
+    context_caching:
+      enabled: true
+      ttl: "24h"
+      paths: 
+        - "docs/engineering/constitution.md"
+        - "docs/engineering/architecture_map.md"
+
+  # 3. Model Context Protocol (MCP) - Otimizado para Integração e Roteamento
+  mcp_servers:
+    - ref: local-fs
+      permissions: ["read", "write", "delete"]
+      allowed_paths: 
+        - "docs/engineering/qa_plans/"      # Especificações de teste (Input/Output)
+        - "docs/qa/test-reports/"           # Rota OBRIGATÓRIA para relatórios (Output)
+        - "docs/product/features_map.md"    # Atualização de status (Output)
+        - "docs/engineering/adrs/"          # Contexto (Read-Only)
+        - "backend/"                        # Código fonte (Read-Only)
+        - "frontend/"                       # Código fonte (Read-Only)
+    - ref: local-shell
+      permissions: ["execute"]
+      # Adição de comandos de orquestração para subir infra efêmera de testes de integração
+      allowed_commands: 
+        - "cargo test"
+        - "flutter test"
+        - "docker-compose -f docker-compose.test.yml up -d"
+        - "docker-compose -f docker-compose.test.yml down"
+
+  # 4. System Prompt Estrito (Políticas de Teste e Integração)
+  system_prompt: |
+    Você é o Agente QA ('qa'), guardião absoluto da qualidade do projeto Veterin.
+    
+    RESPONSABILIDADES DE TESTE:
+    1. ARQUITETURA: Leia o ADR correspondente antes de agir.
+    2. PLANOS (GHERKIN): Mantenha especificações em 'docs/engineering/qa_plans/'.
+    3. INTEGRAÇÃO: Suba a infraestrutura efêmera e execute a suíte de testes de integração validando os contratos de API (Rust) e o schema do banco de dados antes da interface (Flutter).
+    4. VALIDAÇÃO SEMÂNTICA: Avalie falhas pelo contexto do negócio, e não apenas por strings exatas.
+    
+    GERAÇÃO DE RELATÓRIOS (REGRA INEGOCIÁVEL):
+    - TODOS os relatórios de bugs, logs de falhas em testes de integração, logs de autocura e atestados de sucesso DEVEM SER GRAVADOS EXCLUSIVAMENTE na pasta 'docs/qa/test-reports/'.
+    - Se a implementação falhar, o relatório estruturado em 'docs/qa/test-reports/' deve conter: Severidade, Passos/Logs, ADR relacionado.
+    - Notifique o agente 'eng' apontando o caminho exato do relatório gerado.
+    
+    PÓS-APROVAÇÃO:
+    - Apenas após validação de integração e unitária ser 100% bem-sucedida, atualize o 'docs/product/features_map.md'.

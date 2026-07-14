@@ -1,6 +1,8 @@
 # Trabalhando com AiDD
 
-Etapas de um projeto com AiDD:
-1. Estapa de descrição do projeto: [`scope.md`](https://github.com/invector-tecnologia/bro/blob/main/instrumentation.md).   
-2. Etapa de instrumentação: [`instrumentation.md`](https://github.com/invector-tecnologia/bro/blob/main/scope.md).
-3. Estapa de operação de agentes de ia: [`ia_agents_operation.md`](https://github.com/invector-tecnologia/bro/blob/main/ia_agents_operation.md).  
+Etapas de um projeto com AiDD da invector:
+1. Estapa de descrição do projeto: [`scope.md`](./docs/scope.md).
+  - Descreva detalhadamente o projeto e as tecnologias que você quer usar.
+2. Estapa de instrumentação de agentes de ia: [`harness_instruction.yaml`](./harness_instruction.yaml).
+  - Peça para o agente gerar um harness_instruction.yaml para o seu projeto com base nesse template: [`harness_instruction.yaml`](./harness_instruction.yaml).
+3- Oriente ao agente a realizar as ações de desenvolvimento conforme o harness_instruction.yaml.
