@@ -1,9 +1,9 @@
 apiVersion: antigravity.google.com/v1alpha1
 kind: BootstrapRunbook
 metadata:
-  name: tavolo-ai-driven-ignition
-  description: "Ignition file para instrumentação automática da arquitetura multiagentes do projeto Tavolo (Restaurant ERP)."
-  author: "Bernardo Rosmaninho"
+  name: cambalhota-ignition
+  description: "Ignition file para instrumentação automática da arquitetura multiagentes do projeto Cambalhota."
+  author: "Max (AI Driven Engineer)"
 
 # ---------------------------------------------------------------------------
 # INSTRUÇÕES PARA O AGENTE EXECUTOR (AI INSTRUCTIONS):
@@ -21,30 +21,31 @@ phases:
       commands:
         - "ag init agents --strategy event-driven"
         - "ag config set telemetry.enabled true"
-        - "ag config set finops.budget.action alert_and_throttle"
 
   - name: 02-structural-scaffolding
-    description: "Criação da árvore de diretórios conforme plano de instrumentação"
+    description: "Criação da árvore de diretórios conforme plano de instrumentação do Cambalhota"
     execution:
       type: shell
       commands:
-        # Diretórios de documentação e produto
-        - "mkdir -p docs/product/roadmaps/"
+        # Diretórios do código fonte Nim e assets
+        - "mkdir -p src/"
+        - "mkdir -p tests/"
+        # Diretórios para migrations e configurações de CDN
+        - "mkdir -p migrations/up migrations/down"
+        - "mkdir -p config/"
+        # Diretórios de documentação e engenharia
+        - "mkdir -p docs/product/"
         - "mkdir -p docs/engineering/adrs/"
-        - "mkdir -p docs/engineering/qa_plans/"
         # Diretórios de agentes e skills
-        - "mkdir -p .agents/arch .agents/eng .agents/prod .agents/qa .agents/fiscal"
-        - "mkdir -p .agents/skills/adonis-backend"
-        - "mkdir -p .agents/skills/tailwind-frontend"
-        - "mkdir -p .agents/skills/japa-qa"
-        - "mkdir -p .agents/skills/fiscal-domain"
-        - "mkdir -p .agents/skills/adr-generator"
-        # Criação de placeholders para rules globais e docs core
-        - "touch AGENTS.md README.md docs/instrumentation.md docs/scope.md"
-        - "touch docs/engineering/constitution.md docs/engineering/architecture_map.md docs/product/features_map.md"
+        - "mkdir -p .agents/arch .agents/eng .agents/qa"
+        - "mkdir -p .agents/skills/nim-cli-backend"
+        - "mkdir -p .agents/skills/tatui-frontend"
+        - "mkdir -p .agents/skills/migration-engine"
+        # Criação de placeholders
+        - "touch AGENTS.md src/main.nim"
 
   - name: 03-mcp-and-hooks-configuration
-    description: "Configuração do Model Context Protocol e Guardrails"
+    description: "Configuração do Model Context Protocol e Guardrails de Segurança"
     execution:
       type: file-generation
       files:
@@ -52,10 +53,15 @@ phases:
           content: |
             {
               "mcp_servers": {
-                "postgres-heroku": {
+                "relational-dbs": {
                   "type": "database",
-                  "description": "MCP para PostgreSQL (Heroku).",
-                  "connection_env": ["DATABASE_URL", "DATABASE_SCHEMA"]
+                  "description": "MCP para conexão primária com PostgreSQL, MySQL e SQL Server.",
+                  "connection_env": ["DB_URL", "DB_SCHEMA"]
+                },
+                "cdn-provider": {
+                  "type": "storage",
+                  "description": "MCP para acesso à CDN/Git (GDrive, AWS S3, GCP, etc) para persistência de backups.",
+                  "connection_env": ["CDN_PROVIDER_URL", "CDN_AUTH_TOKEN"]
                 }
               }
             }
@@ -64,14 +70,14 @@ phases:
             {
               "hooks": [
                 {
-                  "name": "constitution-guard",
+                  "name": "credentials-guard",
                   "trigger": "PreToolUse",
-                  "description": "Valida uso exclusivo do schema 'tavolo' e ausência de schema public antes da escrita de código."
+                  "description": "Bloqueia qualquer escrita de credenciais de CDN ou Banco de Dados em arquivos de código plano."
                 },
                 {
-                  "name": "adr-prerequisite",
+                  "name": "migration-validation",
                   "trigger": "PreToolUse",
-                  "description": "Verifica existência de ADR correspondente antes da geração de controllers ou models."
+                  "description": "Garante a existência de rotinas de down correspondentes para qualquer migration gerada."
                 }
               ]
             }
@@ -81,41 +87,30 @@ phases:
     execution:
       type: file-generation
       files:
-        - path: ".agents/skills/adonis-backend/SKILL.md"
-          content: "# Padrões AdonisJS v6\n- Controladores finos, lógicas em app/services/.\n- Acesso a banco 100% via Lucid ORM.\n- Validação via Vine.js.\n- Regra rígida: schema PostgreSQL = tavolo."
-        - path: ".agents/skills/tailwind-frontend/SKILL.md"
-          content: "# Padrões Edge.js e Tailwind CSS\n- Views em resources/views/ com sintaxe Edge.\n- Classes utilitárias do TailwindCSS para responsividade.\n- Componentização Edge para reuso."
-        - path: ".agents/skills/japa-qa/SKILL.md"
-          content: "# Padrões Japa Testing\n- Testes funcionais e unitários (TDD puro preferido).\n- Zero acoplamento de banco de dados onde possível.\n- Suítes separadas (unit / functional)."
-        - path: ".agents/skills/fiscal-domain/SKILL.md"
-          content: "# Padrões do Módulo Fiscal\n- Emissão de NFC-e/NF-e com regras da SEFAZ multi-UF.\n- Assinatura XML (certificado A1) e validação XSD.\n- Atenção especial ao FISCAL_ENCRYPTION_KEY e rotinas de contingência."
-        - path: ".agents/skills/adr-generator/SKILL.md"
-          content: "# Template de ADR\n- Seções obrigatórias: Contexto, Decisão, Trade-offs, Consequências, Status. Nomenclatura NNN_nome.md."
+        - path: ".agents/skills/nim-cli-backend/SKILL.md"
+          content: "# Padrões Nim (Backend & CLI)\n- Priorizar bibliotecas nativas de db. Usar compilação com ORC. Foco em estabilidade e performance de I/O para geração e comparação rápida de diffs estruturais."
+        - path: ".agents/skills/tatui-frontend/SKILL.md"
+          content: "# Padrões Tatuí (TUI)\n- Utilizar o Design System dark-mode da doc de escopo. Paleta: #2E3440, #88C0D0 (info). Layout baseado em tabs para separar Migrations, Backups e Configurações."
+        - path: ".agents/skills/migration-engine/SKILL.md"
+          content: "# Gestão de Migrations\n- Seguir benchmarks rigorosos como Flyway/Liquibase. Versões sequenciais ex: V1__init.sql, V2__add_table.sql. Arquivos de testes (DDL/DML) acoplados."
 
   - name: 05-agents-manifests
     description: "Instanciação dos subagentes no workspace"
     execution:
       type: file-generation
       files:
-        - path: ".agents/prod/agent.md"
-          content: "> [!NOTE]\n> Agente configurado via runbook. Referência ao manifesto Antigravity principal de produto (Tavolo ERP)."
         - path: ".agents/arch/agent.md"
-          content: "> [!NOTE]\n> Agente configurado via runbook. Referência ao manifesto Antigravity principal de arquitetura do AdonisJS/Postgres."
+          content: "> [!NOTE]\n> Agente focado na arquitetura do sistema Nim e design da integração CDN/Git."
         - path: ".agents/eng/agent.md"
-          content: "> [!NOTE]\n> Agente configurado via runbook. Referência ao manifesto Antigravity principal de engenharia fullstack."
+          content: "> [!NOTE]\n> Agente responsável pela implementação do core engine de migrations e UI no Tatuí."
         - path: ".agents/qa/agent.md"
-          content: "> [!NOTE]\n> Agente configurado via runbook. Referência ao manifesto Antigravity principal de testes automatizados com Japa."
-        - path: ".agents/fiscal/agent.md"
-          content: "> [!NOTE]\n> Agente especializado no contexto fiscal crítico (SEFAZ, NFC-e, XML, A1)."
+          content: "> [!NOTE]\n> Agente de validação, encarregado de testar as rotinas de backup, restore e execução de migrations up/down."
 
   - name: 06-final-binding
     description: "Aplica e valida a configuração na CLI"
     execution:
       type: shell
       commands:
-        # Vincula os servidores MCP descritos no JSON
         - "ag mcp apply -f .agents/mcp.json"
-        # Habilita os hooks de segurança (Constitution Guard)
         - "ag hooks apply -f .agents/hooks.json"
-        # Realiza a validação da topologia
         - "ag status --check-topology"

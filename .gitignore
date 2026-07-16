@@ -1,26 +1,22 @@
-# Dependencies and AdonisJS build
-node_modules
-build
-tmp
+# Nim caches
+nimcache/
+nimblecache/
+htmldocs/
 
-# Secrets
+# Compiled binaries
+cambalhota
+main
+*.exe
+*.out
+
+# Credentials and sensitive environment configurations
 .env
-.env.local
-.env.production.local
-.env.development.local
+*.env
+credentials.json
+secrets/
 
-# Frontend assets compiled code
-public/assets
-
-# Build tools specific
-npm-debug.log
-yarn-error.log
-
-# Editors specific
-.fleet
-.idea
-.vscode
-
-# Platform specific
-.DS_Store
-tavolo.code-workspace
+# Ignorar dumps e backups gerados localmente (devem ir para a CDN/Git específico)
+dumps/
+backups/
+*.sql
+!migrations/

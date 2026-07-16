@@ -1,61 +1,74 @@
-# Escopo Estratégico do Projeto (PRD) - Tavolo Restaurant ERP
+# Escopo Estratégico do Projeto (PRD) - Cambalhota
 
 Este documento estabelece as diretrizes fundamentais de negócios, as fronteiras de atuação e as fundações tecnológicas do Tavolo. Ele atua como o contrato principal entre as áreas de Produto, Liderança Técnica e Engenharia.
 
 ## 1. Proposta de Valor e Priorização (Matriz MoSCoW)
-O Tavolo é o ERP de nova geração para Food Service (restaurantes, bares, lanchonetes), oferecendo operação ultra-rápida, contingência offline fiscal (NFC-e), Inteligência Artificial para pedidos por voz e UX fluida inspirada nas melhores práticas mundiais.
+A definição de escopo segue uma ordem estrita de prioridade focada em viabilidade, ROI e tempo de lançamento (Time-to-Market). O sistema engloba tanto a extração e backup seguro de dados/esquemas em nuvem (ou local), quanto o gerenciamento avançado de migrações estruturais de banco de dados, tendo o Flyway e o Liquibase como benchmarks.
 
-*   **1.1. Requisitos Críticos (Must-Have):** 
-    *   Gestão de Mesas e Comandas com múltiplos status (livre, ocupada, aguardando conta, etc.).
-    *   Frente de Caixa (PDV) ultra-rápido para fechamento de contas e múltiplas formas de pagamento (PIX, Cartão, Dinheiro).
-    *   Emissão Fiscal (NFC-e) em tempo real, com contingência offline automática.
-    *   Cardápio Digital configurável com categorias, produtos e adicionais/observações.
-    *   Multi-tenancy nativo (múltiplas empresas/CNPJs isolados na mesma base).
-
+*   **1.1. Requisitos Críticos (Must-Have):**     
+    *   O sistema será capaz de realizar extração de metadados (schema) e dados (tabelas, registros) de bancos de dados relacionais (PostgreSQL, MySQL, SQL Server) e apresentar o resultado em um formato padronizado (ex: `yyyy-mm-dd_HhMM_schema_dump-db.sql`).
+    *   O sistema exigirá a configuração de um repositório Git ou "CDN" (ex: Dropbox, Google Drive, OneDrive, GCP buckets, Cloudflare R2, local storage ou serviços NAS) para fazer a persistência dos arquivos de backup extraídos.
+    *   O sistema fará a restauração (restore) do schema, suas tabelas e seus dados que foram previamente extraídos. Ele será capaz de listar os backups que existem persistidos no repositório ou CDN configurada pelo usuário.
+    *   O sistema será capaz de gerar automaticamente arquivos de migration com rotinas de up e down.
+    *   O sistema será capaz de comparar duas versões do banco de dados e gerar arquivos de migration com as diferenças encontradas.
+    *   O sistema será capaz de executar a sequência de arquivos de migration, monitorar a sua execução e realizar controle de versão estrutural.
+    *   O sistema será capaz de gerar relatórios de sucesso e falha na execução dos arquivos de migration e apresentar na tela do usuário.
 *   **1.2. Requisitos Estratégicos (Should-Have):** 
-    *   Gestão de Almoxarifado e Estoque (fichas técnicas, baixa automática no preparo).
-    *   Monitor de Preparo na Cozinha (KDS - Kitchen Display System).
-    *   Assistente de Pedidos por Voz (Integração Whisper + GPT-4o-mini) para garçons.
-    *   Importação de Notas Fiscais de Fornecedores via XML.
-
+    *   A aplicação será capaz de gerar documentação técnica (em Markdown) e arquivos de teste (SQL DDL/DML) com base no schema extraído.
 *   **1.3. Requisitos de Aprimoramento (Nice-to-Have):** 
-    *   Programa de fidelidade (Cashback).
-    *   Autoatendimento via QR Code na mesa (Cardápio interativo e pagamento pelo celular).
-    *   Análises avançadas de rentabilidade (BI integrado).
+    *   A aplicação será capaz de gerar representações visuais do schema extraído.
 
 ## 2. Domínio de Usuários (Atores e Público-Alvo)
+Mapeamento claro dos usuários que interagem com o sistema, para guiar o *Domain-Driven Design* (DDD) e a gestão de permissões.
 
-*   **Garçom (App Mobile/Tablet):** Necessita de agilidade absurda. Clica pouco, usa comandos de voz e precisa saber quais mesas estão precisando de atenção.
-*   **Caixa / Operador de PDV:** Necessita de segurança, atalhos de teclado e resiliência offline para que a fila nunca pare, mesmo sem internet.
-*   **Cozinheiro / KDS:** Tela simplificada de alto contraste (dark mode), toques rápidos para mudar status dos pedidos.
-*   **Gerente / Proprietário:** Acesso a dashboards em tempo real, controle de estoque (CMV), DRE gerencial e configurações do negócio.
-*   **Superadmin (Tavolo):** Gestão global de assinaturas (SaaS), suporte a tickets e monitoramento da infraestrutura.
+*   **2.1. Usuários Técnicos**
+    *   **Desenvolvedores de Software:** Interagem com o sistema para extrair esquemas, gerenciar migrações, gerar documentação técnica e arquivos de teste com base no schema.
+    *   **Administradores de Banco de Dados (DBAs):** Interagem com o sistema para realizar extrações e backups estruturados, monitorar migrações, listar e restaurar backups a partir de um repositório Git/CDN, e auditar alterações estruturais.
 
 ## 3. Topologia de Funcionalidades Core
 
-1. **Operação e Atendimento (Core 1)**: PDV, Mesas, Comandas, KDS, Voz.
-2. **Backoffice Financeiro (Core 2)**: Contas a pagar/receber, fechamento de caixa, meios de pagamento.
-3. **Engenharia de Cardápio (Core 3)**: Produtos, categorias, precificação, ficha técnica (insumos).
-4. **Motor Fiscal (Core 4)**: Integração SEFAZ multi-UF, assinatura A1, mensageria NFC-e/NF-e.
+*   **3.1. Configuração do Sistema e Conexão**
+    *   O sistema será capaz de configurar as credenciais de acesso aos bancos de dados usando a URL de conexão fornecida.
+    *   O usuário incluirá e configurará um repositório Git ou provedor de CDN (S3, GCP, R2, GDrive, Dropbox, OneDrive, Local, NAS) para garantir a persistência dos arquivos de backup.
+    *   O sistema será capaz de identificar e apresentar os nomes dos schemas existentes para que o usuário selecione qual deseja extrair/operar.
+    *   O sistema será capaz de configurar o formato de geração dos arquivos de migration (Plain ou SQL).
+*   **3.2. Extração (Backup) e Persistência**
+    *   O sistema será capaz de realizar extração de metadados (schema) e dados de bancos relacionais e apresentar o resultado padronizado.
+    *   O sistema fará o upload e a persistência dos arquivos de backup gerados diretamente para o repositório Git ou CDN configurada.
+*   **3.3. Restauração (Restore)**
+    *   O sistema listará dinamicamente todos os backups disponíveis no repositório Git ou CDN da aplicação.
+    *   O sistema fará o restore completo (schema, tabelas e dados) a partir de um backup listado e selecionado pelo usuário.
+*   **3.4. Geração e Execução de Migrations**
+    *   O sistema gerará arquivos de migration com rotinas de up e down.
+    *   O sistema comparará duas versões do banco de dados e gerará arquivos de diff (migration).
+    *   O sistema executará e auditará as migrations com controle de versão robusto (nível Flyway/Liquibase).
+    *   O sistema apresentará relatórios de sucesso/falha de execução na interface.
+*   **3.5. Documentação Técnica e Visualização**
+    *   Geração de documentação técnica em Markdown e arquivos de teste (DDL/DML).
+    *   Geração de visualizações do schema extraído.
 
 ## 4. Fronteiras e Proteção de Escopo (Out of Scope)
+Para blindar o time de engenharia contra *scope creep* e garantir o foco arquitetural.
 
 *   **4.1. Restrições Absolutas (Forbidden):** 
-    *   O sistema NÃO será um marketplace de delivery (como o iFood). Iremos integrar com marketplaces, mas não gerir motoboys ou ter um app B2C global.
-    *   O sistema NÃO irá gerenciar folha de pagamento de funcionários (contabilidade complexa).
-*   **4.2. Anti-padrões e Riscos a Evitar (Avoid):** 
-    *   Evitar dependência de hardwares proprietários. O sistema deve rodar no navegador, tablets comuns e máquinas POS baseadas em Android/Windows.
-    *   Não construir gateways de pagamento do zero (utilizar adquirentes existentes como Stone/Mercado Pago).
+    *   O sistema não deve armazenar credenciais de acesso aos bancos de dados ou aos serviços de CDN/Git em texto pleno no repositório de código.
 
 ## 5. Diretrizes de Interface e Experiência (UX/UI)
+Contratos visuais e referências de benchmark para o desenvolvimento das camadas de apresentação.
 
-*   **5.1. Padrões Visuais (Design System):** Interface deve ser predominantemente *Dark Mode* para ambientes de bar/restaurante com baixa iluminação, usando `Tailwind CSS`. Botões grandes, foco em touch, micro-interações via `Alpine.js`.
-*   **5.2. Benchmarks:** Toast POS, Square for Restaurants, Goomer, iFood Gestão.
-*   **5.3. Acessibilidade (WCAG):** Alto contraste, legibilidade sob forte luz e suporte a navegação por teclado para caixas.
+*   **5.1. Padrões Visuais (Design System):** Utilizar Terminal User Interface (TUI) com as seguintes diretrizes:
+    - Layout em modo escuro (dark mode)
+    - Paleta de cores primária: `#2E3440`
+    - Destaques: `#88C0D0` (informação), `#BF616A` (alerta), `#A3BE8C` (sucesso)
+    - Tipografia: `Monoid`, tamanho 13px
+    - Layout baseado em abas e painéis verticais
+    - Uso de bordas arredondadas (`corner_radius`)
+    - Padding lateral de `16px`
 
 ## 6. Fundações Tecnológicas (Stack Baseline)
+Definição do ecossistema técnico aprovado pela liderança para sustentar a operação.
 
-*   **6.1. Camada de Apresentação:** Edge.js (SSR HTML), Tailwind CSS, Alpine.js.
-*   **6.2. Camada de Negócios:** AdonisJS v6, TypeScript, Vine.js (Validação), Japa (Testes). Arquitetura MVC.
-*   **6.3. Camada de Persistência:** PostgreSQL, acessado estritamente via Lucid ORM. Variável `DATABASE_SCHEMA` obrigatória. (Proibido uso do schema 'public'). Isolamento via `empresa_id`.
-*   **6.4. Infraestrutura:** Heroku (Web Dynos), Heroku Postgres, Cloudflare R2 (Imagens e Certificados), Certificados A1 assinados nativamente via lib criptográfica do Node.js.
+*   **6.1. Camada de Apresentação (Frontend TUI):** [Tatuí](https://github.com/invector-tecnologia/tatui)
+*   **6.2. Camada de Negócios (Backend):** [Nim](https://github.com/nim-lang/nim)
+*   **6.3. Camada de Persistência (Database):** [db-schema-data-dump](https://github.com/invector-tecnologia/db-schema-data-dump)
+*   **6.4. Infraestrutura e Operações (Infra/DevOps):** Terminal / CLI
