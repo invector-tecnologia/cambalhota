@@ -7,7 +7,7 @@ export default class extends BaseSchema {
      */
     const hasFiscalConfigs = await this.schema.withSchema('tavolo').hasTable('fiscal_configs')
     if (!hasFiscalConfigs) {
-      await this.schema.withSchema('tavolo').createTable('fiscal_configs', (table) => {
+      this.schema.withSchema('tavolo').createTable('fiscal_configs', (table) => {
         table.uuid('id').primary()
         table
           .integer('establishment_id')
@@ -38,7 +38,7 @@ export default class extends BaseSchema {
      */
     const hasFiscalNotes = await this.schema.withSchema('tavolo').hasTable('fiscal_notes')
     if (!hasFiscalNotes) {
-      await this.schema.withSchema('tavolo').createTable('fiscal_notes', (table) => {
+      this.schema.withSchema('tavolo').createTable('fiscal_notes', (table) => {
         table.uuid('id').primary()
         table
           .integer('venda_id')
@@ -86,7 +86,7 @@ export default class extends BaseSchema {
      */
     const hasNotasFiscais = await this.schema.withSchema('tavolo').hasTable('notas_fiscais')
     if (!hasNotasFiscais) {
-      await this.schema.withSchema('tavolo').createTable('notas_fiscais', (table) => {
+      this.schema.withSchema('tavolo').createTable('notas_fiscais', (table) => {
         table.increments('id').primary()
         table
           .integer('empresa_id')
@@ -136,7 +136,7 @@ export default class extends BaseSchema {
      */
     const hasNotaFiscalItens = await this.schema.withSchema('tavolo').hasTable('nota_fiscal_itens')
     if (!hasNotaFiscalItens) {
-      await this.schema.withSchema('tavolo').createTable('nota_fiscal_itens', (table) => {
+      this.schema.withSchema('tavolo').createTable('nota_fiscal_itens', (table) => {
         table.increments('id').primary()
         table
           .integer('nota_fiscal_id')
@@ -171,9 +171,9 @@ export default class extends BaseSchema {
   }
 
   async down() {
-    await this.schema.withSchema('tavolo').dropTable('nota_fiscal_itens')
-    await this.schema.withSchema('tavolo').dropTable('notas_fiscais')
-    await this.schema.withSchema('tavolo').dropTable('fiscal_notes')
-    await this.schema.withSchema('tavolo').dropTable('fiscal_configs')
+    this.schema.withSchema('tavolo').dropTable('nota_fiscal_itens')
+    this.schema.withSchema('tavolo').dropTable('notas_fiscais')
+    this.schema.withSchema('tavolo').dropTable('fiscal_notes')
+    this.schema.withSchema('tavolo').dropTable('fiscal_configs')
   }
 }

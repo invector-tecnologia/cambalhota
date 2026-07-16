@@ -4,7 +4,7 @@ export default class extends BaseSchema {
   async up() {
     const hasVendas = await this.schema.withSchema('tavolo').hasTable('vendas')
     if (!hasVendas) {
-      await this.schema.withSchema('tavolo').createTable('vendas', (table) => {
+      this.schema.withSchema('tavolo').createTable('vendas', (table) => {
         table.increments('id').primary()
         table.integer('empresa_id').unsigned().notNullable().references('id').inTable('empresas').onDelete('CASCADE')
         table.integer('pedido_id').unsigned().nullable().references('id').inTable('pedidos').onDelete('SET NULL')
@@ -28,7 +28,7 @@ export default class extends BaseSchema {
 
     const hasVendaItens = await this.schema.withSchema('tavolo').hasTable('venda_itens')
     if (!hasVendaItens) {
-      await this.schema.withSchema('tavolo').createTable('venda_itens', (table) => {
+      this.schema.withSchema('tavolo').createTable('venda_itens', (table) => {
         table.increments('id').primary()
         table.integer('venda_id').unsigned().notNullable().references('id').inTable('vendas').onDelete('CASCADE')
         table.integer('cardapio_produto_id').unsigned().notNullable().references('id').inTable('cardapio_produtos').onDelete('RESTRICT')
@@ -49,7 +49,7 @@ export default class extends BaseSchema {
 
     const hasCaixaRegistros = await this.schema.withSchema('tavolo').hasTable('caixa_registros')
     if (!hasCaixaRegistros) {
-      await this.schema.withSchema('tavolo').createTable('caixa_registros', (table) => {
+      this.schema.withSchema('tavolo').createTable('caixa_registros', (table) => {
         table.increments('id').primary()
         table.integer('empresa_id').unsigned().notNullable().references('id').inTable('empresas').onDelete('CASCADE')
         table.integer('user_id').unsigned().notNullable().references('id').inTable('users').onDelete('RESTRICT')
@@ -77,8 +77,8 @@ export default class extends BaseSchema {
   }
 
   async down() {
-    await this.schema.withSchema('tavolo').dropTable('caixa_registros')
-    await this.schema.withSchema('tavolo').dropTable('venda_itens')
-    await this.schema.withSchema('tavolo').dropTable('vendas')
+    this.schema.withSchema('tavolo').dropTable('caixa_registros')
+    this.schema.withSchema('tavolo').dropTable('venda_itens')
+    this.schema.withSchema('tavolo').dropTable('vendas')
   }
 }

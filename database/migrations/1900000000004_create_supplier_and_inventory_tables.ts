@@ -4,7 +4,7 @@ export default class extends BaseSchema {
   async up() {
     const hasFornecedores = await this.schema.withSchema('tavolo').hasTable('fornecedores')
     if (!hasFornecedores) {
-      await this.schema.withSchema('tavolo').createTable('fornecedores', (table) => {
+      this.schema.withSchema('tavolo').createTable('fornecedores', (table) => {
         table.increments('id').primary()
         table
           .integer('empresa_id')
@@ -56,7 +56,7 @@ export default class extends BaseSchema {
 
     const hasInsumos = await this.schema.withSchema('tavolo').hasTable('insumos')
     if (!hasInsumos) {
-      await this.schema.withSchema('tavolo').createTable('insumos', (table) => {
+      this.schema.withSchema('tavolo').createTable('insumos', (table) => {
         table.increments('id').primary()
         table
           .integer('empresa_id')
@@ -122,7 +122,7 @@ export default class extends BaseSchema {
   }
 
   async down() {
-    await this.schema.withSchema('tavolo').dropTable('insumos')
-    await this.schema.withSchema('tavolo').dropTable('fornecedores')
+    this.schema.withSchema('tavolo').dropTable('insumos')
+    this.schema.withSchema('tavolo').dropTable('fornecedores')
   }
 }

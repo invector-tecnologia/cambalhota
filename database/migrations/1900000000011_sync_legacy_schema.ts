@@ -1,6 +1,7 @@
 import { BaseSchema } from '@adonisjs/lucid/schema'
 
 export default class extends BaseSchema {
+  static disableTransactions = true
   async up() {
     // Check and rename 'name' to 'razao_social' in 'empresas'
     try {

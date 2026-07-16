@@ -4,7 +4,7 @@ export default class extends BaseSchema {
   async up() {
     const hasCardapioCategorias = await this.schema.withSchema('tavolo').hasTable('cardapio_categorias')
     if (!hasCardapioCategorias) {
-      await this.schema.withSchema('tavolo').createTable('cardapio_categorias', (table) => {
+      this.schema.withSchema('tavolo').createTable('cardapio_categorias', (table) => {
         table.increments('id').primary()
         table
           .integer('empresa_id')
@@ -28,7 +28,7 @@ export default class extends BaseSchema {
 
     const hasCardapioProdutos = await this.schema.withSchema('tavolo').hasTable('cardapio_produtos')
     if (!hasCardapioProdutos) {
-      await this.schema.withSchema('tavolo').createTable('cardapio_produtos', (table) => {
+      this.schema.withSchema('tavolo').createTable('cardapio_produtos', (table) => {
         table.increments('id').primary()
         table
           .integer('empresa_id')
@@ -92,7 +92,7 @@ export default class extends BaseSchema {
 
     const hasCardapioProdutosIngredientes = await this.schema.withSchema('tavolo').hasTable('cardapio_produtos_ingredientes')
     if (!hasCardapioProdutosIngredientes) {
-      await this.schema.withSchema('tavolo').createTable('cardapio_produtos_ingredientes', (table) => {
+      this.schema.withSchema('tavolo').createTable('cardapio_produtos_ingredientes', (table) => {
         table.increments('id').primary()
         table
           .integer('cardapio_produto_id')
@@ -124,7 +124,7 @@ export default class extends BaseSchema {
 
     const hasCardapiosVirtuais = await this.schema.withSchema('tavolo').hasTable('cardapios_virtuais')
     if (!hasCardapiosVirtuais) {
-      await this.schema.withSchema('tavolo').createTable('cardapios_virtuais', (table) => {
+      this.schema.withSchema('tavolo').createTable('cardapios_virtuais', (table) => {
         table.increments('id').primary()
         table
           .integer('empresa_id')
@@ -147,9 +147,9 @@ export default class extends BaseSchema {
   }
 
   async down() {
-    await this.schema.withSchema('tavolo').dropTable('cardapios_virtuais')
-    await this.schema.withSchema('tavolo').dropTable('cardapio_produtos_ingredientes')
-    await this.schema.withSchema('tavolo').dropTable('cardapio_produtos')
-    await this.schema.withSchema('tavolo').dropTable('cardapio_categorias')
+    this.schema.withSchema('tavolo').dropTable('cardapios_virtuais')
+    this.schema.withSchema('tavolo').dropTable('cardapio_produtos_ingredientes')
+    this.schema.withSchema('tavolo').dropTable('cardapio_produtos')
+    this.schema.withSchema('tavolo').dropTable('cardapio_categorias')
   }
 }

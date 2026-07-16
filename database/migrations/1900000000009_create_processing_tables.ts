@@ -7,7 +7,7 @@ export default class extends BaseSchema {
      */
     const hasProcessingRules = await this.schema.withSchema('tavolo').hasTable('processing_rules')
     if (!hasProcessingRules) {
-      await this.schema.withSchema('tavolo').createTable('processing_rules', (table) => {
+      this.schema.withSchema('tavolo').createTable('processing_rules', (table) => {
         table.increments('id').primary()
         table
           .integer('empresa_id')
@@ -50,7 +50,7 @@ export default class extends BaseSchema {
      */
     const hasProcessingEvents = await this.schema.withSchema('tavolo').hasTable('processing_events')
     if (!hasProcessingEvents) {
-      await this.schema.withSchema('tavolo').createTable('processing_events', (table) => {
+      this.schema.withSchema('tavolo').createTable('processing_events', (table) => {
         table.increments('id').primary()
         table
           .integer('empresa_id')
@@ -102,7 +102,7 @@ export default class extends BaseSchema {
      */
     const hasEntityProcessingStatus = await this.schema.withSchema('tavolo').hasTable('entity_processing_status')
     if (!hasEntityProcessingStatus) {
-      await this.schema.withSchema('tavolo').createTable('entity_processing_status', (table) => {
+      this.schema.withSchema('tavolo').createTable('entity_processing_status', (table) => {
         table.increments('id').primary()
         table
           .integer('empresa_id')
@@ -131,8 +131,8 @@ export default class extends BaseSchema {
   }
 
   async down() {
-    await this.schema.withSchema('tavolo').dropTable('entity_processing_status')
-    await this.schema.withSchema('tavolo').dropTable('processing_events')
-    await this.schema.withSchema('tavolo').dropTable('processing_rules')
+    this.schema.withSchema('tavolo').dropTable('entity_processing_status')
+    this.schema.withSchema('tavolo').dropTable('processing_events')
+    this.schema.withSchema('tavolo').dropTable('processing_rules')
   }
 }

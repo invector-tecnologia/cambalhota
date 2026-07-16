@@ -7,7 +7,7 @@ export default class extends BaseSchema {
      */
     const hasAssinaturasEmpresas = await this.schema.withSchema('tavolo').hasTable('assinaturas_empresas')
     if (!hasAssinaturasEmpresas) {
-      await this.schema.withSchema('tavolo').createTable('assinaturas_empresas', (table) => {
+      this.schema.withSchema('tavolo').createTable('assinaturas_empresas', (table) => {
         table.increments('id').primary()
         table
           .integer('empresa_id')
@@ -41,7 +41,7 @@ export default class extends BaseSchema {
      */
     const hasSuporteSolicitacoes = await this.schema.withSchema('tavolo').hasTable('suporte_solicitacoes')
     if (!hasSuporteSolicitacoes) {
-      await this.schema.withSchema('tavolo').createTable('suporte_solicitacoes', (table) => {
+      this.schema.withSchema('tavolo').createTable('suporte_solicitacoes', (table) => {
         table.increments('id').primary()
         table
           .integer('empresa_id')
@@ -105,7 +105,7 @@ export default class extends BaseSchema {
      */
     const hasSuporteMensagens = await this.schema.withSchema('tavolo').hasTable('suporte_mensagens')
     if (!hasSuporteMensagens) {
-      await this.schema.withSchema('tavolo').createTable('suporte_mensagens', (table) => {
+      this.schema.withSchema('tavolo').createTable('suporte_mensagens', (table) => {
         table.increments('id').primary()
         table
           .integer('ticket_id')
@@ -140,7 +140,7 @@ export default class extends BaseSchema {
      */
     const hasVoiceConfigs = await this.schema.withSchema('tavolo').hasTable('voice_configs')
     if (!hasVoiceConfigs) {
-      await this.schema.withSchema('tavolo').createTable('voice_configs', (table) => {
+      this.schema.withSchema('tavolo').createTable('voice_configs', (table) => {
         table.increments('id').primary()
         table
           .integer('empresa_id')
@@ -166,7 +166,7 @@ export default class extends BaseSchema {
      */
     const hasUserQuickActions = await this.schema.withSchema('tavolo').hasTable('user_quick_actions')
     if (!hasUserQuickActions) {
-      await this.schema.withSchema('tavolo').createTable('user_quick_actions', (table) => {
+      this.schema.withSchema('tavolo').createTable('user_quick_actions', (table) => {
         table.increments('id').primary()
         table
           .integer('user_id')
@@ -190,7 +190,7 @@ export default class extends BaseSchema {
      */
     const hasInsumoReservas = await this.schema.withSchema('tavolo').hasTable('insumo_reservas')
     if (!hasInsumoReservas) {
-      await this.schema.withSchema('tavolo').createTable('insumo_reservas', (table) => {
+      this.schema.withSchema('tavolo').createTable('insumo_reservas', (table) => {
         table.increments('id').primary()
         table
           .integer('empresa_id')
@@ -235,11 +235,11 @@ export default class extends BaseSchema {
   }
 
   async down() {
-    await this.schema.withSchema('tavolo').dropTableIfExists('insumo_reservas')
-    await this.schema.withSchema('tavolo').dropTableIfExists('user_quick_actions')
-    await this.schema.withSchema('tavolo').dropTableIfExists('voice_configs')
-    await this.schema.withSchema('tavolo').dropTableIfExists('suporte_mensagens')
-    await this.schema.withSchema('tavolo').dropTableIfExists('suporte_solicitacoes')
-    await this.schema.withSchema('tavolo').dropTableIfExists('assinaturas_empresas')
+    this.schema.withSchema('tavolo').dropTableIfExists('insumo_reservas')
+    this.schema.withSchema('tavolo').dropTableIfExists('user_quick_actions')
+    this.schema.withSchema('tavolo').dropTableIfExists('voice_configs')
+    this.schema.withSchema('tavolo').dropTableIfExists('suporte_mensagens')
+    this.schema.withSchema('tavolo').dropTableIfExists('suporte_solicitacoes')
+    this.schema.withSchema('tavolo').dropTableIfExists('assinaturas_empresas')
   }
 }

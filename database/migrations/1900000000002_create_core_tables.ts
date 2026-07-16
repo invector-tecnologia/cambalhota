@@ -4,7 +4,7 @@ export default class extends BaseSchema {
   async up() {
     const hasRoles = await this.schema.withSchema('tavolo').hasTable('roles')
     if (!hasRoles) {
-      await this.schema.withSchema('tavolo').createTable('roles', (table) => {
+      this.schema.withSchema('tavolo').createTable('roles', (table) => {
         table.increments('id').primary()
         table.string('name').unique().notNullable()
         table.string('description').nullable()
@@ -17,7 +17,7 @@ export default class extends BaseSchema {
 
     const hasEmpresas = await this.schema.withSchema('tavolo').hasTable('empresas')
     if (!hasEmpresas) {
-      await this.schema.withSchema('tavolo').createTable('empresas', (table) => {
+      this.schema.withSchema('tavolo').createTable('empresas', (table) => {
         table.increments('id').primary()
         table.string('razao_social', 255).notNullable()
         table.string('trade_name', 255).nullable()
@@ -48,7 +48,7 @@ export default class extends BaseSchema {
 
     const hasMunicipiosIbge = await this.schema.withSchema('tavolo').hasTable('municipios_ibge')
     if (!hasMunicipiosIbge) {
-      await this.schema.withSchema('tavolo').createTable('municipios_ibge', (table) => {
+      this.schema.withSchema('tavolo').createTable('municipios_ibge', (table) => {
         table.string('codigo', 7).primary()
         table.string('nome', 100).notNullable()
         table.string('uf', 2).notNullable()
@@ -60,8 +60,8 @@ export default class extends BaseSchema {
   }
 
   async down() {
-    await this.schema.withSchema('tavolo').dropTableIfExists('municipios_ibge')
-    await this.schema.withSchema('tavolo').dropTableIfExists('empresas')
-    await this.schema.withSchema('tavolo').dropTableIfExists('roles')
+    this.schema.withSchema('tavolo').dropTableIfExists('municipios_ibge')
+    this.schema.withSchema('tavolo').dropTableIfExists('empresas')
+    this.schema.withSchema('tavolo').dropTableIfExists('roles')
   }
 }

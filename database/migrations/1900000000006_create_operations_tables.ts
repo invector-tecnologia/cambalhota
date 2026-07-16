@@ -4,7 +4,7 @@ export default class extends BaseSchema {
   async up() {
     const hasMesas = await this.schema.withSchema('tavolo').hasTable('mesas')
     if (!hasMesas) {
-      await this.schema.withSchema('tavolo').createTable('mesas', (table) => {
+      this.schema.withSchema('tavolo').createTable('mesas', (table) => {
         table.increments('id').primary()
         table.integer('empresa_id').unsigned().notNullable().references('id').inTable('empresas').onDelete('CASCADE')
         table.string('number', 20).notNullable()
@@ -24,7 +24,7 @@ export default class extends BaseSchema {
 
     const hasComandas = await this.schema.withSchema('tavolo').hasTable('comandas')
     if (!hasComandas) {
-      await this.schema.withSchema('tavolo').createTable('comandas', (table) => {
+      this.schema.withSchema('tavolo').createTable('comandas', (table) => {
         table.increments('id').primary()
         table.integer('empresa_id').unsigned().notNullable().references('id').inTable('empresas').onDelete('CASCADE')
         table.integer('mesa_id').unsigned().nullable().references('id').inTable('mesas').onDelete('SET NULL')
@@ -41,7 +41,7 @@ export default class extends BaseSchema {
 
     const hasFuncionarios = await this.schema.withSchema('tavolo').hasTable('funcionarios')
     if (!hasFuncionarios) {
-      await this.schema.withSchema('tavolo').createTable('funcionarios', (table) => {
+      this.schema.withSchema('tavolo').createTable('funcionarios', (table) => {
         table.increments('id').primary()
         table.integer('empresa_id').unsigned().notNullable().references('id').inTable('empresas').onDelete('CASCADE')
         table.string('name', 100).notNullable()
@@ -58,7 +58,7 @@ export default class extends BaseSchema {
 
     const hasFuncoes = await this.schema.withSchema('tavolo').hasTable('funcoes')
     if (!hasFuncoes) {
-      await this.schema.withSchema('tavolo').createTable('funcoes', (table) => {
+      this.schema.withSchema('tavolo').createTable('funcoes', (table) => {
         table.increments('id').primary()
         table.string('name', 50).unique().notNullable()
         table.string('description', 200).nullable()
@@ -69,7 +69,7 @@ export default class extends BaseSchema {
 
     const hasFuncionarioFuncoes = await this.schema.withSchema('tavolo').hasTable('funcionario_funcoes')
     if (!hasFuncionarioFuncoes) {
-      await this.schema.withSchema('tavolo').createTable('funcionario_funcoes', (table) => {
+      this.schema.withSchema('tavolo').createTable('funcionario_funcoes', (table) => {
         table.increments('id').primary()
         table.integer('funcionario_id').unsigned().notNullable().references('id').inTable('funcionarios').onDelete('CASCADE')
         table.integer('funcao_id').unsigned().notNullable().references('id').inTable('funcoes').onDelete('CASCADE')
@@ -82,7 +82,7 @@ export default class extends BaseSchema {
 
     const hasPedidos = await this.schema.withSchema('tavolo').hasTable('pedidos')
     if (!hasPedidos) {
-      await this.schema.withSchema('tavolo').createTable('pedidos', (table) => {
+      this.schema.withSchema('tavolo').createTable('pedidos', (table) => {
         table.increments('id').primary()
         table.integer('empresa_id').unsigned().notNullable().references('id').inTable('empresas').onDelete('CASCADE')
         table.integer('comanda_id').unsigned().nullable().references('id').inTable('comandas').onDelete('SET NULL')
@@ -111,7 +111,7 @@ export default class extends BaseSchema {
 
     const hasPedidoItens = await this.schema.withSchema('tavolo').hasTable('pedido_itens')
     if (!hasPedidoItens) {
-      await this.schema.withSchema('tavolo').createTable('pedido_itens', (table) => {
+      this.schema.withSchema('tavolo').createTable('pedido_itens', (table) => {
         table.increments('id').primary()
         table.integer('pedido_id').unsigned().notNullable().references('id').inTable('pedidos').onDelete('CASCADE')
         table.integer('cardapio_produto_id').unsigned().notNullable().references('id').inTable('cardapio_produtos').onDelete('RESTRICT')
@@ -133,12 +133,12 @@ export default class extends BaseSchema {
   }
 
   async down() {
-    await this.schema.withSchema('tavolo').dropTable('pedido_itens')
-    await this.schema.withSchema('tavolo').dropTable('pedidos')
-    await this.schema.withSchema('tavolo').dropTable('funcionario_funcoes')
-    await this.schema.withSchema('tavolo').dropTable('funcoes')
-    await this.schema.withSchema('tavolo').dropTable('funcionarios')
-    await this.schema.withSchema('tavolo').dropTable('comandas')
-    await this.schema.withSchema('tavolo').dropTable('mesas')
+    this.schema.withSchema('tavolo').dropTable('pedido_itens')
+    this.schema.withSchema('tavolo').dropTable('pedidos')
+    this.schema.withSchema('tavolo').dropTable('funcionario_funcoes')
+    this.schema.withSchema('tavolo').dropTable('funcoes')
+    this.schema.withSchema('tavolo').dropTable('funcionarios')
+    this.schema.withSchema('tavolo').dropTable('comandas')
+    this.schema.withSchema('tavolo').dropTable('mesas')
   }
 }

@@ -4,7 +4,7 @@ export default class extends BaseSchema {
   async up() {
     const hasUsers = await this.schema.withSchema('tavolo').hasTable('users')
     if (!hasUsers) {
-      await this.schema.withSchema('tavolo').createTable('users', (table) => {
+      this.schema.withSchema('tavolo').createTable('users', (table) => {
         table.increments('id').primary()
         table.string('full_name').nullable()
         table.string('email', 254).unique().notNullable()
@@ -29,6 +29,6 @@ export default class extends BaseSchema {
   }
 
   async down() {
-    await this.schema.withSchema('tavolo').dropTableIfExists('users')
+    this.schema.withSchema('tavolo').dropTableIfExists('users')
   }
 }
