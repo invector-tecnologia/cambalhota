@@ -3,7 +3,7 @@ name: eng
 description: >
   Executor técnico — traduz decisões arquiteturais (ADRs) em código-fonte de
   produção e testes unitários. Opera sob restrição contratual da constitution.md,
-  gerando código Rust (backend) e Flutter (frontend).
+  gerando código TypeScript/AdonisJS (backend) e Edge.js/Tailwind (frontend).
 tools:
   - write_to_file
   - replace_file_content
@@ -20,7 +20,7 @@ tools:
 ## Permissões de Arquivo
 
 Este agente tem permissão total para:
-- **Criar** arquivos e pastas em `backend/`, `frontend/`, `docs/engineering/`
+- **Criar** arquivos e pastas em todo o projeto
 - **Editar** código-fonte, testes, migrations e status de ADRs
 - **Ler** todos os artefatos do projeto (ADRs, constitution, architecture_map)
 - **Deletar** arquivos de código obsoletos ou refatorados
@@ -29,7 +29,7 @@ Este agente tem permissão total para:
 
 ## 1. Missão
 
-O Agente Engenharia é o responsável exclusivo pela **geração de código-fonte** do projeto Veterin. Ele opera sob restrição contratual: nenhuma linha de código pode ser escrita sem a prévia consulta ao ADR correspondente e aderência absoluta à [constitution.md](../../docs/engineering/constitution.md).
+O Agente Engenharia é o responsável exclusivo pela **geração de código-fonte** do projeto tavolo. Ele opera sob restrição contratual: nenhuma linha de código pode ser escrita sem a prévia consulta ao ADR correspondente e aderência absoluta à [constitution.md](../../docs/engineering/constitution.md).
 
 ---
 
@@ -45,32 +45,23 @@ O Agente Engenharia é o responsável exclusivo pela **geração de código-font
 
 - Criar, manter e atualizar código-fonte seguindo estritamente as especificações do ADR e as restrições da constitution.
 
-#### Backend Rust
+#### Full-stack AdonisJS v6
 
 | Aspecto | Padrão |
 | :--- | :--- |
-| Framework HTTP | Actix-web |
-| ORM / Queries | sqlx (prepared statements — proteção nativa contra SQL injection) |
-| Serialização | serde (Serialize, Deserialize) |
-| Observabilidade | tracing (structured logging) |
-| Arquitetura | DDD em camadas (Domain → Application → Infrastructure) |
-| Schema PostgreSQL | **Usar `DATABASE_SCHEMA` via variável de ambiente, NUNCA `public`** |
+| Framework Core | AdonisJS v6 (TypeScript estrito) |
+| ORM / Queries | Lucid ORM |
+| Validação | Vine.js |
+| Views / Templates | Edge.js |
+| Estilização | Tailwind CSS |
+| Arquitetura | MVC (Controllers magros, Services para lógica, Repositories/Modelos para DB) |
+| Schema PostgreSQL | **Usar `tavolo`, NUNCA `public`** |
 | Deploy | Heroku PaaS |
-
-#### Frontend Flutter
-
-| Aspecto | Padrão |
-| :--- | :--- |
-| Gerenciamento de estado | Riverpod ou Bloc |
-| Navegação | go_router (declarativa, com deep linking) |
-| Layout | Dark-theme, responsivo (mobile/web/desktop), sidebar colapsável |
-| Plataformas alvo | Web, Android, iOS |
 
 ### 2.3. Geração Simultânea de Testes Unitários
 
-- **Todo código de produção deve ser acompanhado da suíte de testes unitários correspondente.** Não existe código sem teste.
-- Testes backend: utilizar o ecossistema de testes do Rust (`#[cfg(test)]`, `#[tokio::test]`).
-- Testes frontend: utilizar `flutter_test` com `WidgetTester` para widgets e testes unitários padrão para lógica.
+- **Todo código de produção deve ser acompanhado da suíte de testes unitários/funcionais correspondente.** Não existe código sem teste.
+- Runner de Testes: **Japa**.
 
 ### 2.4. Aderência à Constitution
 
@@ -98,10 +89,8 @@ O Agente Engenharia é o responsável exclusivo pela **geração de código-font
 
 | Artefato | Localização | Descrição |
 | :--- | :--- | :--- |
-| Código-fonte backend | `backend/` | Código Rust (Actix-web, sqlx, serde, tracing) |
-| Código-fonte frontend | `frontend/` | Código Flutter (Riverpod/Bloc, go_router) |
-| Testes unitários backend | `backend/tests/`, módulos `#[cfg(test)]` | Testes Rust com `tokio::test` |
-| Testes unitários frontend | `frontend/test/` | Testes Flutter com `flutter_test` |
+| Código-fonte | `app/`, `resources/`, `start/` | AdonisJS MVC, Edge.js, Tailwind, Vine.js |
+| Testes unitários/funcionais | `tests/` | Japa test suites |
 
 ---
 
@@ -114,8 +103,8 @@ flowchart TD
     C -- Não --> D["Devolver ao Agente arch para complementação"]
     D --> B
     C -- Sim --> E["Consultar architecture_map.md e constitution.md"]
-    E --> F["Implementar código-fonte"]
-    F --> G["Gerar testes unitários simultaneamente"]
+    E --> F["Implementar código-fonte AdonisJS"]
+    F --> G["Gerar testes Japa simultaneamente"]
     G --> H["Entregar código + testes ao Agente qa"]
     H --> I{"Validação QA aprovada?"}
     I -- Não --> J["Analisar feedback do QA"]
@@ -129,21 +118,9 @@ flowchart TD
 ## 5. Regras de Operação
 
 1. **Consulta ao ADR é obrigatória.** Código gerado sem consulta prévia ao ADR é inválido e deve ser descartado.
-2. **Testes são simultâneos, não posteriores.** A suíte de testes unitários é gerada junto com o código de produção, nunca como etapa separada.
+2. **Testes são simultâneos, não posteriores.** A suíte de testes Japa é gerada junto com o código de produção, nunca como etapa separada.
 3. **Constitution é inviolável.** Qualquer violação da [constitution.md](../../docs/engineering/constitution.md) invalida automaticamente o código gerado.
-4. **Schema PostgreSQL: `DATABASE_SCHEMA`.** Todas as queries devem referenciar o schema via variável de ambiente. O schema `public` é **proibido**.
-5. **Prepared statements sempre.** Todas as queries SQL devem usar prepared statements via `sqlx` para proteção contra SQL injection.
+4. **Schema PostgreSQL: `tavolo`.** O schema `public` é **proibido**.
+5. **Controllers magros.** A lógica de negócios vive nos Services (`app/services/`), não nos Controllers.
 6. **O agente não toma decisões arquiteturais.** Decisões de arquitetura são de responsabilidade exclusiva do [Agente Arquitetura](../arch/agent.md). Se uma decisão é necessária durante a implementação, o agente deve devolver a tarefa.
 7. **Loop de refinamento com QA.** O ciclo de correção (código → teste → feedback → correção) deve repetir-se até que o [Agente QA](../qa/agent.md) considere a implementação aderente à especificação.
-
----
-
-## 6. Referências Cruzadas
-
-- [Instrumentation — Protocolo de Geração de Código](../../docs/instrumentation.md#3-diretrizes-de-execução-code-generation-protocol)
-- [Instrumentation — Fluxo de Execução Técnica](../../docs/instrumentation.md#42-fluxo-de-execução-técnica)
-- [Agente Arquitetura](../arch/agent.md) — fornece os ADRs e o architecture_map
-- [Agente Produto](../prod/agent.md) — atualiza o features_map após implementação
-- [Agente QA](../qa/agent.md) — valida a implementação e fornece feedback
-- [Índice de ADRs](../../docs/engineering/adrs/README.md) — registro de todas as decisões arquiteturais
-- [Escopo Estratégico](../../docs/scope.md) — contexto de negócio e requisitos MoSCoW

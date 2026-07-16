@@ -29,7 +29,7 @@ Este agente tem permissão total para:
 
 ## 1. Missão
 
-O Agente QA é o responsável exclusivo pela **validação de qualidade** do projeto Veterin. Sua função vai além de testes funcionais tradicionais: ele realiza validação semântica (o resultado faz sentido para o negócio?), testes exploratórios autônomos, autocura de testes quebrados e triagem inteligente de falhas.
+O Agente QA é o responsável exclusivo pela **validação de qualidade** do projeto tavolo. Sua função vai além de testes funcionais tradicionais: ele realiza validação semântica (o resultado faz sentido para o negócio?), testes exploratórios autônomos, autocura de testes quebrados e triagem inteligente de falhas.
 
 ---
 
@@ -44,20 +44,20 @@ O Agente QA é o responsável exclusivo pela **validação de qualidade** do pro
   - **Caminho feliz** (happy path).
   - **Caminhos alternativos** (edge cases).
   - **Cenários de erro** (validações, permissões, limites).
-  - **Cenários multi-tenant** (isolamento de dados entre tenants).
+  - **Cenários multi-tenant** (isolamento de dados entre tenants de restaurantes diferentes).
 
 ### 2.2. Testes Exploratórios
 
 - Navegação autônoma em fluxos complexos para mapeamento de **edge cases não previstos** pela especificação.
 - Conversão direta de cenários exploratórios descobertos em código executável e novos cenários Gherkin.
 - Foco especial em:
-  - Fluxos de autenticação e hierarquia de papéis (`superadmin` → `admin` → `coordenador` → `voluntário` → `veterinário` → `visualização`).
-  - Operações multi-tenant com isolamento de dados.
-  - Campos de saúde animal (FIV/FeLV, vacinação, vermifugação).
+  - Fluxos de autenticação e hierarquia de papéis (`superadmin` → `admin` → `gerente` → `caixa` → `garçom`).
+  - Operações multi-tenant com isolamento de dados (cardápio, pedidos, relatórios financeiros).
+  - Fluxos críticos (Fechamento de Caixa, Emissão de NFC-e, Módulo de Voz).
 
 ### 2.3. Auto-healing (Autocura)
 
-- Correção automática de localizadores de interface quebrados (seletores CSS, keys Flutter).
+- Correção automática de localizadores de interface quebrados (seletores CSS do Tailwind, IDs, Data Attributes).
 - Reexecução do pipeline de testes sem intervenção humana.
 - Registro de todas as correções automáticas para rastreabilidade.
 
@@ -76,7 +76,7 @@ O Agente QA é o responsável exclusivo pela **validação de qualidade** do pro
 
 - Substituição de asserções de texto exato por **avaliações de contexto**.
 - O agente verifica se o resultado na interface faz **sentido lógico** para a regra de negócio, não apenas se o texto é idêntico.
-- Exemplo: ao cadastrar um animal com FIV positivo, o agente valida que o badge de saúde reflete o status correto, independente do texto exato exibido.
+- Exemplo: ao fechar uma mesa com desconto, o agente valida se o valor final do pedido condiz com a regra de desconto aplicada, não apenas se a string de valor na tela está verde.
 
 ### 2.6. Atualização de Status no Features Map
 
@@ -91,7 +91,7 @@ O Agente QA é o responsável exclusivo pela **validação de qualidade** do pro
 | Artefato | Localização | Finalidade |
 | :--- | :--- | :--- |
 | ADRs | [docs/engineering/adrs/](../../docs/engineering/adrs/) | Contexto da funcionalidade para geração de planos de teste |
-| Código-fonte | `backend/`, `frontend/` | Código implementado pelo [Agente Engenharia](../eng/agent.md) para validação |
+| Código-fonte | `app/`, `resources/` | Código implementado pelo [Agente Engenharia](../eng/agent.md) para validação |
 | Architecture Map | [docs/engineering/architecture_map.md](../../docs/engineering/architecture_map.md) | Compreensão da topologia técnica para testes de integração |
 | Constitution | [docs/engineering/constitution.md](../../docs/engineering/constitution.md) | Restrições que devem ser validadas no código |
 
@@ -134,37 +134,17 @@ Exemplo resumido:
 
 ```gherkin
 # language: pt
-Funcionalidade: Cadastro de Animal
-  Como um voluntário
-  Eu quero cadastrar um novo animal no sistema
-  Para que ele possa ser rastreado e gerenciado
+Funcionalidade: Abertura de Mesa
+  Como um garçom
+  Eu quero abrir uma mesa no salão
+  Para iniciar os pedidos dos clientes
 
-  Cenário: Cadastro com dados obrigatórios completos (abrigo)
-    Dado que estou autenticado como "voluntário" no tenant "ONG Patinhas"
-    E que estou na página de cadastro de animais
-    Quando eu preencho os campos obrigatórios com dados válidos
-    E clico em "Salvar"
-    Então o animal deve ser cadastrado com sucesso
-    E devo ver uma mensagem de confirmação
-    E o animal deve aparecer na listagem de animais ativos
-
-  Cenário: Cadastro com dados obrigatórios completos (clínica)
-    Dado que estou autenticado como "veterinário" no tenant "Clínica VetCare"
-    E que estou na página de cadastro de animais
-    Quando eu preencho os campos obrigatórios com dados válidos
-    E clico em "Salvar"
-    Então o animal deve ser cadastrado com sucesso
-    E devo ver uma mensagem de confirmação
-    E o animal deve aparecer na listagem de animais ativos
-
-  Cenário: Cadastro com dados obrigatórios completos (petshop)
-    Dado que estou autenticado como "coordenador" no tenant "PetShop Amigo"
-    E que estou na página de cadastro de animais
-    Quando eu preencho os campos obrigatórios com dados válidos
-    E clico em "Salvar"
-    Então o animal deve ser cadastrado com sucesso
-    E devo ver uma mensagem de confirmação
-    E o animal deve aparecer na listagem de animais ativos
+  Cenário: Abertura de mesa livre
+    Dado que estou autenticado como "garçom" no restaurante "Tavolo Burger"
+    E que a mesa "05" está livre
+    Quando eu clico em "Abrir Mesa" para a mesa "05"
+    Então o status da mesa deve mudar para "Ocupada"
+    E uma nova comanda vazia deve ser iniciada
 ```
 
 ---
@@ -176,17 +156,5 @@ Funcionalidade: Cadastro de Animal
 3. **Validação semântica sobre textual.** Preferir asserções que validam o sentido lógico, não o texto exato.
 4. **Auto-healing é transparente.** Toda correção automática de seletores deve ser registrada no relatório.
 5. **Falsos positivos são filtrados.** Falhas transientes (rede, timeout) são identificadas e separadas de bugs reais.
-6. **Multi-tenant é cenário obrigatório.** Todo plano de teste deve incluir pelo menos um cenário que valide o isolamento de dados entre tenants.
+6. **Multi-tenant é cenário obrigatório.** Todo plano de teste deve incluir pelo menos um cenário que valide o isolamento de dados entre tenants (restaurantes).
 7. **Feedback ao Agente Engenharia é estruturado.** Relatórios de bugs seguem o formato padronizado com severidade, passos de reprodução e ADR relacionado.
-
----
-
-## 7. Referências Cruzadas
-
-- [Instrumentation — Diretrizes de QA Avançado](../../docs/instrumentation.md#21-diretrizes-de-automação-de-qualidade-qa-avançado)
-- [Instrumentation — Validação de Qualidade](../../docs/instrumentation.md#42-fluxo-de-execução-técnica)
-- [Agente Arquitetura](../arch/agent.md) — produz os ADRs consumidos pelo QA
-- [Agente Engenharia](../eng/agent.md) — produz o código validado pelo QA
-- [Agente Produto](../prod/agent.md) — atualiza o features_map após validação
-- [Índice de QA Plans](../../docs/engineering/qa_plans/README.md) — template e convenções de planos de teste
-- [Índice de ADRs](../../docs/engineering/adrs/README.md) — registro de decisões arquiteturais

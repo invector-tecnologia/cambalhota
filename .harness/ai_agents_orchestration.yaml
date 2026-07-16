@@ -1,7 +1,7 @@
 pipeline:
   name: AI Agents Event-Driven Orchestration
   identifier: ai_agents_orchestration
-  projectIdentifier: VeterinCore
+  projectIdentifier: tavoloCore
   orgIdentifier: Engineering
   tags:
     finops_center: engineering-leadership
@@ -23,7 +23,7 @@ pipeline:
                   name: Antigravity CLI Execution
                   identifier: ag_cli_exec
                   spec:
-                    # Imagem efêmera contendo a CLI e ferramentas básicas (cargo, flutter, docker)
+                    # Imagem efêmera contendo a CLI e ferramentas básicas (node, npm, docker)
                     connectorRef: org.docker_registry
                     image: antigravity/runner:latest
                     envVariables:

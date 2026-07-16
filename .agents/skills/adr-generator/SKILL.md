@@ -1,163 +1,71 @@
 ---
 name: adr-generator
 description: >
-  Gera Registros de Decisão Arquitetural (ADRs) padronizados para o projeto Veterin.
+  Gera Registros de Decisão Arquitetural (ADRs) padronizados para o projeto tavolo.
   Ativar quando o agente arch precisar criar um novo ADR, planejar uma decisão técnica,
-  ou documentar trade-offs arquiteturais.
+  ou documentar trade-offs arquiteturais na stack AdonisJS.
 ---
 
-# ADR Generator
+# Gerador de ADRs (Architecture Decision Records)
 
-## Visão Geral
+Esta skill orienta o agente [arch](../arch/agent.md) na criação de ADRs no projeto tavolo, garantindo consistência com a arquitetura estabelecida (AdonisJS, Lucid, Edge.js, Tailwind).
 
-Esta skill gera Registros de Decisão Arquitetural (ADRs) padronizados para o projeto Veterin. Cada ADR documenta uma decisão técnica relevante, incluindo contexto, alternativas avaliadas, trade-offs e consequências. O objetivo é manter um histórico rastreável e imutável das decisões que moldam a arquitetura do sistema.
+## 1. Localização e Nomenclatura
 
-## Quando Usar
+- **Diretório**: `docs/engineering/adrs/`
+- **Formato do arquivo**: `NNN_titulo_descritivo_curto.md`
+  - `NNN` = Número sequencial com 3 dígitos (ex: `001`, `002`, `003`).
+  - O título deve ser snake_case ou kebab-case sem caracteres especiais.
+  - Exemplo: `docs/engineering/adrs/005_emissao_fiscal_nfe.md`.
 
-- Ao criar um novo ADR para uma decisão técnica pendente.
-- Ao documentar decisões já tomadas que ainda não possuem registro formal.
-- Ao planejar mudanças arquiteturais que impactem múltiplos módulos ou camadas (Domain, Application, Infrastructure, Presentation).
-- Ao avaliar trade-offs entre abordagens concorrentes (ex.: escolha de biblioteca, padrão de comunicação, estratégia de cache).
-- Ao propor substituição de uma decisão anterior por uma nova abordagem.
+## 2. Template Obrigatório
 
-## Template do ADR
-
-Todo ADR gerado deve seguir este template:
+Todo ADR deve seguir a estrutura abaixo. **Nenhuma seção pode ser omitida.**
 
 ```markdown
-# ADR NNN — Título Descritivo da Decisão
+# ADR-NNN: Título da Decisão (Ex: Estratégia de Cache para Relatórios Fiscais)
 
-## Status
+- **Status:** Proposto | Aceito | Implementado | Substituído | Arquivado
+- **Data:** AAAA-MM-DD
+- **Autores:** Agente arch (Tavolo AI)
 
-<!-- Proposto | Aceito | Implementado | Arquivado | Substituído por ADR XXX -->
-Proposto
+## 1. Contexto
+- Qual é o problema de negócio ou desafio técnico?
+- Descreva o cenário no contexto de um restaurante/ERP (ex: Garçons estão tendo gargalos ao fechar comandas, PDV offline).
 
-## Data
+## 2. Decisão
+- O que estamos decidindo de fato?
+- Arquitetura, fluxo de classes AdonisJS, estrutura de tabelas, integração (ex: SEFAZ).
+- (Opcional, mas recomendado) Diagrama Mermaid da solução proposta (Fluxo C4 ou Sequência).
 
-AAAA-MM-DD
+## 3. Trade-offs Considerados
+- Alternativa A: Vantagens x Desvantagens.
+- Alternativa B: Vantagens x Desvantagens.
+- Por que a Decisão foi escolhida ao invés das outras?
 
-## Contexto
+## 4. Consequências
+- **Positivas:** Ganhos obtidos com a adoção.
+- **Negativas/Riscos:** Débitos técnicos, curva de aprendizado, complexidade introduzida.
 
-Descreva o problema ou necessidade que motivou esta decisão. Inclua:
-- Situação atual do sistema.
-- Restrições técnicas e de negócio.
-- Requisitos não-funcionais relevantes (performance, segurança, escalabilidade).
-- Dependências com outros módulos ou serviços.
-
-## Decisão
-
-Descreva a decisão tomada de forma clara e objetiva. Inclua:
-- A abordagem escolhida.
-- Tecnologias, padrões ou bibliotecas selecionadas.
-- Diagrama Mermaid ilustrando a mudança estrutural (quando aplicável).
-
-```mermaid
-graph TD
-    A[Componente A] --> B[Componente B]
+## 5. Referências
+- Links para issues, features_map, docs do AdonisJS, etc.
 ```
 
-## Trade-offs Considerados
+## 3. Restrições Arquiteturais do Projeto (AdonisJS Stack)
 
-| Alternativa | Prós | Contras | Decisão |
-|-------------|------|---------|---------|
-| Alternativa 1 | ... | ... | Rejeitada |
-| Alternativa 2 | ... | ... | **Aceita** |
-| Alternativa 3 | ... | ... | Rejeitada |
+Ao propor soluções, o agente **arch** deve respeitar incondicionalmente a base tecnológica definida:
 
-Justifique brevemente por que cada alternativa foi aceita ou rejeitada.
+1. **Backend**: AdonisJS v6 (Node.js + TypeScript). Regras de negócio vivem em `app/services/`.
+2. **Banco de Dados**: PostgreSQL com schema restrito (`tavolo`). ORM: Lucid ORM. Migrations são obrigatórias.
+3. **Validação**: Vine.js.
+4. **Frontend**: Renderização server-side via Edge.js + Tailwind CSS.
+5. **Multi-tenancy**: Todas as tabelas que guardam dados de restaurante devem estar vinculadas a um `empresa_id` e o isolamento deve ser garantido no nível do Service ou Middleware.
+6. **Deploy**: O deploy é Heroku. Tarefas demoradas e jobs em background não podem bloquear o Dyno Web (se for o caso, devem usar bullmq/redis ou serviços gerenciados adequados).
 
-## Consequências
+## 4. Fluxo de Criação
 
-### Positivas
-- Liste os benefícios esperados da decisão.
-
-### Negativas
-- Liste os riscos, dívidas técnicas ou limitações introduzidas.
-
-### Neutras
-- Liste impactos que não são claramente positivos nem negativos.
-
-## Referências
-
-- Links para documentação relevante, RFCs, issues ou PRs relacionadas.
-- ADRs anteriores que influenciaram esta decisão.
-```
-
-## Convenção de Nomenclatura
-
-Os arquivos de ADR devem seguir o padrão:
-
-```
-NNN_nome_da_demanda.md
-```
-
-- **NNN**: número sequencial com 3 dígitos, zero-padded (ex.: `001`, `012`, `100`).
-- **nome_da_demanda**: descrição curta em snake_case, sem acentos.
-
-### Exemplos
-
-- `001_autenticacao_jwt.md`
-- `002_estrategia_multi_tenant.md`
-- `003_migracao_banco_dados.md`
-- `010_cache_redis_sessoes.md`
-
-Para determinar o próximo número, verifique o último ADR existente em `docs/engineering/adrs/` e incremente em 1.
-
-## Ciclo de Vida do Status
-
-```mermaid
-stateDiagram-v2
-    [*] --> Proposto
-    Proposto --> Aceito : Revisão aprovada
-    Proposto --> Arquivado : Decisão cancelada
-    Aceito --> Implementado : Código em produção
-    Implementado --> Arquivado : Decisão obsoleta
-    Implementado --> Substituído : Novo ADR substitui
-    Aceito --> Substituído : Novo ADR substitui
-    Substituído --> [*]
-    Arquivado --> [*]
-```
-
-- **Proposto**: decisão documentada, aguardando revisão e aprovação.
-- **Aceito**: decisão aprovada pela equipe, pronta para implementação.
-- **Implementado**: código correspondente já está em produção.
-- **Arquivado**: decisão não é mais relevante (contexto mudou, funcionalidade removida).
-- **Substituído**: decisão foi substituída por um ADR mais recente. Deve referenciar o novo ADR no campo de Status (ex.: `Substituído por ADR 015`).
-
-## Localização
-
-Todos os ADRs devem ser armazenados em:
-
-```
-docs/engineering/adrs/
-```
-
-Não crie subdiretórios dentro desta pasta. Todos os ADRs residem no mesmo nível.
-
-## Regras de Validação
-
-1. **Imutabilidade**: ADRs com status **Aceito** ou superior são imutáveis. Correções de erros tipográficos são permitidas, mas o conteúdo da decisão não pode ser alterado. Para reverter ou alterar uma decisão, crie um novo ADR que referencie o anterior.
-2. **Diagramas Mermaid obrigatórios**: qualquer ADR que envolva mudanças estruturais (novos módulos, alteração de fluxo de dados, mudança de camadas DDD) deve incluir pelo menos um diagrama Mermaid na seção Decisão.
-3. **Tabela de trade-offs obrigatória**: a seção Trade-offs Considerados deve conter no mínimo 2 alternativas avaliadas.
-4. **Referências cruzadas**: se o ADR substitui ou complementa outro, deve haver referência explícita ao ADR relacionado.
-5. **Data válida**: a data deve estar no formato `AAAA-MM-DD` e corresponder à data de criação do ADR.
-6. **Numeração sequencial**: o número do ADR deve ser o próximo na sequência, sem lacunas.
-
-## Checklist de Aceitação
-
-Antes de marcar um ADR como **Aceito**, verifique todos os itens abaixo:
-
-- [ ] O título é descritivo e reflete a decisão tomada.
-- [ ] O contexto explica claramente o problema ou necessidade.
-- [ ] A decisão é objetiva e especifica tecnologias/padrões escolhidos.
-- [ ] A tabela de trade-offs contém pelo menos 2 alternativas com prós e contras.
-- [ ] As consequências estão categorizadas (positivas, negativas, neutras).
-- [ ] Diagramas Mermaid estão incluídos para mudanças estruturais.
-- [ ] Referências a ADRs, issues ou documentação relevante estão presentes.
-- [ ] A numeração segue a sequência correta.
-- [ ] O formato de data está correto (`AAAA-MM-DD`).
-- [ ] O nome do arquivo segue a convenção `NNN_nome_da_demanda.md`.
-- [ ] O ADR foi revisado por pelo menos um membro da equipe.
-- [ ] Impactos em multi-tenancy e isolamento de dados foram considerados.
-- [ ] Impactos na hierarquia de roles (superadmin > admin > coordenador > voluntário > veterinário > visualização) foram avaliados.
-- [ ] Compatibilidade com o stack atual (Rust/Actix-web, Flutter, Heroku PostgreSQL) foi verificada.
+1. Analisar a demanda do negócio.
+2. Identificar a solução tecnológica no ecosistema AdonisJS/Node.js.
+3. Redigir o ADR usando o comando `write_to_file`.
+4. Definir o `Status: Proposto`.
+5. Apresentar um resumo para validação (se interativo) ou avançar o status para `Aceito` no fluxo assíncrono.

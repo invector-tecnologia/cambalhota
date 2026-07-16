@@ -59,7 +59,7 @@ spec:
     2. Valide restrições contra docs/scope.md e docs/engineering/constitution.md.
     3. Crie ADRs em docs/engineering/adrs/ com a nomenclatura NNN_nome_da_demanda.md.
     4. O ADR deve obrigatoriamente ter o status 'Proposto' na criação e seguir o template padrão (Contexto, Decisão, Trade-offs, Consequências).
-    5. Atualize docs/engineering/architecture_map.md com a nova topologia (Rust/Flutter), modelo de banco de dados e diagramas.
+    5. Atualize docs/engineering/architecture_map.md com a nova topologia (AdonisJS/Edge.js), modelo de banco de dados e diagramas.
     
     REGRAS INEGOCIÁVEIS (HARD CONSTRAINTS):
     - Diagramas Mermaid (sequência, ER ou C4) SÃO OBRIGATÓRIOS em todo novo ADR com impacto estrutural.

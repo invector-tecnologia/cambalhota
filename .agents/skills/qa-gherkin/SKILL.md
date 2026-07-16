@@ -1,7 +1,7 @@
 ---
 name: qa-gherkin
 description: >
-  Gera planos de teste em formato Gherkin (.feature) em português para o projeto Veterin.
+  Gera planos de teste em formato Gherkin (.feature) em português para o projeto tavolo.
   Ativar quando o agente qa precisar criar cenários de teste, validar implementações
   ou gerar planos de teste exploratórios.
 ---
@@ -10,7 +10,7 @@ description: >
 
 ## Visão Geral
 
-Esta skill gera planos de teste em formato Gherkin (`.feature`) escritos em português (pt-BR) para o projeto Veterin. Os planos cobrem cenários de caminho feliz, casos de borda, cenários de erro, isolamento multi-tenant e controle de acesso baseado em roles. Cada plano de teste é vinculado a um ADR aceito e serve como especificação executável para validação da implementação.
+Esta skill gera planos de teste em formato Gherkin (`.feature`) escritos em português (pt-BR) para o projeto tavolo. Os planos cobrem cenários de caminho feliz, casos de borda, cenários de erro, isolamento multi-tenant e controle de acesso baseado em roles. Cada plano de teste é vinculado a um ADR aceito e serve como especificação executável para validação da implementação.
 
 ## Quando Usar
 
@@ -165,10 +165,10 @@ E o animal deve constar na lista de animais do tenant
 
 ## Cenários Baseados em Roles
 
-Cada plano de teste deve considerar a hierarquia de roles do Veterin e incluir cenários que validem o controle de acesso. A hierarquia é:
+Cada plano de teste deve considerar a hierarquia de roles do tavolo e incluir cenários que validem o controle de acesso. A hierarquia é:
 
 ```
-superadmin > admin > coordenador > voluntário > veterinário > visualização
+superadmin > admin > coordenador > voluntário > tavoloário > visualização
 ```
 
 ### Tipos de cenários por role
@@ -179,7 +179,7 @@ superadmin > admin > coordenador > voluntário > veterinário > visualização
 | **admin** | Gerenciamento de usuários e configurações do tenant |
 | **coordenador** | Coordenação de voluntários e agendamentos |
 | **voluntário** | Registro de atividades, acompanhamento de animais |
-| **veterinário** | Prontuários, prescrições, procedimentos clínicos |
+| **tavoloário** | Prontuários, prescrições, procedimentos clínicos |
 | **visualização** | Somente leitura, sem permissão de escrita |
 
 ### Template para cenário de permissão
@@ -196,7 +196,7 @@ superadmin > admin > coordenador > voluntário > veterinário > visualização
       | admin         | permitir a operação                |
       | coordenador   | permitir a operação                |
       | voluntário    | negar a operação com status 403    |
-      | veterinário   | negar a operação com status 403    |
+      | tavoloário   | negar a operação com status 403    |
       | visualização  | negar a operação com status 403    |
 ```
 
@@ -208,7 +208,7 @@ superadmin > admin > coordenador > voluntário > veterinário > visualização
 Funcionalidade: Cadastro de animal
   Como um coordenador
   Eu quero cadastrar um novo animal no sistema
-  Para que ele possa receber acompanhamento veterinário
+  Para que ele possa receber acompanhamento tavoloário
 
   Contexto:
     Dado que o sistema está operacional
@@ -274,7 +274,7 @@ Funcionalidade: Cadastro de animal
       | admin         | permitir o cadastro                |
       | coordenador   | permitir o cadastro                |
       | voluntário    | permitir o cadastro                |
-      | veterinário   | permitir o cadastro                |
+      | tavoloário   | permitir o cadastro                |
       | visualização  | negar o cadastro com status 403    |
 
   Cenário: Usuário com role visualização não pode editar animal
