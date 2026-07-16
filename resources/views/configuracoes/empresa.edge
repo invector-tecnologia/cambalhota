@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="{{ theme }}" class="h-full bg-industrial-50">
+<head>
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta charset="UTF-8">
+  <title>Configurações da Empresa - Tavolo</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  @vite(['resources/css/app.css'])
+</head>
+<body class="h-full font-sans text-industrial-900">
+  <div class="min-h-screen py-6">
+    <div class="max-w-4xl mx-auto px-4">
+      <header class="flex items-center justify-between mb-6">
+        <h1 class="text-2xl font-bold text-industrial-900">Configurações da Empresa</h1>
+        <a href="{{ route('dashboard.index') }}"
+          class="inline-flex items-center gap-2 rounded-lg bg-industrial-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-industrial-400">
+          <i class="fas fa-home mr-2"></i> Dashboard
+        </a>
+      </header>
+
+      @if(flashMessages.has('success'))
+        <div class="mb-4 rounded-md bg-green-50 p-4 ring-1 ring-green-200">
+          <div class="flex">
+            <div class="flex-shrink-0">
+              <i class="fas fa-check-circle text-green-400"></i>
+            </div>
+            <div class="ml-3">
+              <p class="text-sm font-medium text-green-800">{{ flashMessages.get('success') }}</p>
+            </div>
+          </div>
+        </div>
+      @end
+
+      @if(flashMessages.has('error'))
+        <div class="mb-4 rounded-md bg-red-50 p-4 ring-1 ring-red-200">
+          <div class="flex">
+            <div class="flex-shrink-0">
+              <i class="fas fa-exclamation-circle text-red-400"></i>
+            </div>
+            <div class="ml-3">
+              <p class="text-sm font-medium text-red-800">{{ flashMessages.get('error') }}</p>
+            </div>
+          </div>
+        </div>
+      @end
+
+      @if(flashMessages.has('errors'))
+        <div class="mb-4 rounded-md bg-red-50 p-4 ring-1 ring-red-200">
+          <div class="flex">
+            <div class="flex-shrink-0">
+              <i class="fas fa-exclamation-circle text-red-400"></i>
+            </div>
+            <div class="ml-3">
+              <h3 class="text-sm font-medium text-red-800">Erros de validação:</h3>
+              <ul class="mt-2 text-sm text-red-700 list-disc list-inside">
+                @each(error in flashMessages.get('errors'))
+                  <li>{{ error.message }}</li>
+                @end
+              </ul>
+            </div>
+          </div>
+        </div>
+      @end
+
+      <form action="{{ route('configuracoes.updateEmpresa') }}" method="POST" class="bg-white ring-1 ring-industrial-100 rounded-lg p-6">
+        {{ csrfField() }}
+        <input type="hidden" name="_method" value="PUT">
+        
+        <div class="space-y-6">
+          <!-- Dados Básicos -->
+          <div>
+            <h3 class="text-lg font-semibold text-industrial-900 mb-4">Dados Básicos</h3>
+            <div class="space-y-4">
+              <div>
+                <label class="block text-sm font-medium app-muted mb-1">Nome Fantasia</label>
+                <input type="text" name="tradeName" maxlength="100"
+                  class="w-full app-border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent-500" 
+                  value="{{ empresa.tradeName || '' }}"
+                  placeholder="Nome comercial (opcional)">
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium app-muted mb-1">Tipo de Documento *</label>
+                <select name="documentType" id="documentType" required 
+                  class="w-full app-border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent-500">
+                  <option value="cpf" {{ empresa.documentType === 'cpf' ? 'selected' : '' }}>CPF (Pessoa Física)</option>
+                  <option value="cnpj" {{ empresa.documentType === 'cnpj' ? 'selected' : '' }}>CNPJ (Pessoa Jurídica)</option>
+                </select>
+              </div>
+
+              <div id="cnpjField" class="{{ empresa.documentType === 'cnpj' ? '' : 'hidden' }}">
+                <label class="block text-sm font-medium app-muted mb-1">CNPJ *</label>
+                <input type="text" name="cnpj" id="cnpjInput" maxlength="18"
+                  class="w-full app-border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent-500" 
+                  value="{{ empresa.cnpj || '' }}"
+                  placeholder="00.000.000/0000-00">
+              </div>
+
+              <div id="cpfField" class="{{ empresa.documentType === 'cpf' ? '' : 'hidden' }}">
+                <label class="block text-sm font-medium app-muted mb-1">CPF *</label>
+                <input type="text" name="cpf" id="cpfInput" maxlength="14"
+                  class="w-full app-border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent-500" 
+                  value="{{ empresa.cpf || '' }}"
+                  placeholder="000.000.000-00">
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm font-medium app-muted mb-1">Inscrição Estadual</label>
+                  <input type="text" name="ie" maxlength="20"
+                    class="w-full app-border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent-500" 
+                    value="{{ empresa.ie || '' }}"
+                    placeholder="Ex: 123.456.789.012">
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium app-muted mb-1">Inscrição Municipal</label>
+                  <input type="text" name="im" maxlength="20"
+                    class="w-full app-border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent-500" 
+                    value="{{ empresa.im || '' }}"
+                    placeholder="Ex: 12345678">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dados Fiscais para Nota Fiscal Eletrônica -->
+          <div class="border-t border-industrial-200 pt-6">
+            <h3 class="text-lg font-semibold text-industrial-900 mb-4 flex items-center gap-2">
+              <i class="fas fa-file-invoice text-accent-600"></i>
+              Dados Fiscais (Nota Fiscal Eletrônica)
+            </h3>
+            <div class="bg-accent-50/50 border-2 border-accent-200 rounded-lg p-4">
+              <p class="text-sm text-industrial-700 mb-4">
+                <i class="fas fa-info-circle text-accent-600"></i>
+                Os campos abaixo são obrigatórios para a emissão de NFC-e e devem estar de acordo com o seu CNPJ.
+              </p>
+              
+              <div class="space-y-4">
+                <!-- Razão Social para NFC-e -->
+                <div>
+                  <label class="block text-sm font-semibold text-industrial-900 mb-1">
+                    <i class="fas fa-building text-accent-600"></i> Razão Social (conforme CNPJ) *
+                  </label>
+                  <input type="text" name="razaoSocial" required minlength="3" maxlength="255"
+                    class="w-full border border-industrial-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent-500 bg-white" 
+                    value="{{ empresa.razaoSocial || '' }}"
+                    placeholder="Nome jurídico completo conforme CNPJ">
+                  <p class="mt-1 text-xs text-industrial-600">
+                    💡 Razão social conforme CNPJ. Será usado no XML da NFC-e como nome do emitente.
+                  </p>
+                </div>
+
+                <!-- Regime Tributário -->
+                <div>
+                  <label class="block text-sm font-semibold text-industrial-900 mb-1">
+                    <i class="fas fa-balance-scale text-accent-600"></i> Regime Tributário (CRT) *
+                  </label>
+                  <select name="regimeTributario" required
+                    class="w-full border border-industrial-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent-500 bg-white">
+                    <option value="1" {{ (empresa.regimeTributario || 1) === 1 ? 'selected' : '' }}>
+                      1 - Simples Nacional
+                    </option>
+                    <option value="2" {{ empresa.regimeTributario === 2 ? 'selected' : '' }}>
+                      2 - Simples Nacional - Excesso de sublimite
+                    </option>
+                    <option value="3" {{ empresa.regimeTributario === 3 ? 'selected' : '' }}>
+                      3 - Regime Normal
+                    </option>
+                  </select>
+                  <p class="mt-1 text-xs text-industrial-600">
+                    💡 Maioria dos restaurantes usa Simples Nacional (opção 1)
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Endereço -->
+          <div class="border-t border-industrial-200 pt-6">
+            <h3 class="text-lg font-semibold text-industrial-900 mb-4">Endereço</h3>
+            <div class="space-y-4">
+              <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                <div class="col-span-1 md:col-span-2 lg:col-span-3">
+                  <label class="block text-sm font-medium app-muted mb-1">Logradouro *</label>
+                  <input type="text" name="address" required minlength="3" maxlength="255"
+                    class="w-full app-border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent-500" 
+                    value="{{ empresa.address || '' }}"
+                    placeholder="Rua, Avenida, etc.">
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium app-muted mb-1">Número</label>
+                  <input type="text" name="addressNumber" maxlength="10"
+                    class="w-full app-border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent-500" 
+                    value="{{ empresa.addressNumber || '' }}"
+                    placeholder="123">
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium app-muted mb-1">Complemento</label>
+                <input type="text" name="addressComplement" maxlength="100"
+                  class="w-full app-border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent-500" 
+                  value="{{ empresa.addressComplement || '' }}"
+                  placeholder="Apto, Sala, Bloco, etc. (opcional)">
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div>
+                  <label class="block text-sm font-medium app-muted mb-1">Bairro *</label>
+                  <input type="text" name="neighborhood" required minlength="2" maxlength="100"
+                    class="w-full app-border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent-500" 
+                    value="{{ empresa.neighborhood || '' }}"
+                    placeholder="Nome do bairro">
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium app-muted mb-1">Cidade *</label>
+                  <input type="text" name="city" required minlength="2" maxlength="100"
+                    class="w-full app-border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent-500" 
+                    value="{{ empresa.city || '' }}"
+                    placeholder="Nome da cidade">
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium app-muted mb-1">UF *</label>
+                  <input type="text" name="state" required minlength="2" maxlength="2" 
+                    class="w-full app-border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent-500 uppercase" 
+                    value="{{ empresa.state || '' }}"
+                    placeholder="SP"
+                    style="text-transform: uppercase;">
+                  <p class="mt-1 text-xs text-industrial-500">Sigla do estado (ex: SP, RJ, MG)</p>
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium app-muted mb-1">CEP *</label>
+                <input type="text" name="zipCode" required minlength="8" maxlength="9"
+                  class="w-full app-border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent-500" 
+                  value="{{ empresa.zipCode || '' }}"
+                  placeholder="00000-000">
+              </div>
+
+              <!-- Campo Fiscal: Código IBGE do Município -->
+              <div class="bg-accent-50 border-2 border-accent-200 rounded-lg p-4">
+                <div class="flex items-start gap-2">
+                  <i class="fas fa-map-marker-alt text-accent-600 mt-1"></i>
+                  <div class="flex-1">
+                    <label class="block text-sm font-semibold text-industrial-900 mb-1">
+                      Código IBGE do Município *
+                    </label>
+                    <div class="flex gap-2">
+                      <input type="text" name="codMunicipio" id="codMunicipio" maxlength="7" required
+                        class="flex-1 border border-industrial-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent-500 bg-industrial-50" 
+                        value="{{ empresa.codMunicipio || '' }}"
+                        placeholder="3106200"
+                        readonly>
+                      <button type="button" id="btnBuscarCodIBGE"
+                        class="px-4 py-2 bg-accent-600 text-white rounded-md hover:bg-accent-700 font-medium text-sm whitespace-nowrap">
+                        <i class="fas fa-search mr-1"></i> Buscar
+                      </button>
+                    </div>
+                    <p class="mt-1 text-xs text-industrial-600">
+                      💡 Preenchido automaticamente ao salvar baseado na cidade/UF. Ou clique em "Buscar" para preencher agora.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Contato -->
+          <div class="border-t border-industrial-200 pt-6">
+            <h3 class="text-lg font-semibold text-industrial-900 mb-4">Contato</h3>
+            <div class="space-y-4">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm font-medium app-muted mb-1">Telefone</label>
+                  <input type="text" name="phone" maxlength="15"
+                    class="w-full app-border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent-500" 
+                    value="{{ empresa.phone || '' }}"
+                    placeholder="(00) 0000-0000">
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium app-muted mb-1">Email</label>
+                  <input type="email" name="email" 
+                    class="w-full app-border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent-500" 
+                    value="{{ empresa.email || '' }}"
+                    placeholder="contato@empresa.com.br">
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium app-muted mb-1">Website</label>
+                <input type="text" name="website" 
+                  class="w-full app-border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent-500" 
+                  value="{{ empresa.website || '' }}"
+                  placeholder="https://www.empresa.com.br">
+              </div>
+            </div>
+          </div>
+
+          <!-- Configurações da Nota Fiscal -->
+          <div class="border-t border-industrial-200 pt-6">
+            <h3 class="text-lg font-semibold text-industrial-900 mb-4">Nota Fiscal</h3>
+            <div>
+              <label class="block text-sm font-medium app-muted mb-1">Mensagem de Rodapé</label>
+              <textarea name="notaFiscalFooterMessage" rows="3"
+                class="w-full app-border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent-500" 
+                placeholder="Mensagem personalizada que aparecerá no rodapé da nota fiscal">{{ empresa.notaFiscalFooterMessage || '' }}</textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-6 flex gap-2 justify-end border-t border-industrial-200 pt-6">
+          <a href="{{ route('dashboard.index') }}" 
+            class="inline-flex items-center rounded-md bg-industrial-200 px-4 py-2 text-sm font-semibold app-muted hover:bg-industrial-300">
+            <i class="fas fa-times mr-2"></i> Cancelar
+          </a>
+          <button type="submit" 
+            class="inline-flex items-center rounded-md bg-accent-600 px-4 py-2 text-sm font-semibold text-white hover:bg-accent-700">
+            <i class="fas fa-save mr-2"></i> Salvar Alterações
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // Controlar exibição de CPF/CNPJ baseado no tipo de documento
+    const documentType = document.getElementById('documentType');
+    const cpfField = document.getElementById('cpfField');
+    const cnpjField = document.getElementById('cnpjField');
+    const cpfInput = document.getElementById('cpfInput');
+    const cnpjInput = document.getElementById('cnpjInput');
+
+    function toggleDocumentFields() {
+      if (documentType.value === 'cpf') {
+        cpfField.classList.remove('hidden');
+        cnpjField.classList.add('hidden');
+        cpfInput.required = true;
+        cnpjInput.required = false;
+      } else {
+        cnpjField.classList.remove('hidden');
+        cpfField.classList.add('hidden');
+        cnpjInput.required = true;
+        cpfInput.required = false;
+      }
+    }
+
+    documentType.addEventListener('change', toggleDocumentFields);
+
+    // Validação do formulário
+    const form = document.querySelector('form');
+    form.addEventListener('submit', function(e) {
+      const state = document.querySelector('input[name="state"]');
+      if (state.value && state.value.length !== 2) {
+        e.preventDefault();
+        alert('UF deve ter exatamente 2 caracteres (ex: SP, RJ, MG).');
+        state.focus();
+        return;
+      }
+
+      // Limpar o campo de documento não selecionado antes de enviar
+      if (documentType.value === 'cpf') {
+        cnpjInput.value = '';
+      } else {
+        cpfInput.value = '';
+      }
+    });
+
+    // Forçar UF em maiúsculo
+    const stateInput = document.querySelector('input[name="state"]');
+    stateInput.addEventListener('input', function() {
+      this.value = this.value.toUpperCase();
+    });
+
+    // Buscar código IBGE do município
+    const btnBuscarCodIBGE = document.getElementById('btnBuscarCodIBGE');
+    const codMunicipioInput = document.getElementById('codMunicipio');
+    if (btnBuscarCodIBGE && codMunicipioInput) {
+      btnBuscarCodIBGE.addEventListener('click', async function() {
+        const cityInput = document.querySelector('input[name="city"]');
+        const stateInput = document.querySelector('input[name="state"]');
+        
+        const city = cityInput.value.trim();
+        const state = stateInput.value.trim().toUpperCase();
+        
+        if (!city || !state) {
+          alert('❌ Preencha cidade e UF primeiro');
+          return;
+        }
+        
+        if (state.length !== 2) {
+          alert('❌ UF deve ter exatamente 2 letras (ex: SP, RJ, MG)');
+          stateInput.focus();
+          return;
+        }
+        
+        const originalText = this.innerHTML;
+        this.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Buscando...';
+        this.disabled = true;
+        
+        try {
+          const response = await fetch(`/api/ibge/municipio?city=${encodeURIComponent(city)}&state=${state}`);
+          const data = await response.json();
+          
+          if (data.success && data.codigo) {
+            codMunicipioInput.value = data.codigo;
+            codMunicipioInput.classList.remove('bg-industrial-50');
+            codMunicipioInput.classList.add('bg-green-50', 'border-green-400');
+            alert(`✅ Código IBGE encontrado: ${data.codigo}\nMunicípio: ${data.nome}/${data.uf}`);
+          } else {
+            alert('❌ Código IBGE não encontrado.\n\nVerifique se o nome da cidade está correto.\nExemplo: "São Paulo", "Rio de Janeiro", "Belo Horizonte"');
+            cityInput.focus();
+          }
+        } catch (error) {
+          console.error('Erro ao buscar código IBGE:', error);
+          alert('❌ Erro ao buscar código IBGE. Tente novamente.');
+        } finally {
+          this.innerHTML = originalText;
+          this.disabled = false;
+        }
+      });
+    }
+  </script>
+</body>
+</html>

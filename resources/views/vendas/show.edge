@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="{{ theme }}" class="h-full bg-industrial-50">
+<head>
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf-token" content="{{ csrfToken }}">
+  <title>Venda #{{ venda.saleNumber }} - Tavolo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  @vite(['resources/css/app.css', 'resources/js/app.js'])
+</head>
+<body class="h-full font-sans text-industrial-900">
+  <div class="min-h-full">
+    <header class="bg-white shadow-sm">
+      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div class="flex h-16 items-center gap-3">
+          <div>
+            <h1 class="text-xl font-semibold leading-6 text-industrial-900">
+              Venda #{{ venda.saleNumber }}
+              @if(venda.paymentMethodBadge)
+                <span class="inline-flex rounded-full px-2 py-1 text-xs {{ venda.paymentMethodBadge.class }}">
+                  {{ venda.paymentMethodBadge.text }}
+                </span>
+              @end
+            </h1>
+          </div>
+          <div class="flex items-center space-x-3 ml-auto">
+            <button id="printModalBtn"
+               class="inline-flex items-center px-4 py-2 bg-accent-600 border border-transparent text-sm font-semibold rounded-md text-white hover:bg-accent-500 shadow-sm cursor-pointer">
+              <i class="fas fa-receipt mr-2"></i> Imprimir Nota de Consumo
+            </button>
+            <button id="emitNfeBtn"
+               class="inline-flex items-center px-4 py-2 bg-orange-600 border border-transparent text-sm font-semibold rounded-md text-white hover:bg-orange-500 shadow-sm cursor-pointer">
+              <i class="fas fa-file-excel mr-2"></i>
+              <span id="emitNfeLabel">{{ fiscalNote && fiscalNote.status === 'ERROR' ? 'Reemitir NF-e' : 'Emitir NF-e' }}</span>
+            </button>
+            <button id="printNfeModalBtn"
+               class="inline-flex items-center px-4 py-2 bg-green-600 border border-transparent text-sm font-semibold rounded-md text-white hover:bg-green-500 shadow-sm cursor-pointer">
+              <i class="fas fa-file-invoice mr-2"></i> Imprimir NF-e
+            </button>
+            <a href="{{ route('vendas.index') }}"
+              class="inline-flex items-center px-4 py-2 app-border text-sm font-semibold rounded-md app-muted bg-white hover:bg-industrial-50">
+              <i class="fas fa-list mr-2"></i> Lista de Vendas
+            </a>
+          </div>
+        </div>
+      </div>
+    </header>
+    <main class="flex-1">
+      <div class="mx-auto max-w-7xl py-6 sm:px-6 lg:px-8">
+        <div class="grid grid-cols-1 lg:grid-cols-10 gap-6">
+          <!-- Informações e Resumo -->
+          <div class="lg:col-span-3 space-y-6">
+            <!-- Informações da Venda -->
+            <div class="bg-white shadow-sm rounded-xl ring-1 ring-industrial-100">
+              <div class="px-4 py-4 border-b border-industrial-100 sm:px-6">
+                <h5 class="font-semibold text-industrial-900">Informações da Venda</h5>
+              </div>
+              <div class="px-4 py-5 sm:p-6">
+                <dl class="space-y-3">
+                  <div>
+                    <dt class="text-sm font-semibold app-muted">Número da Venda</dt>
+                    <dd class="text-sm font-semibold text-industrial-900">#{{ venda.saleNumber }}</dd>
+                  </div>
+                  <div>
+                    <dt class="text-sm font-semibold app-muted">Data e Hora</dt>
+                    <dd class="text-sm text-industrial-900">
+                      <i class="far fa-calendar mr-1"></i>
+                      {{{ formatDateOnlyTimestamp(venda.saleDate) }}}
+                      <br>
+                      <i class="far fa-clock mr-1"></i>
+                      {{{ formatTimestamp(venda.saleDate) }}}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt class="text-sm font-semibold app-muted">Método de Pagamento</dt>
+                    <dd class="mt-1">
+                      @if(venda.paymentMethodBadge)
+                      <span class="inline-flex rounded-full px-3 py-1 text-sm {{ venda.paymentMethodBadge.class }}">
+                        {{ venda.paymentMethodBadge.text }}
+                      </span>
+                      @end
+                    </dd>
+                  </div>
+                  <div>
+                    <dt class="text-sm font-semibold app-muted">Status da Emissão (NF-e)</dt>
+                    <dd class="mt-1">
+                      <span id="nfceStatusBadge" class="inline-flex rounded-full px-3 py-1 text-sm">
+                        @if(!fiscalNote)
+                          <span class="bg-industrial-100 app-muted px-3 py-1 rounded-full">Não emitida</span>
+                        @elseif(fiscalNote.status === 'AUTHORIZED')
+                          <span class="bg-green-100 text-green-700 px-3 py-1 rounded-full">Autorizada</span>
+                        @elseif(fiscalNote.status === 'PENDING')
+                          <span class="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full">Pendente</span>
+                        @elseif(fiscalNote.status === 'CANCELLED')
+                          <span class="bg-industrial-200 app-muted px-3 py-1 rounded-full">Cancelada</span>
+                        @elseif(fiscalNote.status === 'CONTINGENCY')
+                          <span class="bg-orange-100 text-orange-700 px-3 py-1 rounded-full">Contingência</span>
+                        @else
+                          <span class="bg-red-100 text-red-700 px-3 py-1 rounded-full">Erro</span>
+                        @end
+                      </span>
+                    </dd>
+                  </div>
+                  @if(!fiscalNote || fiscalNote.status === 'PENDING')
+                  <div id="nfceStatusHint" class="text-xs text-industrial-500">
+                    NF-e em processamento. O status será atualizado automaticamente.
+                  </div>
+                  @end
+                  <script>
+                    const shouldPoll = {{ !fiscalNote || fiscalNote.status === 'PENDING' ? 'true' : 'false' }}
+                    const vendaId = {{ venda.id }}
+                    const initialStatus = '{{ fiscalNote ? fiscalNote.status : 'NOT_ISSUED' }}'
+                    const statusMap = {
+                      NOT_ISSUED: { label: 'Não emitida', className: 'bg-industrial-100 app-muted' },
+                      AUTHORIZED: { label: 'Autorizada', className: 'bg-green-100 text-green-700' },
+                      PENDING: { label: 'Pendente', className: 'bg-yellow-100 text-yellow-700' },
+                      CANCELLED: { label: 'Cancelada', className: 'bg-industrial-200 app-muted' },
+                      CONTINGENCY: { label: 'Contingência', className: 'bg-orange-100 text-orange-700' },
+                      ERROR: { label: 'Erro', className: 'bg-red-100 text-red-700' },
+                    }
+
+                    const updateBadge = (status) => {
+                      const badge = document.getElementById('nfceStatusBadge')
+                      if (!badge) return
+                      const data = statusMap[status] || statusMap.ERROR
+                      badge.innerHTML = `<span class="${data.className} px-3 py-1 rounded-full">${data.label}</span>`
+                    }
+
+                    const updateButtons = (status) => {
+                      const emitBtn = document.getElementById('emitNfeBtn')
+                      const emitLabel = document.getElementById('emitNfeLabel')
+                      const printBtn = document.getElementById('printNfeModalBtn')
+
+                      if (status === 'AUTHORIZED') {
+                        if (emitBtn) emitBtn.classList.add('hidden')
+                        if (printBtn) printBtn.classList.remove('hidden')
+                        return
+                      }
+
+                      if (status === 'PENDING') {
+                        if (emitLabel) emitLabel.textContent = 'Emitindo NF-e...'
+                        if (emitBtn) emitBtn.setAttribute('disabled', 'disabled')
+                        if (emitBtn) emitBtn.classList.add('opacity-60', 'cursor-not-allowed')
+                        if (printBtn) printBtn.classList.add('hidden')
+                        return
+                      }
+
+                      if (emitLabel) emitLabel.textContent = status === 'ERROR' ? 'Reemitir NF-e' : 'Emitir NF-e'
+                      if (emitBtn) emitBtn.removeAttribute('disabled')
+                      if (emitBtn) emitBtn.classList.remove('opacity-60', 'cursor-not-allowed')
+                      if (printBtn) printBtn.classList.add('hidden')
+                    }
+
+                    const stopHintIfDone = (status) => {
+                      if (status === 'PENDING' || status === 'NOT_ISSUED') return
+                      const hint = document.getElementById('nfceStatusHint')
+                      if (hint) {
+                        hint.remove()
+                      }
+                    }
+
+                    const pollStatus = async () => {
+                      try {
+                        const res = await fetch(`/api/vendas/${vendaId}/fiscal-note`, {
+                          credentials: 'include',
+                        })
+                        if (!res.ok) return
+                        const data = await res.json()
+                        const status = data?.fiscalNote?.status || 'NOT_ISSUED'
+                        updateBadge(status)
+                        updateButtons(status)
+                        stopHintIfDone(status)
+                        if (status !== 'PENDING' && status !== 'NOT_ISSUED') {
+                          clearInterval(window.__nfceStatusPoll)
+                        }
+                      } catch (error) {
+                        // silencioso
+                      }
+                    }
+
+                    updateButtons(initialStatus)
+
+                    if (shouldPoll) {
+                      window.__nfceStatusPoll = setInterval(pollStatus, 10000)
+                    }
+                  </script>
+                  @if(venda.pedido)
+                  <div>
+                    <dt class="text-sm font-semibold app-muted">Pedido Relacionado</dt>
+                    <dd class="text-sm">
+                      <a href="{{ route('pedidos.show', [venda.pedido.id]) }}"
+                        class="text-accent-600 hover:text-accent-500">
+                        #{{ venda.pedido.orderNumber }}
+                      </a>
+                    </dd>
+                  </div>
+                  @end
+                  @if(venda.comanda)
+                  <div>
+                    <dt class="text-sm font-semibold app-muted">Comanda</dt>
+                    <dd class="text-sm">
+                      <a href="{{ route('comandas.show', [venda.comanda.id]) }}"
+                        class="text-accent-600 hover:text-accent-500">
+                        {{ venda.comanda.name || 'Comanda ' + venda.comanda.number }}
+                      </a>
+                    </dd>
+                  </div>
+                  @end
+                  @if(venda.comanda && venda.comanda.pedidos && venda.comanda.pedidos.length)
+                  <div>
+                    <dt class="text-sm font-semibold app-muted">Atendente(s)</dt>
+                    <dd class="text-sm text-industrial-900">
+                      <i class="fas fa-user mr-1"></i>                       
+                      {{ 
+                        venda.comanda.pedidos
+                          .filter(p => p.funcionario)
+                          .map(p => p.funcionario.name)
+                          .filter((name, idx, arr) => arr.indexOf(name) === idx)
+                          .join(', ') || '-' 
+                      }}                      
+                    </dd>
+                  </div>
+                  @end
+                  @if(venda.notes)
+                  <div>
+                    <dt class="text-sm font-semibold app-muted">Observações</dt>
+                    <dd class="text-sm text-industrial-900">{{ venda.notes }}</dd>
+                  </div>
+                  @end
+                </dl>
+              </div>
+            </div>
+
+            <!-- Resumo Financeiro -->
+            <div class="bg-white shadow-sm rounded-xl ring-1 ring-industrial-100">
+              <div class="px-4 py-4 border-b border-industrial-100 sm:px-6">
+                <h5 class="font-semibold text-industrial-900">
+                  <i class="fas fa-receipt-light mr-2 text-accent-600"></i>Resumo Financeiro
+                </h5>
+              </div>
+              <div class="px-4 py-5 sm:p-6">
+                <!-- Seção de Cálculo -->
+                <div class="financial-summary-block">
+                  <div class="financial-row">
+                    <div class="financial-row-label financial-label">
+                      <i class="fas fa-calculator mr-2 text-accent-500"></i>Subtotal
+                    </div>
+                    <div class="financial-row-value financial-subtotal">{{ formatCurrency(venda.subtotal) }}</div>
+                  </div>
+                  
+                  @if(venda.discount > 0)
+                  <div class="financial-row">
+                    <div class="financial-row-label financial-label">
+                      <i class="fas fa-tag mr-2 text-red-500"></i>Desconto
+                    </div>
+                    <div class="financial-row-value financial-discount">
+                      - {{ formatCurrency(venda.discount) }}
+                    </div>
+                  </div>
+                  @end
+                  
+                  @if(venda.tax > 0)
+                  <div class="financial-row">
+                    <div class="financial-row-label financial-label">
+                      <i class="fas fa-percent mr-2 text-orange-500"></i>Taxa Adicional
+                    </div>
+                    <div class="financial-row-value financial-tax">
+                      + {{ formatCurrency(venda.tax) }}
+                    </div>
+                  </div>
+                  @end
+                  
+                  <div class="financial-divider"></div>
+                  
+                  <div class="financial-row">
+                    <div class="financial-row-label" style="font-weight: 700; font-size: 1rem;">
+                      <i class="fas fa-money-bill mr-2 text-accent-600"></i>TOTAL
+                    </div>
+                    <div class="financial-row-value financial-total">
+                      {{ formatCurrency(venda.total || venda.subtotal - (venda.discount || 0) + (venda.tax || 0)) }}
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Seção de Análise -->
+                <div class="financial-summary-block mt-4">
+                  <h6 class="font-semibold text-industrial-900 mb-2 flex items-center text-sm">
+                    <i class="fas fa-chart-line mr-2 text-emerald-600"></i>Análise de Lucratividade
+                  </h6>
+                  
+                  <div class="financial-row">
+                    <div class="financial-row-label financial-label">
+                      <i class="fas fa-coins mr-2 text-orange-500"></i>Custo Total
+                    </div>
+                    <div class="financial-row-value financial-cost">{{ formatCurrency(venda.costTotal) }}</div>
+                  </div>
+                  
+                  <div class="financial-divider"></div>
+                  
+                  <div class="financial-row">
+                    <div class="financial-row-label" style="font-weight: 700; font-size: 1rem;">
+                      <i class="fas fa-arrow-trend-up mr-2 text-emerald-600"></i>Lucro Bruto
+                    </div>
+                    <div class="financial-row-value financial-profit">{{ formatCurrency(venda.profit) }}</div>
+                  </div>
+                  
+                  <div class="financial-row">
+                    <div class="financial-row-label financial-label">
+                      <i class="fas fa-percentage mr-2 text-accent-500"></i>Margem
+                    </div>
+                    <div class="financial-row-value">
+                      @if(venda.profitBadge)
+                        <span class="financial-margin {{ venda.profitMargin < 0 ? 'financial-margin-negative' : '' }}">
+                          <i class="fas fa-chart-pie"></i>
+                          {{ venda.profitMargin.toFixed(1) }}%
+                        </span>
+                      @end
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Metadados -->
+            <div class="bg-white shadow-sm rounded-xl ring-1 ring-industrial-100">
+              <div class="px-4 py-4 border-b border-industrial-100 sm:px-6">
+                <h5 class="font-semibold text-industrial-900">Metadados</h5>
+              </div>
+              <div class="px-4 py-5 sm:p-6">
+                <dl class="space-y-2 text-xs app-muted">
+                  <div>
+                    <dt class="font-medium">Criado em:</dt>
+                    <dd>{{{ formatDateTimestamp(venda.createdAt) }}}</dd>
+                  </div>
+                  <div>
+                    <dt class="font-medium">Atualizado em:</dt>
+                    <dd>{{{ formatDateTimestamp(venda.updatedAt) }}}</dd>
+                  </div>
+                  <div>
+                    <dt class="font-medium">ID:</dt>
+                    <dd>{{ venda.id }}</dd>
+                  </div>
+                </dl>
+              </div>
+            </div>
+          </div>
+
+          <!-- Itens da Venda -->
+          <div class="lg:col-span-7 space-y-6">
+            <div class="bg-white shadow-sm rounded-xl ring-1 ring-industrial-100">
+              <div class="px-4 py-4 border-b border-industrial-100 sm:px-6">
+                <h5 class="font-semibold text-industrial-900">Itens da Venda</h5>
+              </div>
+              <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-industrial-100">
+                  <thead class="bg-industrial-50">
+                    <tr>
+                      <th class="px-6 py-3 text-left text-xs font-semibold app-muted uppercase tracking-wider">
+                        Item
+                      </th>
+                      <th class="px-6 py-3 text-center text-xs font-semibold app-muted uppercase tracking-wider">
+                        Qtd
+                      </th>
+                      <th class="px-6 py-3 text-right text-xs font-semibold app-muted uppercase tracking-wider">
+                        Valor Unit.
+                      </th>
+                      <th class="px-6 py-3 text-right text-xs font-semibold app-muted uppercase tracking-wider">
+                        <i class="fas fa-coins mr-1 text-orange-500"></i>Custo Unit.
+                      </th>
+                      <th class="px-6 py-3 text-right text-xs font-semibold app-muted uppercase tracking-wider">
+                        Subtotal
+                      </th>
+                      <th class="px-6 py-3 text-right text-xs font-semibold app-muted uppercase tracking-wider">
+                        <i class="fas fa-arrow-trend-up mr-1 text-emerald-500"></i>Lucro
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody class="bg-white divide-y divide-industrial-100">
+                    @if(itemsWithProfit && itemsWithProfit.length > 0)
+                      @each(item in itemsWithProfit)
+                      <tr>
+                        <td class="px-6 py-4">
+                          <div class="text-sm font-semibold text-industrial-900">{{ item.itemName }}</div>
+                          @if(item.specialInstructions)
+                          <div class="text-xs app-muted mt-1">
+                            <i class="fas fa-sticky-note mr-1"></i> {{ item.specialInstructions }}
+                          </div>
+                          @end
+                        </td>
+                        <td class="px-6 py-4 text-center text-sm text-industrial-900">{{ item.quantity }}</td>
+                        <td class="px-6 py-4 text-right text-sm text-industrial-900">{{ formatCurrency(item.unitPrice) }}</td>
+                        <td class="px-6 py-4 text-right text-sm">
+                          @if(item.unitCost > item.unitPrice)
+                            <span class="financial-cost font-semibold" title="Custo maior que o preço de venda! Verifique os ingredientes do produto.">
+                              <i class="fas fa-exclamation-triangle mr-1"></i>{{ formatCurrency(item.unitCost) }}
+                            </span>
+                          @else
+                            <span class="financial-cost">{{ formatCurrency(item.unitCost) }}</span>
+                          @end
+                        </td>
+                        <td class="px-6 py-4 text-right text-sm font-semibold text-industrial-900">{{ formatCurrency(item.subtotal) }}</td>
+                        <td class="px-6 py-4 text-right text-sm font-semibold">
+                          @if(item.itemProfit < 0)
+                            <span class="financial-discount" title="Prejuízo! O custo é maior que o valor de venda.">
+                              <i class="fas fa-arrow-trend-down"></i>{{ formatCurrency(item.itemProfit) }}
+                            </span>
+                          @else
+                            <span class="financial-profit">
+                              <i class="fas fa-arrow-trend-up"></i>{{ formatCurrency(item.itemProfit) }}
+                            </span>
+                          @end
+                        </td>
+                      </tr>
+                      @end
+                    @else
+                      <tr>
+                        <td colspan="6" class="px-6 py-4 text-center text-sm app-muted">
+                          Nenhum item encontrado para esta venda.
+                        </td>
+                      </tr>
+                    @end
+                  </tbody>
+                  <tfoot class="bg-industrial-50">
+                    <tr>
+                      <td colspan="4" class="px-6 py-3 text-right financial-label">
+                        <i class="fas fa-calculator mr-1 text-accent-500"></i>Subtotal
+                      </td>
+                      <td class="px-6 py-3 text-right financial-subtotal">{{ formatCurrency(venda.subtotal) }}</td>
+                      <td class="px-6 py-3 text-right font-semibold">
+                        @if(subtotalProfit < 0)
+                          <span class="financial-discount"><i class="fas fa-arrow-trend-down"></i>{{ formatCurrency(subtotalProfit) }}</span>
+                        @else
+                          <span class="financial-profit"><i class="fas fa-arrow-trend-up"></i>{{ formatCurrency(subtotalProfit) }}</span>
+                        @end
+                      </td>
+                    </tr>
+                    @if(venda.discount > 0)
+                    <tr>
+                      <td colspan="4" class="px-6 py-3 text-right financial-label">
+                        <i class="fas fa-tag mr-1 text-red-500"></i>Desconto
+                      </td>
+                      <td class="px-6 py-3 text-right financial-discount">- {{ formatCurrency(venda.discount) }}</td>
+                      <td></td>
+                    </tr>
+                    @end
+                    @if(venda.tax > 0)
+                    <tr>
+                      <td colspan="4" class="px-6 py-3 text-right financial-label">
+                        <i class="fas fa-percent mr-1 text-orange-500"></i>Taxa Adicional
+                      </td>
+                      <td class="px-6 py-3 text-right financial-tax">+ {{ formatCurrency(venda.tax) }}</td>
+                      <td></td>
+                    </tr>
+                    @end
+                    <tr class="bg-accent-500/10">
+                      <td colspan="4" class="px-6 py-4 text-right font-bold text-industrial-900">Total:</td>
+                      <td class="px-6 py-4 text-right font-bold text-accent-600">{{ formatCurrency(venda.total || venda.subtotal - (venda.discount || 0) + (venda.tax || 0)) }}</td>
+                      <td class="px-6 py-4 text-right font-bold">
+                        @if(venda.profit < 0)
+                          <span class="text-red-600">{{ formatCurrency(venda.profit) }}</span>
+                        @else
+                          <span class="text-green-600">{{ formatCurrency(venda.profit) }}</span>
+                        @end
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+
+            <!-- Gráfico de Composição (Opcional) -->
+            <div class="bg-white shadow-sm rounded-xl ring-1 ring-industrial-100 mt-6">
+              <div class="px-4 py-4 border-b border-industrial-100 sm:px-6">
+                <h5 class="font-semibold text-industrial-900">Composição da Venda</h5>
+              </div>
+              <div class="px-4 py-5 sm:p-6">
+                @if(venda.profit < 0)
+                  <div class="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                    <div class="flex items-start">
+                      <i class="fas fa-exclamation-triangle text-red-600 mt-1 mr-3"></i>
+                      <div>
+                        <h6 class="font-semibold text-red-800">Atenção: Venda com Prejuízo!</h6>
+                        <p class="text-sm text-red-700 mt-1">
+                          O custo total dos produtos ({{ formatCurrency(venda.costTotal) }}) é maior que o valor de venda.
+                          Isso pode indicar que os ingredientes estão com preços ou quantidades incorretas no cadastro.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                @end
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div class="text-center p-4 rounded-lg {{ venda.costTotal > venda.subtotal ? 'bg-red-50' : 'bg-orange-50' }}">
+                    <div class="text-3xl font-bold {{ venda.costTotal > venda.subtotal ? 'text-red-600' : 'text-orange-600' }}">
+                      {{ venda.subtotal > 0 ? ((venda.costTotal / venda.subtotal) * 100).toFixed(1) : '0.0' }}%
+                    </div>
+                    <div class="text-sm app-muted mt-1">Custo</div>
+                    <div class="text-xs app-muted">{{ formatCurrency(venda.costTotal) }}</div>
+                  </div>
+                  <div class="text-center p-4 rounded-lg {{ venda.profit < 0 ? 'bg-red-50' : 'bg-green-50' }}">
+                    <div class="text-3xl font-bold {{ venda.profit < 0 ? 'text-red-600' : 'text-green-600' }}">
+                      {{ venda.profitMargin.toFixed(1) }}%
+                    </div>
+                    <div class="text-sm app-muted mt-1">Lucro</div>
+                    <div class="text-xs app-muted">{{ formatCurrency(venda.profit) }}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <style>
+    @media print {
+      header, .no-print {
+        display: none !important;
+      }
+    }
+  </style>
+  
+  <!-- Modal de Impressão -->
+  <div id="printModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg shadow-xl h-[90vh] flex flex-col" style="width: 90mm;">
+      <!-- Header da Modal -->
+      <div class="flex items-center justify-between p-6 border-b border-industrial-100">
+        <h3 class="text-lg font-semibold text-industrial-900">Nota Fiscal - Venda #{{ venda.saleNumber }}</h3>
+        <button id="closeModal" class="text-industrial-400 hover:app-muted text-2xl leading-none">
+          ✕
+        </button>
+      </div>
+      
+      <!-- Conteúdo da Modal (iframe) -->
+      <div class="flex-1 overflow-auto">
+        <iframe id="printFrame" 
+          src="{{ route('vendas.print', [venda.id]).replace(/https?:\/\/[^/]+/, '') }}"
+          class="w-full h-full border-0"></iframe>
+      </div>
+      
+      <!-- Footer da Modal -->
+      <div class="flex items-center justify-between p-6 border-t border-industrial-100 bg-industrial-50">
+        <button id="printFromModal"
+                class="inline-flex items-center px-4 py-2 bg-accent-600 text-white text-sm font-semibold rounded-md hover:bg-accent-500">
+          <i class="fas fa-print mr-2"></i> Imprimir
+        </button>
+        <button id="closeModalBtn"
+                class="inline-flex items-center px-4 py-2 app-border app-muted text-sm font-semibold rounded-md bg-white hover:bg-industrial-50">
+          <i class="fas fa-times mr-2"></i> Fechar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de Emissão de NF-e -->
+  <div id="emitNfeModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
+      <div class="flex items-center justify-between p-6 border-b border-industrial-100">
+        <h3 class="text-lg font-semibold text-industrial-900">
+          {{ fiscalNote && fiscalNote.status === 'ERROR' ? 'Reemitir NF-e' : 'Emitir NF-e' }}
+        </h3>
+        <button id="closeEmitNfeModal" class="text-industrial-400 hover:app-muted text-2xl leading-none cursor-pointer">✕</button>
+      </div>
+      <form id="emitNfeForm" class="p-6 space-y-4">
+        {{ csrfField() }}
+        <div>
+          <label for="nfeCpf" class="block text-sm font-semibold text-industrial-900 mb-2">
+            CPF do Cliente <span class="text-red-500">*</span> (Opcional)
+          </label>
+          <input 
+            type="text" 
+            id="nfeCpf" 
+            name="cpf"
+            placeholder="000.000.000-00"
+            class="w-full px-4 py-2 border border-industrial-200 rounded-md focus:outline-none focus:ring-2 focus:ring-accent-500"
+          />
+          <p class="text-xs text-industrial-500 mt-1">
+            Se deixar em branco, a NF-e será emitida sem CPF do cliente.
+          </p>
+        </div>
+        <div class="flex gap-3">
+          <button 
+            type="submit" 
+            id="emitNfeSubmitBtn"
+            data-label="{{ fiscalNote && fiscalNote.status === 'ERROR' ? 'Reemitir NF-e' : 'Emitir NF-e' }}"
+            class="flex-1 inline-flex items-center justify-center px-4 py-2 bg-blue-600 border border-transparent text-sm font-semibold rounded-md text-white hover:bg-blue-500">
+            <i class="fas fa-file-excel mr-2"></i>
+            {{ fiscalNote && fiscalNote.status === 'ERROR' ? 'Reemitir NF-e' : 'Emitir NF-e' }}
+          </button>
+          <button 
+            type="button"
+            onclick="document.getElementById('emitNfeModal').classList.add('hidden')"
+            class="flex-1 inline-flex items-center justify-center px-4 py-2 app-border app-muted text-sm font-semibold rounded-md bg-white hover:bg-industrial-50">
+            Cancelar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal de Impressão de NF-e -->
+  @if(fiscalNote && fiscalNote.status !== 'ERROR')
+  <div id="printNfeModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg shadow-xl h-[90vh] flex flex-col" style="width: 90mm;">
+      <div class="flex items-center justify-between p-6 border-b border-industrial-100">
+        <h3 class="text-lg font-semibold text-industrial-900">NF-e - Venda #{{ venda.saleNumber }}</h3>
+        <button id="closeNfeModal" class="text-industrial-400 hover:app-muted text-2xl leading-none">✕</button>
+      </div>
+      <div class="flex-1 overflow-auto">
+        <iframe id="printNfeFrame" src="{{ route('vendas.nfe.print', [venda.id]).replace(/https?:\/\/[^/]+/, '') }}" class="w-full h-full border-0"></iframe>
+      </div>
+      <div class="flex items-center justify-between p-6 border-t border-industrial-100 bg-industrial-50">
+        <button id="printFromNfeModal" class="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-semibold rounded-md hover:bg-green-500">
+          <i class="fas fa-print mr-2"></i> Imprimir
+        </button>
+        <button id="closeNfeModalBtn" class="inline-flex items-center px-4 py-2 app-border app-muted text-sm font-semibold rounded-md bg-white hover:bg-industrial-50">
+          <i class="fas fa-times mr-2"></i> Fechar
+        </button>
+      </div>
+    </div>
+  </div>
+  @end
+
+  <script>
+    const printModalBtn = document.getElementById('printModalBtn')
+    const printModal = document.getElementById('printModal')
+    const closeModal = document.getElementById('closeModal')
+    const closeModalBtn = document.getElementById('closeModalBtn')
+    const printFromModal = document.getElementById('printFromModal')
+    const printFrame = document.getElementById('printFrame')
+    const printUrl = "{{ route('vendas.print', [venda.id]).replace(/https?:\/\/[^/]+/, '') }}"
+
+    // NF-e modal elements
+    const printNfeModalBtn = document.getElementById('printNfeModalBtn')
+    const printNfeModal = document.getElementById('printNfeModal')
+    const closeNfeModal = document.getElementById('closeNfeModal')
+    const closeNfeModalBtn = document.getElementById('closeNfeModalBtn')
+    const printFromNfeModal = document.getElementById('printFromNfeModal')
+    const printNfeFrame = document.getElementById('printNfeFrame')
+    const printNfeUrl = "{{ route('vendas.nfe.print', [venda.id]).replace(/https?:\/\/[^/]+/, '') }}"
+
+    // Abrir modal
+    printModalBtn?.addEventListener('click', () => {
+      if (printFrame && printUrl) {
+        printFrame.src = printUrl
+      }
+      printModal.classList.remove('hidden')
+    })
+
+    // Fechar modal (botão X)
+    closeModal?.addEventListener('click', () => {
+      printModal.classList.add('hidden')
+    })
+
+    // Fechar modal (botão Fechar)
+    closeModalBtn?.addEventListener('click', () => {
+      printModal.classList.add('hidden')
+    })
+
+    // Fechar modal ao clicar fora
+    printModal?.addEventListener('click', (e) => {
+      if (e.target === printModal) {
+        printModal.classList.add('hidden')
+      }
+    })
+
+    // Imprimir conteúdo do iframe
+    printFromModal?.addEventListener('click', () => {
+      try {
+        printFrame.contentWindow?.print()
+      } catch (error) {
+        console.error('Erro ao imprimir:', error)
+      }
+    })
+
+    // Abrir modal NF-e
+    printNfeModalBtn?.addEventListener('click', () => {
+      if (printNfeFrame && printNfeUrl) {
+        printNfeFrame.src = printNfeUrl
+      }
+      printNfeModal.classList.remove('hidden')
+    })
+
+    // Fechar NF-e modal
+    closeNfeModal?.addEventListener('click', () => {
+      printNfeModal.classList.add('hidden')
+    })
+    closeNfeModalBtn?.addEventListener('click', () => {
+      printNfeModal.classList.add('hidden')
+    })
+    printNfeModal?.addEventListener('click', (e) => {
+      if (e.target === printNfeModal) {
+        printNfeModal.classList.add('hidden')
+      }
+    })
+
+    // Imprimir NF-e iframe
+    printFromNfeModal?.addEventListener('click', () => {
+      try {
+        printNfeFrame.contentWindow?.print()
+      } catch (error) {
+        console.error('Erro ao imprimir NF-e:', error)
+      }
+    })
+
+    // Modal de Emissão de NF-e
+    const emitNfeBtn = document.getElementById('emitNfeBtn')
+    const emitNfeModal = document.getElementById('emitNfeModal')
+    const closeEmitNfeModal = document.getElementById('closeEmitNfeModal')
+    const emitNfeForm = document.getElementById('emitNfeForm')
+    const emitNfeSubmitBtn = document.getElementById('emitNfeSubmitBtn')
+    const emitNfeDefaultLabel = emitNfeSubmitBtn?.getAttribute('data-label') || 'Emitir NF-e'
+    
+    console.log('[EMIT_NFE_SETUP] Elements found:', {
+      emitNfeBtn: !!emitNfeBtn,
+      emitNfeModal: !!emitNfeModal,
+      emitNfeForm: !!emitNfeForm,
+      emitNfeSubmitBtn: !!emitNfeSubmitBtn
+    })
+
+    // Abrir modal
+    emitNfeBtn?.addEventListener('click', () => {
+      emitNfeModal?.classList.remove('hidden')
+    })
+
+    // Fechar modal
+    closeEmitNfeModal?.addEventListener('click', () => {
+      emitNfeModal?.classList.add('hidden')
+    })
+
+    // Fechar ao clicar fora
+    emitNfeModal?.addEventListener('click', (e) => {
+      if (e.target === emitNfeModal) {
+        emitNfeModal?.classList.add('hidden')
+      }
+    })
+
+    // Enviar formulário
+    emitNfeForm?.addEventListener('submit', async (e) => {
+      console.log('[EMIT_NFE] Form submit event triggered!')
+      e.preventDefault()
+      
+      const cpfInput = document.getElementById('nfeCpf')
+      const cpf = cpfInput?.value || ''
+      
+      try {
+        console.log('[EMIT_NFE] Iniciando emissão de NF-e para venda {{ venda.id }}')
+        console.log('[EMIT_NFE] CPF:', cpf)
+        
+        emitNfeSubmitBtn.disabled = true
+        emitNfeSubmitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Emitindo...'
+        
+        const formData = new FormData()
+        formData.append('cpf', cpf)
+        
+        const url = "/financeiro/vendas/{{ venda.id }}/emit-nfce"
+        console.log('[EMIT_NFE] URL:', url)
+        
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+        console.log('[EMIT_NFE] CSRF Token:', csrfToken ? 'presente' : 'AUSENTE')
+        
+        formData.append('_csrf', csrfToken || '')
+
+        const response = await fetch(url, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {
+            'X-CSRF-TOKEN': csrfToken || '',
+            'X-Requested-With': 'XMLHttpRequest'
+          },
+          body: formData
+        })
+        
+        console.log('[EMIT_NFE] Response status:', response.status)
+        
+        if (response.ok || response.status === 302 || response.status === 303) {
+          console.log('[EMIT_NFE] Emissão bem-sucedida, recarregando...')
+          // A resposta será um redirecionamento, então recarregamos a página
+          setTimeout(() => window.location.reload(), 500)
+        } else {
+          const errorText = await response.text()
+          console.error('[EMIT_NFE] Response error:', errorText)
+          throw new Error('Erro ao emitir NF-e: ' + response.status)
+        }
+      } catch (error) {
+        console.error('[EMIT_NFE] Erro:', error)
+        emitNfeSubmitBtn.disabled = false
+        emitNfeSubmitBtn.innerHTML = `<i class="fas fa-file-excel mr-2"></i> ${emitNfeDefaultLabel}`
+        alert('Erro ao emitir NF-e. Verifique os dados e tente novamente.')
+      }
+    })
+  </script>
+  @include('components/quick_actions')
+</body>
+</html>

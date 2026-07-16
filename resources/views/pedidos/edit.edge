@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="{{ theme }}">
+<head>
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Editar Pedido #{{ pedido.orderNumber }} - Tavolo</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <style>
+        .menu-item-card {
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .menu-item-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        }
+    </style>
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
+</head>
+<body class="bg-industrial-50 min-h-screen">
+    @include('components/quick_actions')
+    
+    <header class="bg-white">
+        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div class="flex h-16 items-center gap-3">
+                <h1 class="text-xl font-semibold leading-6 text-industrial-900">
+                    <i class="fas fa-edit text-accent-600"></i> Editar Pedido #{{ pedido.orderNumber }}
+                </h1>
+                <a 
+                    href="{{ route('pedidos.show', [pedido.id]) }}"
+                    class="inline-flex items-center gap-2 rounded-md bg-industrial-800 px-3 py-2 text-sm font-semibold text-white ml-auto hover:bg-industrial-500"
+                >
+                    <i class="fas fa-arrow-left"></i> Pedido #{{ pedido.orderNumber }}
+                </a>
+                <a href="javascript:history.back()" id="backButton"
+                    class="inline-flex items-center gap-2 rounded-lg bg-industrial-800 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-industrial-700">
+                    <i class="fas fa-arrow-left"></i> Voltar
+                </a>
+                
+                <script>
+                    if (history.length <= 1) {
+                        document.getElementById('backButton').classList.add('hidden');
+                    }
+                </script>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+        <div class="mb-6">
+            <div class="flex items-center gap-3 mb-2">
+                <a href="{{ route('pedidos.show', [pedido.id]) }}" class="text-industrial-500 hover:app-muted">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                    </svg>
+                </a>
+                <h1 class="text-2xl font-bold text-industrial-900">Editar Pedido #{{ pedido.orderNumber }}</h1>
+            </div>
+            <p class="app-muted ml-8">
+                Atualize os itens e informações do pedido
+            </p>
+        </div>
+
+        @if(flashMessages.has('errors'))
+        <div class="bg-red-50 border-l-4 border-red-400 p-4 mb-4">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-exclamation-circle text-red-400"></i>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm text-red-700">
+                        @each(error in flashMessages.get('errors'))
+                        {{ error.message }}<br>
+                        @end
+                    </p>
+                </div>
+            </div>
+        </div>
+        @end
+
+        <form action="{{ route('pedidos.update', [pedido.id]) }}" method="POST" id="orderForm">
+            {{ csrfField() }}
+            <input type="hidden" name="_method" value="PUT">
+            <input type="hidden" name="items" id="itemsInput" value="">
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-2 space-y-6">
+                    <!-- Informações do Pedido -->
+                    <div class="bg-white  rounded-lg">
+                        <div class="space-y-8 p-6">
+                            <div>
+                                <h3 class="text-lg font-medium app-strong mb-4 app-border pb-2">Informações do Pedido</h3>
+                                <div class="space-y-4">
+                                    <div>
+                                        <label class="block text-sm font-medium app-muted mb-2">Número do Pedido</label>
+                                        <input type="text" value="{{ pedido.orderNumber }}" disabled
+                                            class="w-full px-3 py-2 rounded-lg app-border bg-industrial-50">
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-sm font-medium app-muted mb-2">Tipo de Pedido</label>
+                                        <input type="text"
+                                            value="{{ pedido.type === 'dine_in' ? 'Local' : pedido.type === 'takeout' ? 'Retirada' : 'Delivery' }}"
+                                            disabled class="w-full px-3 py-2 rounded-lg app-border bg-industrial-50">
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-sm font-medium app-muted mb-2">Comanda</label>
+                                        <select name="comandaId" class="w-full px-3 py-2 rounded-lg app-border bg-white focus:outline-none focus:ring-2 focus:ring-accent-500">
+                                            <option value="">-- Nenhuma Comanda --</option>
+                                            @each(table in tables)
+                                            <option value="{{ table.id }}" @if(pedido.comandaId === table.id) selected @end>
+                                                {{ table.name || 'Comanda ' + table.number }}
+                                            </option>
+                                            @end
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Dados do Cliente -->
+                    <div class="bg-white  rounded-lg">
+                        <div class="space-y-8 p-6">
+                            <div>
+                                <h3 class="text-lg font-medium app-strong mb-4 app-border pb-2">Dados do Cliente</h3>
+                                <div class="space-y-4">
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div id="customerNameField" style="display: {{ pedido.type === 'dine_in' ? 'none' : 'block' }}">
+                                            <label class="block text-sm font-medium app-muted mb-2">Nome do Cliente</label>
+                                            <input type="text" name="customer_name" value="{{ old('customer_name', pedido.customerName || '') }}"
+                                                class="w-full px-3 py-2 app-border rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-accent-500"
+                                                placeholder="Nome do cliente">
+                                        </div>
+
+                                        <div id="customerPhoneField" style="display: {{ pedido.type === 'dine_in' ? 'none' : 'block' }}">
+                                            <label class="block text-sm font-medium app-muted mb-2">Telefone</label>
+                                            <input type="text" name="customer_phone" value="{{ old('customer_phone', pedido.customerPhone || '') }}"
+                                                class="w-full px-3 py-2 app-border rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-accent-500"
+                                                placeholder="(00) 00000-0000">
+                                        </div>
+                                    </div>
+
+                                    <div id="deliveryAddressField" style="display: {{ pedido.type === 'delivery' ? 'block' : 'none' }}">
+                                        <label class="block text-sm font-medium app-muted mb-2">Endereço de Entrega</label>
+                                        <textarea name="delivery_address" rows="2"
+                                            class="w-full px-3 py-2 app-border rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-accent-500"
+                                            placeholder="Endereço completo para entrega">{{ old('delivery_address', pedido.deliveryAddress || '') }}</textarea>
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-sm font-medium app-muted mb-2">Observações</label>
+                                        <textarea name="notes" rows="2"
+                                            class="w-full px-3 py-2 app-border rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-accent-500"
+                                            placeholder="Observações sobre o pedido...">{{ old('notes', pedido.notes || '') }}</textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Valores Adicionais -->
+                    <div class="bg-white  rounded-lg">
+                        <div class="space-y-8 p-6">
+                            <div>
+                                <h3 class="text-lg font-medium app-strong mb-4 app-border pb-2">Valores Adicionais</h3>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div>
+                                        <label class="block text-sm font-medium app-muted mb-2">Desconto (R$)</label>
+                                        <input type="number" name="discount" step="0.01" min="0" id="discountInput"
+                                            value="{{ old('discount', pedido.discount) }}"
+                                            class="w-full px-3 py-2 app-border rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-accent-500"
+                                            placeholder="0.00" onchange="updateTotals()">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium app-muted mb-2">Taxa de Serviço (R$)</label>
+                                        <input type="number" name="service_charge" step="0.01" min="0" id="serviceChargeInput"
+                                            value="{{ old('service_charge', pedido.serviceCharge) }}"
+                                            class="w-full px-3 py-2 app-border rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-accent-500"
+                                            placeholder="0.00" onchange="updateTotals()">
+                                        <p class="mt-1 text-sm text-industrial-500">Calculado automaticamente (10%) para pedidos do salão</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+              <!-- Seleção de Itens -->
+              <div class="bg-white rounded-lg">
+                <div class="px-4 py-5 border-b border-industrial-200 sm:px-6">
+                  <h5 class="font-semibold text-industrial-900">Adicionar Itens do Cardápio</h5>
+                </div>
+                <div class="px-4 py-5 sm:p-6">
+                  <div class="space-y-6">
+                    @each(category in categories)
+                    <div>
+                      <h6 class="text-accent-700 font-semibold mb-3">{{ category.name }}</h6>
+                      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        @if(category.cardapioProdutos && category.cardapioProdutos.length > 0)
+                        @each(item in category.cardapioProdutos)
+                        <div class="bg-white app-border rounded-lg menu-item-card"
+                          onclick="addItem({{ item.id }}, '{{ item.name }}', {{ item.salePrice }})">
+                          <div class="p-3">
+                            <div class="flex justify-between items-center">
+                              <div class="flex-1">
+                                <p class="font-semibold text-industrial-900">{{ item.name }}</p>
+                                @if(item.description)
+                                <p class="text-xs text-industrial-500 mt-1">{{ item.description }}</p>
+                                @end
+                              </div>
+                              <div class="ml-4">
+                                <p class="font-semibold text-green-600">{{ formatCurrency(item.salePrice) }}</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        @end
+                        @end
+                      </div>
+                    </div>
+                    @end
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Resumo do Pedido -->
+            <div class="lg:col-span-1">
+              <div class="bg-white rounded-lg sticky top-6">
+                <div class="px-4 py-5 border-b border-industrial-200 bg-accent-600 text-white rounded-t-lg sm:px-6">
+                  <h5 class="font-semibold">Itens do Pedido</h5>
+                </div>
+                <div class="px-4 py-5 sm:p-6">
+                  <div id="orderItems" class="mb-4">
+                    <p class="text-industrial-500 text-center py-4">Carregando itens...</p>
+                  </div>
+
+                  <hr class="my-4">
+
+                  <div class="financial-summary-block">
+                    <div class="financial-row">
+                      <div class="financial-row-label financial-label">
+                        <i class="fas fa-calculator mr-2 text-accent-500"></i>Subtotal
+                      </div>
+                      <div class="financial-row-value financial-subtotal" id="subtotal">R$ 0,00</div>
+                    </div>
+                    <div class="financial-row">
+                      <div class="financial-row-label financial-label">
+                        <i class="fas fa-tag mr-2 text-red-500"></i>Desconto
+                      </div>
+                      <div class="financial-row-value financial-discount" id="discountDisplay">R$ 0,00</div>
+                    </div>
+                    <div class="financial-row">
+                      <div class="financial-row-label financial-label">
+                        <i class="fas fa-percent mr-2 text-orange-500"></i>Taxa de Serviço
+                      </div>
+                      <div class="financial-row-value financial-tax" id="serviceChargeDisplay">R$ 0,00</div>
+                    </div>
+                  </div>
+
+                  <hr class="my-4">
+
+                  <div class="financial-summary-block">
+                    <div class="financial-row">
+                      <div class="financial-row-label" style="font-weight: 700; font-size: 1rem;">
+                        <i class="fas fa-money-bill mr-2 text-accent-600"></i>TOTAL
+                      </div>
+                      <div class="financial-row-value financial-total" id="total">R$ 0,00</div>
+                    </div>
+                  </div>
+
+                  <div class="space-y-2">
+                    <button type="submit"
+                      class="w-full inline-flex justify-center items-center px-4 py-2 bg-accent-600 text-white text-sm font-medium rounded-lg hover:bg-accent-700"
+                      id="submitBtn">
+                      <i class="fas fa-save mr-2"></i> Salvar Alterações
+                    </button>
+                    <a href="{{ route('pedidos.show', [pedido.id]) }}"
+                      class="block w-full text-center px-4 py-2 app-border text-sm font-medium rounded-lg app-muted bg-white hover:bg-industrial-50">
+                      <i class="fas fa-times mr-2"></i> Cancelar
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+    </main>
+
+    <script>
+        // Dados iniciais do pedido
+        let orderItems = [];
+
+        // Função para carregar itens existentes
+        function loadExistingItems() {
+            try {
+                const pedidoData = {{{ JSON.stringify(pedido) }}};
+                console.log('Pedido completo:', pedidoData);
+                
+                const items = pedidoData.items || [];
+                console.log('Items do pedido:', items);
+
+                if (Array.isArray(items) && items.length > 0) {
+                    orderItems = items.map(item => {
+                        console.log('Processando item:', item);
+                        
+                        // Tentar diferentes estruturas possíveis
+                        const menuItemId = item.cardapioProdutoId || item.cardapio_produto_id || item.menuItemId;
+                        const produto = item.cardapioProduto || item.cardapio_produto || item.produto;
+                        const itemName = produto?.name || item.itemName || item.name || 'Item sem nome';
+                        const unitPrice = parseFloat(item.unitPrice || item.unit_price || item.price || 0);
+                        const quantity = parseInt(item.quantity || 1);
+                        const notes = item.specialInstructions || item.special_instructions || item.notes || '';
+
+                        return {
+                            menuItemId: menuItemId,
+                            itemName: itemName,
+                            quantity: quantity,
+                            unitPrice: unitPrice,
+                            notes: notes
+                        };
+                    });
+
+                    console.log('Items mapeados:', orderItems);
+                } else {
+                    console.log('Nenhum item encontrado no pedido');
+                }
+            } catch (error) {
+                console.error('Erro ao carregar itens:', error);
+                alert('Erro ao carregar os itens do pedido. Por favor, recarregue a página.');
+            }
+        }
+
+        // Inicializar ao carregar a página
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('DOM carregado, inicializando...');
+            loadExistingItems();
+            updateOrderDisplay();
+        });
+
+        // Função para adicionar item
+        function addItem(id, name, price) {
+            console.log('Adicionando item:', { id, name, price });
+            
+            const existing = orderItems.find(item => item.menuItemId === id);
+            if (existing) {
+                existing.quantity++;
+                console.log('Item já existe, aumentando quantidade:', existing);
+            } else {
+                const newItem = {
+                    menuItemId: id,
+                    itemName: name,
+                    quantity: 1,
+                    unitPrice: price,
+                    notes: ''
+                };
+                orderItems.push(newItem);
+                console.log('Novo item adicionado:', newItem);
+            }
+            updateOrderDisplay();
+        }
+
+        // Função para remover item
+        function removeItem(id) {
+            if (confirm('Tem certeza que deseja remover este item?')) {
+                orderItems = orderItems.filter(item => item.menuItemId !== id);
+                console.log('Item removido, items restantes:', orderItems);
+                updateOrderDisplay();
+            }
+        }
+
+        // Função para atualizar quantidade
+        function updateQuantity(id, delta) {
+            const item = orderItems.find(item => item.menuItemId === id);
+            if (item) {
+                item.quantity += delta;
+                console.log('Quantidade atualizada:', item);
+                
+                if (item.quantity <= 0) {
+                    removeItem(id);
+                } else {
+                    updateOrderDisplay();
+                }
+            }
+        }
+
+        // Função para escapar HTML
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return String(text).replace(/[&<>"']/g, m => map[m]);
+        }
+
+        // Função para formatar moeda
+        function formatCurrency(value) {
+            return new Intl.NumberFormat('pt-BR', {
+                style: 'currency',
+                currency: 'BRL'
+            }).format(value);
+        }
+
+        // Função para atualizar display dos itens
+        function updateOrderDisplay() {
+            const container = document.getElementById('orderItems');
+            console.log('Atualizando display, total de items:', orderItems.length);
+
+            if (orderItems.length === 0) {
+                container.innerHTML = '<p class="text-industrial-500 text-center py-4">Nenhum item adicionado</p>';
+            } else {
+                let html = '<div class="space-y-3">';
+                orderItems.forEach(item => {
+                    const subtotal = item.quantity * item.unitPrice;
+                    const safeName = escapeHtml(item.itemName);
+                    
+                    html += `
+                        <div class="border-b border-industrial-200 pb-3">
+                            <div class="flex justify-between items-start mb-2">
+                                <strong class="text-sm">${safeName}</strong>
+                                <button type="button" class="text-red-600 hover:text-red-800" onclick="removeItem(${item.menuItemId})">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <div class="inline-flex rounded-lg ">
+                                    <button type="button" class="px-2 py-1 text-xs app-border rounded-l-md bg-white hover:bg-industrial-50" onclick="updateQuantity(${item.menuItemId}, -1)">-</button>
+                                    <span class="px-3 py-1 text-xs border-t border-b border-industrial-300 bg-industrial-50">${item.quantity}</span>
+                                    <button type="button" class="px-2 py-1 text-xs app-border rounded-r-md bg-white hover:bg-industrial-50" onclick="updateQuantity(${item.menuItemId}, 1)">+</button>
+                                </div>
+                                <span class="text-sm font-semibold">${formatCurrency(subtotal)}</span>
+                            </div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                container.innerHTML = html;
+            }
+
+            updateTotals();
+        }
+
+        // Função para atualizar totais
+        function updateTotals() {
+            const subtotal = orderItems.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
+            const discount = parseFloat(document.getElementById('discountInput').value) || 0;
+            const serviceCharge = parseFloat(document.getElementById('serviceChargeInput').value) || 0;
+            const total = subtotal - discount + serviceCharge;
+
+            console.log('Totais:', { subtotal, discount, serviceCharge, total });
+
+            document.getElementById('subtotal').textContent = formatCurrency(subtotal);
+            document.getElementById('discountDisplay').textContent = formatCurrency(discount);
+            document.getElementById('serviceChargeDisplay').textContent = formatCurrency(serviceCharge);
+            document.getElementById('total').textContent = formatCurrency(total);
+        }
+
+        // Validar e enviar formulário
+        document.getElementById('orderForm').addEventListener('submit', function (e) {
+            if (orderItems.length === 0) {
+                e.preventDefault();
+                alert('Adicione pelo menos um item ao pedido');
+                return;
+            }
+
+            // Atualizar campo hidden com os items
+            document.getElementById('itemsInput').value = JSON.stringify(orderItems);
+            console.log('Enviando formulário com items:', orderItems);
+        });
+    </script>
+</body>
+</html>

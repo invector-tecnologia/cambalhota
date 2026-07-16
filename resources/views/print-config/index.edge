@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="{{ theme }}" class="h-full bg-industrial-50">
+<head>
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrfToken }}">
+    <title>Configurações de Impressão - Tavolo</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    </head>
+<body class="h-full font-sans text-industrial-900">
+    <!-- Cabeçalho -->
+    <header class="bg-white shadow">
+        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div class="flex h-16 items-center gap-3">
+                <div>
+                    <h1 class="text-xl font-semibold leading-6 app-strong">Configurações de Impressão</h1>
+                </div>
+                <div class="flex items-center space-x-4 ml-auto">
+                    <a href="{{ route('dashboard.index') }}"
+                        class="inline-flex items-center gap-2 rounded-lg bg-industrial-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-industrial-400">
+                        <i class="fas fa-home mr-2"></i> Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Conteúdo Principal -->
+    <main class="max-w-6xl mx-auto py-6 sm:px-6 lg:px-8">
+        <!-- Page Header -->
+        <div class="mb-8">
+            <div class="flex items-center space-x-3 mb-4">
+                <a href="{{ route('dashboard.index') }}" class="text-industrial-400 hover:app-muted">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                    </svg>
+                </a>
+                <h1 class="text-3xl font-bold app-strong">
+                    Configurações de Impressão
+                </h1>
+            </div>
+            <p class="app-muted">
+                Configure a logo e mensagem personalizada para as notas fiscais impressas
+            </p>
+        </div>
+
+        <!-- Flash Messages -->
+        @if(flashMessages.has('success'))
+            <div class="mb-6 rounded-md bg-green-50 p-4">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-check-circle text-green-400"></i>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm font-medium text-green-800">
+                            {{ flashMessages.get('success') }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        @end
+
+        @if(flashMessages.has('error'))
+            <div class="mb-6 rounded-md bg-red-50 p-4">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-exclamation-circle text-red-400"></i>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm font-medium text-red-800">
+                            {{ flashMessages.get('error') }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        @end
+
+        <!-- Formulário -->
+        <div class="bg-white shadow-sm rounded-lg overflow-hidden ring-1 ring-industrial-100">
+            <form action="{{ route('print-config.update') }}" method="POST" enctype="multipart/form-data" class="space-y-8 p-6">
+                {{ csrfField() }}
+                
+                <!-- Seção: Logo da Empresa -->
+                <div>
+                    <h3 class="text-lg font-semibold app-strong mb-4 border-b border-industrial-200 pb-2">Logo da Empresa</h3>
+                    <p class="text-sm app-muted mb-6">
+                        A logo será exibida no topo de todas as notas fiscais impressas.
+                    </p>
+
+                    @if(empresa.logoUrl)
+                        <div class="mb-6 p-4 bg-industrial-50 rounded-lg">
+                            <label class="block text-sm font-medium app-muted mb-3">
+                                Logo Atual:
+                            </label>
+                            <div class="flex items-start space-x-4">
+                                <img src="{{ empresa.logoUrl }}" 
+                                     alt="Logo da empresa" 
+                                     class="h-32 w-auto app-border rounded-lg  bg-white p-2">
+                                <div>
+                                    <p class="text-sm app-muted mb-3">
+                                        <strong>Arquivo:</strong> {{ empresa.logoFilename }}
+                                    </p>
+                                    <label class="inline-flex items-center">
+                                        <input type="checkbox" name="remove_logo" value="true" 
+                                               class="rounded border-industrial-300 text-red-600  focus:border-red-300 focus:ring focus:ring-red-200 focus:ring-opacity-50">
+                                        <span class="ml-2 text-sm text-red-600 font-medium">Remover logo atual</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    @end
+
+                    <div>
+                        <label for="logo" class="block text-sm font-medium app-muted mb-2">
+                            {{ empresa.logoUrl ? 'Substituir Logo' : 'Enviar Logo' }}
+                        </label>
+                        <input type="file" 
+                               name="logo" 
+                               id="logo" 
+                               accept="image/jpeg,image/jpg,image/png,image/webp"
+                               class="w-full px-3 py-2 rounded-lg border border-industrial-300 bg-industrial-50 text-sm text-industrial-900 focus:ring-2 focus:ring-accent-500 focus:border-accent-500 cursor-pointer file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-accent-50 file:text-accent-700 hover:file:bg-accent-100">
+                        <p class="mt-2 text-xs text-industrial-500">
+                            PNG, JPG, JPEG ou WEBP (máximo 5MB). Recomendamos uma imagem de 300x100 pixels com fundo transparente.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Seção: Mensagem de Rodapé -->
+                <div>
+                    <h3 class="text-lg font-semibold app-strong mb-4 border-b border-industrial-200 pb-2">Mensagem de Rodapé</h3>
+                    <p class="text-sm app-muted mb-6">
+                        Esta mensagem será exibida no rodapé de todas as notas fiscais.
+                    </p>
+
+                    <div>
+                        <label for="nota_fiscal_footer_message" class="block text-sm font-medium app-muted mb-2">
+                            Mensagem Personalizada
+                        </label>
+                        <textarea 
+                            name="nota_fiscal_footer_message" 
+                            id="nota_fiscal_footer_message" 
+                            rows="4" 
+                            class="w-full px-3 py-2 rounded-lg border border-industrial-300 bg-industrial-50 text-industrial-900 placeholder:text-industrial-400 focus:ring-2 focus:ring-accent-500 focus:border-accent-500"
+                            placeholder="Ex: Obrigado pela preferência! Volte sempre!"
+                        >{{ empresa.notaFiscalFooterMessage || '' }}</textarea>
+                        <p class="mt-2 text-xs text-industrial-500">
+                            Use esta área para incluir mensagens personalizadas, agradecimentos ou informações adicionais.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Seção: Prévia dos Documentos -->
+                <div>
+                    <h3 class="text-lg font-semibold app-strong mb-4 border-b border-industrial-200 pb-2">Prévia dos Documentos</h3>
+                    <p class="text-sm app-muted mb-6">
+                        Veja como ficarão a nota fiscal de venda e a nota de consumo impressas com suas configurações.
+                    </p>
+                    <div class="bg-industrial-50 p-6 rounded-lg border-2 border-dashed border-industrial-300 shadow-inner">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- Prévia: Nota Fiscal de Venda -->
+                            <div>
+                                <h4 class="text-sm font-semibold app-text mb-3 text-center">Nota Fiscal de Venda</h4>
+                                <div class="bg-white max-w-sm mx-auto p-6 ring-1 ring-industrial-100" style="font-family: 'Courier New', monospace;">
+                                <!-- Header com Logo -->
+                                <div class="text-center border-b-2 border-industrial-800 pb-4 mb-4">
+                                    @if(empresa.logoUrl)
+                                        <img src="{{ route('print-config.logo') }}" 
+                                             alt="Logo" 
+                                             class="max-h-16 max-w-full w-auto mx-auto mb-2 object-contain">
+                                    @else
+                                        <div class="h-16 bg-industrial-200 flex items-center justify-center mb-2 rounded">
+                                            <span class="text-xs text-industrial-500">SUA LOGO AQUI</span>
+                                        </div>
+                                    @end
+                                    <div class="text-sm font-bold">{{ empresa.razaoSocial }}</div>
+                                    <div class="text-xs">{{ empresa.tradeName || '' }}</div>
+                                    @if(empresa.documentType === 'cpf')
+                                        <div class="text-xs">CPF: {{ empresa.formattedDocument }}</div>
+                                    @else
+                                        <div class="text-xs">CNPJ: {{ empresa.formattedDocument }}</div>
+                                    @end
+                                    <div class="text-xs">{{ empresa.fullAddress }}</div>
+                                    @if(empresa.phone)
+                                        <div class="text-xs">Tel: {{ empresa.phone }}</div>
+                                    @end
+                                </div>
+
+                                <!-- Informações da Venda -->
+                                <div class="text-xs mb-4 font-bold">
+                                    <div class="flex justify-between">
+                                        <span>VENDA Nº:</span>
+                                        <span class="font-bold">001</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span>DATA:</span>
+                                        <span>18/12/2025 14:30</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span>ATENDENTE:</span>
+                                        <span>João Silva</span>
+                                    </div>
+                                </div>
+
+                                <!-- Itens -->
+                                <div class="border-t-2 border-industrial-800 pt-2 mb-2 font-bold">
+                                    <div class="text-xs font-bold mb-2">ITENS DA VENDA</div>
+                                    <div class="text-xs space-y-1 font-bold">
+                                        <div class="flex justify-between">
+                                            <span>1x Hambúrguer</span>
+                                            <span>R$ 25,00</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span>2x Refrigerante</span>
+                                            <span>R$ 12,00</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span>1x Batata Frita</span>
+                                            <span>R$ 15,00</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Subtotal, Descontos e Taxas -->
+                                <div class="border-t border-dashed border-industrial-400 pt-2 mb-2 font-bold">
+                                    <div class="text-xs space-y-1">
+                                        <div class="flex justify-between">
+                                            <span>SUBTOTAL:</span>
+                                            <span>R$ 52,00</span>
+                                        </div>
+                                        <div class="flex justify-between text-green-600">
+                                            <span>DESCONTOS:</span>
+                                            <span>- R$ 0,00</span>
+                                        </div>
+                                        <div class="flex justify-between text-red-600">
+                                            <span>TAXAS:</span>
+                                            <span>+ R$ 0,00</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Total -->
+                                <div class="border-t-2 border-industrial-800 pt-2 mb-4 font-bold">
+                                    <div class="flex justify-between text-sm font-bold">
+                                        <span>TOTAL:</span>
+                                        <span>R$ 52,00</span>
+                                    </div>
+                                    <div class="flex justify-between text-xs mt-1 font-bold">
+                                        <span>FORMA PGTO:</span>
+                                        <span>Dinheiro</span>
+                                    </div>
+                                </div>
+
+                                <!-- Rodapé -->
+                                <div class="border-t-2 border-industrial-800 pt-4 text-center text-xs font-bold">
+                                    <!-- QR Code da Nota Fiscal -->
+                                    <div class="mb-3 flex justify-center">
+                                        <div class="w-24 h-24 bg-industrial-800 rounded flex items-center justify-center">
+                                            <svg class="w-20 h-20" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                                                <rect width="100" height="100" fill="white"/>
+                                                <path d="M10,10 h15 v15 h-15 z M35,10 h5 v5 h-5 z M45,10 h10 v5 h-10 z M60,10 h5 v5 h-5 z M70,10 h5 v5 h-5 z M80,10 h10 v10 h-10 z M10,30 h5 v5 h-5 z M20,30 h10 v10 h-10 z M35,30 h15 v5 h-15 z M55,30 h10 v5 h-10 z M70,30 h5 v10 h-5 z M80,30 h10 v5 h-10 z M10,45 h10 v10 h-10 z M25,45 h5 v5 h-5 z M35,45 h10 v10 h-10 z M50,45 h15 v5 h-15 z M70,45 h5 v5 h-5 z M80,45 h10 v10 h-10 z M10,60 h5 v10 h-5 z M20,60 h10 v5 h-10 z M35,60 h5 v10 h-5 z M45,60 h15 v5 h-15 z M65,60 h10 v10 h-10 z M80,60 h5 v5 h-5 z M10,75 h15 v15 h-15 z M30,75 h10 v5 h-10 z M45,75 h5 v10 h-5 z M55,75 h10 v5 h-10 z M70,75 h5 v15 h-5 z M80,75 h10 v15 h-10 z" fill="black"/>
+                                            </svg>
+                                        </div>
+                                    </div>
+                                    <div class="text-xs mb-2">Consulte pela Chave de Acesso</div>
+                                    @if(empresa.notaFiscalFooterMessage)
+                                        <div class="mb-2 font-bold">{{ empresa.notaFiscalFooterMessage }}</div>
+                                    @else
+                                        <div class="text-industrial-400 mb-2 font-bold">Sua mensagem personalizada aparecerá aqui</div>
+                                    @end
+                                    <div class="text-xs app-muted font-bold">www.tavolo.com.br</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Prévia: Nota de Consumo -->
+                        <div>
+                            <h4 class="text-sm font-semibold app-text mb-3 text-center">Nota de Consumo (Comanda)</h4>
+                            <div class="bg-white max-w-sm mx-auto p-6 ring-1 ring-industrial-100" style="font-family: 'Courier New', monospace;">
+                                <!-- Header com Logo -->
+                                <div class="text-center border-b-2 border-industrial-800 pb-4 mb-4">
+                                    @if(empresa.logoUrl)
+                                        <img src="{{ route('print-config.logo') }}" 
+                                             alt="Logo" 
+                                             class="max-h-16 max-w-full w-auto mx-auto mb-2 object-contain">
+                                    @else
+                                        <div class="h-16 bg-industrial-200 flex items-center justify-center mb-2 rounded">
+                                            <span class="text-xs text-industrial-500">SUA LOGO AQUI</span>
+                                        </div>
+                                    @end
+                                    <div class="text-sm font-bold">{{ empresa.razaoSocial }}</div>
+                                    <div class="text-xs">{{ empresa.tradeName || '' }}</div>
+                                    @if(empresa.documentType === 'cpf')
+                                        <div class="text-xs">CPF: {{ empresa.formattedDocument }}</div>
+                                    @else
+                                        <div class="text-xs">CNPJ: {{ empresa.formattedDocument }}</div>
+                                    @end
+                                    <div class="text-xs">{{ empresa.fullAddress }}</div>
+                                    @if(empresa.phone)
+                                        <div class="text-xs">Tel: {{ empresa.phone }}</div>
+                                    @end
+                                </div>
+
+                                <!-- Tipo de Documento -->
+                                <div class="text-center text-xs font-bold bg-industrial-100 py-2 mb-3 border border-industrial-800">
+                                    NOTA DE CONSUMO
+                                </div>
+
+                                <!-- Informações da Comanda -->
+                                <div class="text-xs mb-4 font-bold">
+                                    <div class="flex justify-between">
+                                        <span>COMANDA Nº:</span>
+                                        <span class="font-bold">0042</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span>MESA:</span>
+                                        <span>Mesa 5</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span>DATA/HORA:</span>
+                                        <span>18/12/2025 14:30</span>
+                                    </div>
+                                </div>
+
+                                <!-- Itens Consumidos -->
+                                <div class="border-t-2 border-industrial-800 pt-2 mb-2 font-bold">
+                                    <div class="text-xs font-bold mb-2">ITENS CONSUMIDOS</div>
+                                    <div class="text-xs space-y-1 font-bold">
+                                        <div class="flex justify-between">
+                                            <span>1x Hambúrguer</span>
+                                            <span>R$ 25,00</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span>2x Refrigerante</span>
+                                            <span>R$ 12,00</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span>1x Batata Frita</span>
+                                            <span>R$ 15,00</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Subtotal, Descontos e Taxas -->
+                                <div class="border-t border-dashed border-industrial-400 pt-2 mb-2 font-bold">
+                                    <div class="text-xs space-y-1">
+                                        <div class="flex justify-between">
+                                            <span>SUBTOTAL:</span>
+                                            <span>R$ 52,00</span>
+                                        </div>
+                                        <div class="flex justify-between text-green-600">
+                                            <span>DESCONTOS:</span>
+                                            <span>- R$ 0,00</span>
+                                        </div>
+                                        <div class="flex justify-between text-red-600">
+                                            <span>TAXAS:</span>
+                                            <span>+ R$ 0,00</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Total -->
+                                <div class="border-t-2 border-industrial-800 pt-2 mb-4 font-bold">
+                                    <div class="flex justify-between text-sm font-bold">
+                                        <span>TOTAL A PAGAR:</span>
+                                        <span>R$ 52,00</span>
+                                    </div>
+                                </div>
+
+                                <!-- Rodapé -->
+                                <div class="border-t-2 border-industrial-800 pt-4 text-center text-xs font-bold">
+                                    @if(empresa.notaFiscalFooterMessage)
+                                        <div class="mb-2 font-bold">{{ empresa.notaFiscalFooterMessage }}</div>
+                                    @else
+                                        <div class="text-industrial-400 mb-2 font-bold">Sua mensagem personalizada aparecerá aqui</div>
+                                    @end
+                                    <div class="text-xs text-industrial-500 font-bold">Este documento não tem valor fiscal</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Botões de Ação -->
+                <div class="flex justify-end space-x-3 pt-6 border-t border-industrial-200">
+                    <a href="{{ route('dashboard.index') }}" 
+                       class="inline-flex items-center rounded-lg bg-white px-4 py-2 text-sm font-semibold app-text ring-1 ring-inset ring-industrial-300 hover:bg-industrial-50">
+                        Cancelar
+                    </a>
+                    <button type="submit" 
+                            class="inline-flex items-center rounded-lg bg-accent-600 px-4 py-2 text-sm font-semibold text-white  hover:bg-accent-500 focus:ring-2 focus:ring-accent-500 focus:ring-offset-2">
+                        <i class="fas fa-save mr-2"></i>
+                        Salvar Configurações
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Informações Adicionais -->
+        <div class="mt-6 bg-accent-50 border border-accent-200 rounded-lg p-4">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-info-circle text-accent-500 text-lg"></i>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-sm font-semibold text-accent-900 mb-2">Dicas para Impressão</h3>
+                    <ul class="text-xs text-accent-700 space-y-1 list-disc list-inside">
+                        <li>Use uma logo com fundo transparente (PNG) para melhor resultado</li>
+                        <li>A largura padrão de impressão é de 80mm (impressoras térmicas de restaurante)</li>
+                        <li>Teste a impressão antes de usar em produção</li>
+                        <li>Mantenha a mensagem de rodapé concisa e objetiva</li>
+                        <li>Recomendamos logo com dimensões de 300x100 pixels</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </main>
+</body>
+</html>

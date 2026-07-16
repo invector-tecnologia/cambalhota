@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="h-full bg-industrial-50">
+<head>
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Editar {{ modelName }} - Admin - Tavolo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  @vite(['resources/css/app.css', 'resources/js/app.js'])
+</head>
+<body class="h-full font-sans text-industrial-900">
+  <div class="min-h-full">
+    <header class="bg-red-700 shadow-sm">
+      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div class="flex h-16 items-center gap-3">
+          <div class="h-10 w-10 rounded-full bg-white/15 text-white flex items-center justify-center">
+            <i class="fas fa-shield-alt"></i>
+          </div>
+          <h1 class="text-lg font-semibold text-white">Editar {{ modelName }} #{{ record.id }}</h1>
+          <div class="flex items-center space-x-3 ml-auto">
+            <a href="{{ route('admin.show', { model, id: record.id }) }}"
+              class="inline-flex items-center rounded-lg ring-1 ring-white/30 bg-white/10 px-3 py-2 text-sm font-semibold text-white hover:bg-white/20">
+              <i class="fas fa-eye mr-2"></i> Ver
+            </a>
+            <a href="{{ route('admin.list', { model }) }}"
+              class="inline-flex items-center rounded-lg ring-1 ring-white/30 bg-white/10 px-3 py-2 text-sm font-semibold text-white hover:bg-white/20">
+              <i class="fas fa-list mr-2"></i> Listagem
+            </a>
+          </div>
+        </div>
+      </div>
+    </header>
+    <main class="flex-1">
+      <div class="mx-auto max-w-3xl py-6 sm:px-6 lg:px-8">
+
+        <!-- Flash Messages -->
+        @if(flashMessages.has('error'))
+        <div class="mb-6 rounded-md bg-red-50 p-4">
+          <div class="flex">
+            <div class="flex-shrink-0">
+              <i class="fas fa-exclamation-circle text-red-400"></i>
+            </div>
+            <div class="ml-3">
+              <p class="text-sm font-medium text-red-800">{{ flashMessages.get('error') }}</p>
+            </div>
+          </div>
+        </div>
+        @end
+
+        <div class="bg-white rounded-lg">
+          <div class="px-6 py-4 border-b border-industrial-100">
+            <h2 class="text-lg font-medium text-industrial-900">Editar Registro</h2>
+            <p class="mt-1 text-sm text-industrial-500">Modifique os dados em formato JSON</p>
+          </div>
+          <form method="POST" action="{{ route('admin.update', { model, id: record.id }) }}" class="p-6">
+            {{ csrfField() }}
+            <input type="hidden" name="_method" value="PUT">
+            <div class="space-y-4">
+              <div>
+                <label class="block text-sm font-medium app-muted mb-2">Dados JSON</label>
+                <textarea name="data" rows="20"
+                  class="block w-full rounded-md border-industrial-300  focus:border-accent-500 focus:ring-accent-500 sm:text-sm font-mono">{{ JSON.stringify(record, null, 2) }}</textarea>
+                <p class="mt-2 text-sm text-industrial-500">
+                  <i class="fas fa-info-circle"></i> Modifique os campos necessários mantendo a estrutura JSON válida
+                </p>
+              </div>
+            </div>
+            <div class="mt-6 flex justify-end gap-3">
+              <a href="{{ route('admin.list', { model }) }}"
+                class="inline-flex items-center rounded-md bg-industrial-200 px-4 py-2 text-sm font-semibold app-muted  hover:bg-industrial-300">
+                <i class="fas fa-arrow-left mr-2"></i> {{ modelName }}
+              </a>
+              <button type="submit"
+                class="inline-flex items-center rounded-md bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800">
+                <i class="fas fa-save mr-2"></i> Salvar
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </main>
+  </div>
+  @include('components/quick_actions')
+</body>
+</html>

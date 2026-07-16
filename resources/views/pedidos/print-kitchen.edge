@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Pedido Cozinha #{{ pedido.orderNumber }}</title>
+    <style>
+        /* Estilos para impressoras térmicas de 80mm */
+        @page {
+            size: 80mm auto;
+            margin: 0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            color: #000;
+            background: #fff;
+            width: 80mm;
+            padding: 5mm;
+            margin: 0 auto;
+            font-weight: bold;
+        }
+
+        .receipt {
+            width: 100%;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            border-bottom: 3px solid #000;
+            padding-bottom: 8px;
+            margin-bottom: 10px;
+        }
+
+        .header h1 {
+            font-size: 18px;
+            margin-bottom: 4px;
+        }
+
+        .header p {
+            font-size: 12px;
+        }
+
+        /* Separadores */
+        .separator {
+            border-top: 2px solid #000;
+            margin: 8px 0;
+        }
+
+        .separator-dashed {
+            border-top: 1px dashed #000;
+            margin: 6px 0;
+        }
+
+        /* Informações do pedido */
+        .order-info {
+            font-size: 12px;
+            margin-bottom: 8px;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 2px;
+        }
+
+        .label {
+            font-weight: bold;
+        }
+
+        /* Seção de itens */
+        .items-section {
+            margin: 8px 0;
+        }
+
+        .item {
+            margin-bottom: 6px;
+            padding: 4px;
+            border: 1px solid #000;
+        }
+
+        .item-quantity {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 2px;
+        }
+
+        .item-name {
+            font-size: 13px;
+            font-weight: bold;
+            margin-bottom: 2px;
+        }
+
+        .item-notes {
+            font-size: 11px;
+            font-style: italic;
+            margin-top: 2px;
+            padding-top: 2px;
+            border-top: 1px solid #000;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 11px;
+        }
+
+        .timestamp {
+            font-size: 10px;
+            color: #666;
+        }
+
+        /* Print styles */
+        @media print {
+            body {
+                margin: 0;
+                padding: 2mm;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="receipt">
+        <!-- Header -->
+        <div class="header">
+            <h1>COZINHA</h1>
+            <p>Pedido #{{ pedido.orderNumber }}</p>
+        </div>
+
+        <!-- Informações do Pedido -->
+        <div class="order-info">
+            @if(pedido.type === 'dine_in' && pedido.comanda)
+            <div class="info-row">
+                <span class="label">Mesa/Comanda:</span>
+                <span>{{ pedido.comanda.name || 'Comanda ' + pedido.comanda.number }}</span>
+            </div>
+            @elseif(pedido.type === 'takeout')
+            <div class="info-row">
+                <span class="label">Tipo:</span>
+                <span>Retirada</span>
+            </div>
+            @else
+            <div class="info-row">
+                <span class="label">Tipo:</span>
+                <span>Delivery</span>
+            </div>
+            @end
+
+            @if(pedido.customerName)
+            <div class="info-row">
+                <span class="label">Cliente:</span>
+                <span>{{ pedido.customerName }}</span>
+            </div>
+            @end
+
+            <div class="info-row">
+                <span class="label">Hora:</span>
+                <span data-timestamp="{{ pedido.createdAt.toISO() }}"></span>
+            </div>
+        </div>
+
+        <!-- Itens para Preparar -->
+        <div class="separator"></div>
+        <div class="items-section">
+            @each(item in itens)
+            <div class="item">
+                <div class="item-quantity">{{ item.quantity }}x</div>
+                <div class="item-name">{{ item.cardapioProduto ? item.cardapioProduto.name : item.itemName }}</div>
+                @if(item.notes)
+                <div class="item-notes">📝 {{ item.notes }}</div>
+                @end
+            </div>
+            @endeach
+        </div>
+
+        <!-- Footer -->
+        <div class="separator"></div>
+        <div class="footer">
+            <p>Preparar itens acima</p>
+                        <p class="timestamp">Impresso em <span id="printedAt"></span></p>
+        </div>
+    </div>
+        <script>
+            (function () {
+                const timeFormatter = new Intl.DateTimeFormat('pt-BR', {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                })
+                const dateTimeFormatter = new Intl.DateTimeFormat('pt-BR', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                })
+
+                const timeEl = document.querySelector('[data-timestamp]')
+                if (timeEl) {
+                    const ts = timeEl.getAttribute('data-timestamp')
+                    if (ts) {
+                        const date = new Date(ts)
+                        if (!isNaN(date.getTime())) {
+                            timeEl.textContent = timeFormatter.format(date)
+                        }
+                    }
+                }
+
+                const printedAt = document.getElementById('printedAt')
+                if (printedAt) {
+                    printedAt.textContent = dateTimeFormatter.format(new Date())
+                }
+            })()
+        </script>
+</body>
+</html>

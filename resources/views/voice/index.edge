@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="h-full bg-industrial-50">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pedido por Voz - Tavolo</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  @vite(['resources/css/app.css', 'resources/js/app.js'])
+  <style>
+    .pulse-ring {
+      animation: pulse-ring 1.25s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+    }
+    @keyframes pulse-ring {
+      0% { transform: scale(0.8); opacity: 1; }
+      80%, 100% { transform: scale(2); opacity: 0; }
+    }
+    .fade-in { animation: fadeIn 0.3s ease-in; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .shake { animation: shake 0.5s ease-in-out; }
+    @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+  </style>
+</head>
+<body class="h-full font-sans text-industrial-900">
+  <div class="min-h-screen py-6">
+    <div class="max-w-2xl mx-auto px-4">
+
+      <!-- Header -->
+      <header class="flex items-center justify-between mb-8">
+        <div>
+          <h1 class="text-2xl font-bold text-industrial-900">
+            <i class="fas fa-microphone text-accent-600 mr-2"></i>
+            Pedido por Voz
+          </h1>
+          <p class="text-sm text-industrial-500 mt-1">Fale seu pedido e confirme antes de enviar</p>
+        </div>
+        <a href="{{ route('dashboard.index') }}"
+          class="inline-flex items-center gap-2 rounded-lg bg-industrial-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-industrial-500 transition-colors">
+          <i class="fas fa-home"></i> Dashboard
+        </a>
+      </header>
+
+      @if(!voiceEnabled)
+        <div class="rounded-xl bg-yellow-50 border border-yellow-200 p-6 text-center">
+          <i class="fas fa-exclamation-triangle text-yellow-500 text-3xl mb-3"></i>
+          <h2 class="text-lg font-semibold text-yellow-800 mb-2">Módulo de Voz não configurado</h2>
+          @if(!configured)
+            <p class="text-sm text-yellow-700 mb-4">Configure sua API key da OpenAI para usar pedidos por voz.</p>
+            <a href="{{ route('configuracoes.editVoz') }}"
+              class="inline-flex items-center gap-2 rounded-lg bg-yellow-600 px-4 py-2 text-sm font-semibold text-white hover:bg-yellow-500 transition-colors">
+              <i class="fas fa-cog"></i> Configurar Voz
+            </a>
+          @else
+            <p class="text-sm text-yellow-700">O módulo está desabilitado. Ative-o nas configurações.</p>
+            <a href="{{ route('configuracoes.editVoz') }}"
+              class="inline-flex items-center gap-2 mt-3 rounded-lg bg-yellow-600 px-4 py-2 text-sm font-semibold text-white hover:bg-yellow-500 transition-colors">
+              <i class="fas fa-cog"></i> Ativar Módulo
+            </a>
+          @end
+        </div>
+      @else
+
+        <!-- Status bar -->
+        <div id="statusBar" class="mb-6 rounded-lg bg-industrial-100 border border-industrial-200 px-4 py-3 flex items-center gap-3">
+          <div id="statusDot" class="w-3 h-3 rounded-full bg-industrial-400"></div>
+          <span id="statusText" class="text-sm text-industrial-600">Pronto para gravar</span>
+          <span id="timer" class="ml-auto text-sm font-mono text-industrial-500 hidden">00:00</span>
+        </div>
+
+        <!-- Botão de gravação -->
+        <div class="flex flex-col items-center mb-8">
+          <div class="relative">
+            <div id="pulseRing" class="absolute inset-0 rounded-full bg-red-400 opacity-0"></div>
+            <button id="recordBtn"
+              class="relative z-10 w-24 h-24 rounded-full bg-accent-600 text-white shadow-lg hover:bg-accent-500 focus:outline-none focus:ring-4 focus:ring-accent-300 transition-all duration-200 flex items-center justify-center"
+              title="Clique para gravar">
+              <i id="recordIcon" class="fas fa-microphone text-3xl"></i>
+            </button>
+          </div>
+          <p id="recordHint" class="mt-3 text-sm text-industrial-500">
+            Clique para iniciar a gravação (máx. {{ maxAudioSeconds }}s)
+          </p>
+        </div>
+
+        <!-- Área de loading -->
+        <div id="loadingArea" class="hidden mb-6">
+          <div class="rounded-xl bg-white border border-industrial-200 p-8 text-center shadow-sm">
+            <div class="inline-block animate-spin rounded-full h-10 w-10 border-4 border-accent-200 border-t-accent-600 mb-4"></div>
+            <p id="loadingText" class="text-sm text-industrial-600">Processando áudio...</p>
+          </div>
+        </div>
+
+        <!-- Preview / Confirmação -->
+        <div id="previewArea" class="hidden mb-6 fade-in">
+          <div class="rounded-xl bg-white border border-industrial-200 shadow-sm overflow-hidden">
+            <!-- Transcrição -->
+            <div class="px-6 py-4 bg-industrial-50 border-b border-industrial-200">
+              <h3 class="text-sm font-semibold text-industrial-700 mb-1">
+                <i class="fas fa-quote-left text-accent-500 mr-1"></i> Transcrição
+              </h3>
+              <p id="transcriptText" class="text-industrial-900 italic"></p>
+            </div>
+
+            <!-- Ações interpretadas -->
+            <div class="px-6 py-4">
+              <h3 class="text-sm font-semibold text-industrial-700 mb-3">
+                <i class="fas fa-list-check text-accent-500 mr-1"></i> Ações identificadas
+              </h3>
+              <div id="actionsPreview" class="space-y-3"></div>
+            </div>
+
+            <!-- Ambiguidades -->
+            <div id="ambiguitiesArea" class="hidden px-6 py-3 bg-yellow-50 border-t border-yellow-200">
+              <p class="text-sm text-yellow-800">
+                <i class="fas fa-exclamation-triangle mr-1"></i>
+                <span id="ambiguitiesText"></span>
+              </p>
+            </div>
+
+            <!-- Botões de ação -->
+            <div class="px-6 py-4 bg-industrial-50 border-t border-industrial-200 flex gap-3">
+              <button id="confirmBtn"
+                class="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-3 text-sm font-semibold text-white hover:bg-green-500 transition-colors">
+                <i class="fas fa-check"></i> Confirmar Pedido
+              </button>
+              <button id="retryBtn"
+                class="inline-flex items-center justify-center gap-2 rounded-lg bg-industrial-200 px-4 py-3 text-sm font-semibold text-industrial-700 hover:bg-industrial-300 transition-colors">
+                <i class="fas fa-redo"></i> Tentar Novamente
+              </button>
+              <button id="cancelBtn"
+                class="inline-flex items-center justify-center gap-2 rounded-lg bg-red-100 px-4 py-3 text-sm font-semibold text-red-700 hover:bg-red-200 transition-colors">
+                <i class="fas fa-times"></i> Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Resultado final -->
+        <div id="resultArea" class="hidden mb-6 fade-in">
+          <div id="resultCard" class="rounded-xl border p-6 shadow-sm">
+            <div class="flex items-start gap-3">
+              <div id="resultIcon" class="text-2xl"></div>
+              <div class="flex-1">
+                <h3 id="resultTitle" class="font-semibold"></h3>
+                <p id="resultMessage" class="text-sm mt-1"></p>
+              </div>
+            </div>
+            <button id="newOrderBtn"
+              class="mt-4 w-full inline-flex items-center justify-center gap-2 rounded-lg bg-accent-600 px-4 py-3 text-sm font-semibold text-white hover:bg-accent-500 transition-colors">
+              <i class="fas fa-microphone"></i> Novo Pedido por Voz
+            </button>
+          </div>
+        </div>
+
+        <!-- Histórico rápido -->
+        <div id="historyArea" class="hidden">
+          <h3 class="text-sm font-semibold text-industrial-500 mb-3">
+            <i class="fas fa-clock mr-1"></i> Últimos pedidos por voz
+          </h3>
+          <div id="historyList" class="space-y-2"></div>
+        </div>
+
+      @end
+
+    </div>
+  </div>
+
+  @if(voiceEnabled)
+  <script>
+    (function() {
+      'use strict'
+
+      const MAX_SECONDS = {{ maxAudioSeconds }}
+      const PREVIEW_URL = '{{ route("voice.preview") }}'
+      const CONFIRM_URL = '{{ route("voice.confirm") }}'
+
+      // DOM
+      const recordBtn = document.getElementById('recordBtn')
+      const recordIcon = document.getElementById('recordIcon')
+      const recordHint = document.getElementById('recordHint')
+      const pulseRing = document.getElementById('pulseRing')
+      const statusDot = document.getElementById('statusDot')
+      const statusText = document.getElementById('statusText')
+      const timer = document.getElementById('timer')
+      const loadingArea = document.getElementById('loadingArea')
+      const loadingText = document.getElementById('loadingText')
+      const previewArea = document.getElementById('previewArea')
+      const transcriptText = document.getElementById('transcriptText')
+      const actionsPreview = document.getElementById('actionsPreview')
+      const ambiguitiesArea = document.getElementById('ambiguitiesArea')
+      const ambiguitiesText = document.getElementById('ambiguitiesText')
+      const confirmBtn = document.getElementById('confirmBtn')
+      const retryBtn = document.getElementById('retryBtn')
+      const cancelBtn = document.getElementById('cancelBtn')
+      const resultArea = document.getElementById('resultArea')
+      const resultCard = document.getElementById('resultCard')
+      const resultIcon = document.getElementById('resultIcon')
+      const resultTitle = document.getElementById('resultTitle')
+      const resultMessage = document.getElementById('resultMessage')
+      const newOrderBtn = document.getElementById('newOrderBtn')
+      const historyArea = document.getElementById('historyArea')
+      const historyList = document.getElementById('historyList')
+
+      // State
+      let mediaRecorder = null
+      let audioChunks = []
+      let isRecording = false
+      let timerInterval = null
+      let seconds = 0
+      let currentActions = null
+      let history = []
+
+      // ---- Recording ----
+
+      recordBtn.addEventListener('click', async () => {
+        if (isRecording) {
+          stopRecording()
+        } else {
+          await startRecording()
+        }
+      })
+
+      async function startRecording() {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+          audioChunks = []
+
+          // Tentar webm primeiro, fallback para mp4
+          const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+            ? 'audio/webm;codecs=opus'
+            : MediaRecorder.isTypeSupported('audio/mp4')
+              ? 'audio/mp4'
+              : ''
+
+          mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : {})
+
+          mediaRecorder.ondataavailable = (e) => {
+            if (e.data.size > 0) audioChunks.push(e.data)
+          }
+
+          mediaRecorder.onstop = () => {
+            stream.getTracks().forEach((t) => t.stop())
+            const blob = new Blob(audioChunks, { type: mediaRecorder.mimeType })
+            sendAudio(blob)
+          }
+
+          mediaRecorder.start(250) // chunks a cada 250ms
+          isRecording = true
+          seconds = 0
+
+          // UI
+          setStatus('recording', 'Gravando...')
+          recordBtn.classList.remove('bg-accent-600', 'hover:bg-accent-500')
+          recordBtn.classList.add('bg-red-600', 'hover:bg-red-500')
+          recordIcon.classList.remove('fa-microphone')
+          recordIcon.classList.add('fa-stop')
+          pulseRing.classList.add('pulse-ring')
+          pulseRing.classList.remove('opacity-0')
+          recordHint.textContent = 'Clique para parar'
+          timer.classList.remove('hidden')
+          hideAll()
+
+          timerInterval = setInterval(() => {
+            seconds++
+            timer.textContent = formatTime(seconds)
+            if (seconds >= MAX_SECONDS) {
+              stopRecording()
+            }
+          }, 1000)
+
+        } catch (err) {
+          console.error('Mic error:', err)
+          setStatus('error', 'Não foi possível acessar o microfone. Verifique as permissões.')
+          statusDot.classList.add('shake')
+          setTimeout(() => statusDot.classList.remove('shake'), 500)
+        }
+      }
+
+      function stopRecording() {
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+          mediaRecorder.stop()
+        }
+        isRecording = false
+        clearInterval(timerInterval)
+
+        // UI reset
+        recordBtn.classList.remove('bg-red-600', 'hover:bg-red-500')
+        recordBtn.classList.add('bg-accent-600', 'hover:bg-accent-500')
+        recordIcon.classList.remove('fa-stop')
+        recordIcon.classList.add('fa-microphone')
+        pulseRing.classList.remove('pulse-ring')
+        pulseRing.classList.add('opacity-0')
+        recordBtn.disabled = true
+        recordBtn.classList.add('opacity-50')
+      }
+
+      // ---- API Calls ----
+
+      async function sendAudio(blob) {
+        setStatus('processing', 'Processando áudio...')
+        loadingArea.classList.remove('hidden')
+        loadingText.textContent = 'Transcrevendo áudio e interpretando pedido...'
+
+        const formData = new FormData()
+        const ext = blob.type.includes('webm') ? 'webm' : blob.type.includes('mp4') ? 'mp4' : 'ogg'
+        formData.append('audio', blob, `audio.${ext}`)
+
+        try {
+          const resp = await fetch(PREVIEW_URL, {
+            method: 'POST',
+            body: formData,
+            headers: {
+              'X-Timezone': Intl.DateTimeFormat().resolvedOptions().timeZone,
+            },
+          })
+
+          const json = await resp.json()
+          loadingArea.classList.add('hidden')
+
+          if (!resp.ok || !json.success) {
+            showError(json.error || 'Erro ao processar áudio.')
+            resetRecordBtn()
+            return
+          }
+
+          showPreview(json.data)
+
+        } catch (err) {
+          loadingArea.classList.add('hidden')
+          showError('Falha de conexão. Tente novamente.')
+          resetRecordBtn()
+        }
+      }
+
+      async function confirmActions() {
+        if (!currentActions || currentActions.length === 0) return
+
+        setStatus('processing', 'Executando ações...')
+        confirmBtn.disabled = true
+        confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Executando...'
+
+        try {
+          const resp = await fetch(CONFIRM_URL, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Timezone': Intl.DateTimeFormat().resolvedOptions().timeZone,
+            },
+            body: JSON.stringify({ actions: currentActions }),
+          })
+
+          const json = await resp.json()
+          previewArea.classList.add('hidden')
+
+          if (!resp.ok || !json.success) {
+            showResult(false, 'Erro', json.error || 'Erro ao executar ações.')
+            resetRecordBtn()
+            return
+          }
+
+          const data = json.data
+          const allSuccess = data.results.every((r) => r.success)
+
+          if (allSuccess) {
+            showResult(true, 'Pedido realizado!', data.feedback)
+          } else {
+            const errors = data.results.filter((r) => !r.success)
+            const successes = data.results.filter((r) => r.success)
+            let msg = ''
+            if (successes.length > 0) msg += successes.map((r) => r.feedback).join(' ') + ' '
+            msg += errors.map((r) => r.feedback).join(' ')
+            showResult(successes.length > 0, successes.length > 0 ? 'Parcialmente executado' : 'Não foi possível', msg)
+          }
+
+          // Adicionar ao histórico
+          addToHistory(data)
+
+        } catch (err) {
+          previewArea.classList.add('hidden')
+          showResult(false, 'Erro de conexão', 'Falha ao conectar com o servidor.')
+        }
+
+        resetRecordBtn()
+      }
+
+      // ---- UI Helpers ----
+
+      function showPreview(data) {
+        transcriptText.textContent = data.transcript || '(sem transcrição)'
+        currentActions = data.actions || []
+
+        actionsPreview.innerHTML = ''
+        if (currentActions.length === 0) {
+          actionsPreview.innerHTML = '<p class="text-sm text-industrial-500">Nenhuma ação identificada. Tente novamente.</p>'
+          confirmBtn.disabled = true
+        } else {
+          confirmBtn.disabled = false
+
+          // Ajustar label do botão baseado na ação
+          const hasIncomplete = currentActions.some((a) => a.incomplete)
+          if (hasIncomplete) {
+            confirmBtn.disabled = true
+            confirmBtn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Comando Incompleto — Tente Novamente'
+          } else if (currentActions.length === 1 && currentActions[0].intent === 'help') {
+            confirmBtn.innerHTML = '<i class="fas fa-check"></i> Exibir Ajuda'
+          } else {
+            confirmBtn.innerHTML = '<i class="fas fa-check"></i> Confirmar Ação'
+          }
+
+          currentActions.forEach((action, i) => {
+            const div = document.createElement('div')
+            div.className = 'rounded-lg border border-industrial-200 p-3'
+
+            const intentLabels = {
+              create_order: '🆕 Criar Pedido',
+              add_items: '➕ Adicionar Itens',
+              remove_item: '🗑️ Remover Item',
+              update_quantity: '🔢 Alterar Quantidade',
+              open_comanda: '📋 Abrir Comanda',
+              close_comanda: '🔒 Fechar Comanda',
+              close_and_pay: '💳 Fechar e Pagar',
+              cancel_order: '❌ Cancelar Pedido',
+              confirm_order: '✅ Confirmar Pedido',
+              update_order_status: '🔄 Alterar Status do Pedido',
+              update_item_status: '🔄 Alterar Status do Item',
+              query_status: '🔍 Consultar Status',
+              special_instruction: '📝 Instrução Especial',
+              print_kitchen: '🖨️ Imprimir Cozinha',
+              print_comanda: '🖨️ Imprimir Comanda',
+              create_sale: '💰 Venda Avulsa',
+              open_cash: '🏦 Abrir Caixa',
+              close_cash: '🏦 Fechar Caixa',
+              help: '📖 Ajuda',
+            }
+
+            let html = '<div class="flex items-center justify-between mb-2">'
+            html += '<span class="text-sm font-semibold">' + (intentLabels[action.intent] || action.intent) + '</span>'
+            html += '<span class="text-xs px-2 py-1 rounded-full ' +
+              (action.incomplete ? 'bg-orange-100 text-orange-700' : action.confidence >= 0.8 ? 'bg-green-100 text-green-700' : action.confidence >= 0.5 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700') +
+              '">' + (action.incomplete ? '⚠️ Incompleto' : Math.round(action.confidence * 100) + '% confiança') + '</span>'
+            html += '</div>'
+
+            // Mostrar alerta de comando incompleto com dica de como usar
+            if (action.incomplete && action.helpText) {
+              html += '<div class="rounded-lg bg-orange-50 border border-orange-200 p-3 mb-2">'
+              html += '<p class="text-sm text-orange-800 font-medium mb-1">⚠️ Comando incompleto</p>'
+              html += '<p class="text-sm text-orange-700">' + action.helpText + '</p>'
+              html += '</div>'
+            }
+
+            // Mostrar feedback de ajuda (help)
+            if (action.intent === 'help') {
+              html += '<div class="text-sm text-industrial-700 whitespace-pre-line bg-industrial-50 rounded-lg p-3">'
+              html += 'Ao confirmar, será exibida a lista completa de comandos.'
+              html += '</div>'
+            }
+
+            if (action.items && action.items.length > 0) {
+              html += '<ul class="text-sm text-industrial-700 space-y-1">'
+              action.items.forEach((item) => {
+                html += '<li class="flex items-center gap-2">'
+                html += '<span class="text-industrial-400">•</span>'
+                html += '<span>' + (item.quantity || 1) + 'x ' + (item.matchedProductName || item.name) + '</span>'
+                if (item.specialInstructions) {
+                  html += '<span class="text-xs text-industrial-500 italic">(' + item.specialInstructions + ')</span>'
+                }
+                html += '</li>'
+              })
+              html += '</ul>'
+            }
+
+            if (action.comanda) {
+              html += '<p class="text-xs text-industrial-500 mt-1">Comanda: ' + action.comanda + '</p>'
+            }
+            if (action.mesa) {
+              html += '<p class="text-xs text-industrial-500 mt-1">Mesa: ' + action.mesa + '</p>'
+            }
+            if (action.paymentMethod) {
+              const payLabels = { cash: 'Dinheiro', card: 'Cartão', pix: 'PIX' }
+              html += '<p class="text-xs text-industrial-500 mt-1">Pagamento: ' + (payLabels[action.paymentMethod] || action.paymentMethod) + '</p>'
+            }
+            if (action.status) {
+              const sLabels = { preparing: 'Em preparo', ready: 'Pronto', served: 'Servido', paid: 'Pago' }
+              html += '<p class="text-xs text-industrial-500 mt-1">Status: ' + (sLabels[action.status] || action.status) + '</p>'
+            }
+            if (action.itemStatus) {
+              const isLabels = { preparing: 'Em preparo', ready: 'Pronto', served: 'Servido', cancelled: 'Cancelado' }
+              html += '<p class="text-xs text-industrial-500 mt-1">Status item: ' + (isLabels[action.itemStatus] || action.itemStatus) + '</p>'
+            }
+            if (action.discountPercentage && action.discountPercentage > 0) {
+              html += '<p class="text-xs text-industrial-500 mt-1">Desconto: ' + action.discountPercentage + '%</p>'
+            }
+            if (action.amount && action.amount > 0) {
+              html += '<p class="text-xs text-industrial-500 mt-1">Valor: R$ ' + action.amount.toFixed(2).replace('.', ',') + '</p>'
+            }
+
+            div.innerHTML = html
+            actionsPreview.appendChild(div)
+          })
+        }
+
+        // Ambiguidades
+        if (data.ambiguities && data.ambiguities.length > 0) {
+          ambiguitiesArea.classList.remove('hidden')
+          ambiguitiesText.textContent = data.ambiguities.join('; ')
+        } else {
+          ambiguitiesArea.classList.add('hidden')
+        }
+
+        previewArea.classList.remove('hidden')
+        setStatus('preview', 'Confirme ou cancele o pedido')
+      }
+
+      function showResult(success, title, message) {
+        resultArea.classList.remove('hidden')
+
+        if (success) {
+          resultCard.className = 'rounded-xl border border-green-200 bg-green-50 p-6 shadow-sm'
+          resultIcon.innerHTML = '<i class="fas fa-check-circle text-green-500"></i>'
+          resultTitle.className = 'font-semibold text-green-800'
+        } else {
+          resultCard.className = 'rounded-xl border border-red-200 bg-red-50 p-6 shadow-sm'
+          resultIcon.innerHTML = '<i class="fas fa-times-circle text-red-500"></i>'
+          resultTitle.className = 'font-semibold text-red-800'
+        }
+
+        resultTitle.textContent = title
+        resultMessage.textContent = message
+        resultMessage.className = 'text-sm mt-1 ' + (success ? 'text-green-700' : 'text-red-700')
+        // For multiline messages (e.g. help), preserve whitespace
+        if (message && message.includes('\n')) {
+          resultMessage.style.whiteSpace = 'pre-line'
+        } else {
+          resultMessage.style.whiteSpace = ''
+        }
+
+        setStatus(success ? 'success' : 'error', success ? 'Pedido confirmado!' : 'Verifique o resultado')
+      }
+
+      function showError(msg) {
+        setStatus('error', msg)
+        resultArea.classList.remove('hidden')
+        resultCard.className = 'rounded-xl border border-red-200 bg-red-50 p-6 shadow-sm'
+        resultIcon.innerHTML = '<i class="fas fa-exclamation-circle text-red-500"></i>'
+        resultTitle.textContent = 'Erro'
+        resultTitle.className = 'font-semibold text-red-800'
+        resultMessage.textContent = msg
+        resultMessage.className = 'text-sm mt-1 text-red-700'
+      }
+
+      function setStatus(state, text) {
+        statusText.textContent = text
+        statusDot.className = 'w-3 h-3 rounded-full'
+
+        switch (state) {
+          case 'recording':
+            statusDot.classList.add('bg-red-500')
+            break
+          case 'processing':
+            statusDot.classList.add('bg-yellow-500')
+            break
+          case 'preview':
+            statusDot.classList.add('bg-blue-500')
+            break
+          case 'success':
+            statusDot.classList.add('bg-green-500')
+            break
+          case 'error':
+            statusDot.classList.add('bg-red-500')
+            break
+          default:
+            statusDot.classList.add('bg-industrial-400')
+        }
+      }
+
+      function hideAll() {
+        previewArea.classList.add('hidden')
+        resultArea.classList.add('hidden')
+        loadingArea.classList.add('hidden')
+      }
+
+      function resetRecordBtn() {
+        recordBtn.disabled = false
+        recordBtn.classList.remove('opacity-50')
+        recordHint.textContent = 'Clique para iniciar a gravação (máx. ' + MAX_SECONDS + 's)'
+        timer.classList.add('hidden')
+        timer.textContent = '00:00'
+        setStatus('idle', 'Pronto para gravar')
+      }
+
+      function resetAll() {
+        hideAll()
+        resetRecordBtn()
+        currentActions = null
+      }
+
+      function formatTime(s) {
+        const m = String(Math.floor(s / 60)).padStart(2, '0')
+        const sec = String(s % 60).padStart(2, '0')
+        return m + ':' + sec
+      }
+
+      function addToHistory(data) {
+        const results = data.results || []
+        const success = results.some((r) => r.success)
+        const feedbacks = results.map((r) => r.feedback).filter(Boolean).join(' ')
+
+        history.unshift({
+          time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+          success,
+          feedback: feedbacks.substring(0, 120),
+          orderNumbers: results.filter((r) => r.orderNumber).map((r) => r.orderNumber),
+        })
+
+        if (history.length > 5) history.pop()
+        renderHistory()
+      }
+
+      function renderHistory() {
+        if (history.length === 0) {
+          historyArea.classList.add('hidden')
+          return
+        }
+        historyArea.classList.remove('hidden')
+        historyList.innerHTML = ''
+
+        history.forEach((h) => {
+          const div = document.createElement('div')
+          div.className = 'rounded-lg bg-white border border-industrial-200 p-3 flex items-center gap-3 text-sm'
+          div.innerHTML =
+            '<span class="text-xs text-industrial-400 w-12">' + h.time + '</span>' +
+            '<i class="fas ' + (h.success ? 'fa-check-circle text-green-500' : 'fa-times-circle text-red-500') + '"></i>' +
+            '<span class="text-industrial-700 flex-1 truncate">' + h.feedback + '</span>'
+          historyList.appendChild(div)
+        })
+      }
+
+      // ---- Event Handlers ----
+      confirmBtn.addEventListener('click', confirmActions)
+
+      retryBtn.addEventListener('click', () => {
+        resetAll()
+      })
+
+      cancelBtn.addEventListener('click', () => {
+        resetAll()
+      })
+
+      newOrderBtn.addEventListener('click', () => {
+        resetAll()
+      })
+
+    })()
+  </script>
+  @end
+</body>
+</html>

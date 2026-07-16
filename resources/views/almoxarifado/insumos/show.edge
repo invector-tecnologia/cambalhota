@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="{{ theme }}" class="h-full bg-industrial-50">
+<head>
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrfToken }}">
+    <title>{{ insumo.name }} - Almoxarifado - Tavolo</title>
+    @vite(['resources/css/app.css'])
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    </head>
+<body class="h-full font-sans text-industrial-900">
+    <!-- Cabeçalho -->
+    <header class="app-card shadow">
+        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div class="flex h-16 items-center gap-3">
+                <div class="flex items-center space-x-4">
+                    <h1 class="text-xl font-semibold leading-6 app-strong app-strong">{{ insumo.name }}</h1>
+                    @if(insumo.active)
+                        <span class="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">Ativo</span>
+                    @else
+                        <span class="inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/20">Inativo</span>
+                    @end
+                </div>
+                <div class="flex items-center space-x-4 ml-auto">
+                    <a href="{{ route('insumos.edit', { id: insumo.id }) }}" class="inline-flex items-center rounded-md bg-accent-600 px-3 py-2 text-sm font-semibold text-white  hover:bg-accent-500">
+                        Editar
+                    </a>
+                    <a href="{{ route('insumos.index') }}" class="inline-flex items-center rounded-md bg-industrial-600 px-3 py-2 text-sm font-semibold text-white  hover:bg-industrial-500">
+                        <i class="fas fa-list mr-2"></i> Lista de Insumos
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-6xl mx-auto py-6 sm:px-6 lg:px-8">
+    <!-- Main Content -->
+    <main class="max-w-6xl mx-auto py-6 sm:px-6 lg:px-8">
+        <!-- Status e Indicadores -->
+        <div class="app-card rounded-lg overflow-hidden mb-6">
+            <div class="px-6 py-4 app-border">
+                <h2 class="text-lg font-semibold app-strong app-strong">Status do Insumo</h2>
+            </div>
+            <div class="p-6">
+                <div class="grid grid-cols-1 gap-6 sm:grid-cols-4">
+                    <!-- Estoque Atual -->
+                    <div class="text-center">
+                        <div class="text-3xl font-bold 
+                            @if(insumo.stockControl && insumo.currentStock <= insumo.minimumStock)
+                                text-red-600
+                            @elseif(insumo.maximumStock && insumo.currentStock >= insumo.maximumStock)
+                                text-orange-600
+                            @else
+                                text-green-600
+                            @end
+                        ">
+                            {{ formatDecimal(insumo.currentStock) }}
+                        </div>
+                        <div class="text-sm text-industrial-500">{{ insumo.unit }}</div>
+                        <div class="text-base font-medium text-industrial-900 mt-1">Estoque Atual</div>
+                    </div>
+                    
+                    <!-- Preço de Compra -->
+                    <div class="text-center">
+                        <div class="text-3xl font-bold text-accent-600">
+                            {{ formatCurrency(insumo.purchasePrice) }}
+                        </div>
+                        <div class="text-sm text-industrial-500">por {{ insumo.unit }}</div>
+                        <div class="text-base font-medium text-industrial-900 mt-1">Preço de Compra</div>
+                    </div>
+
+                    <!-- Preço de Custo -->
+                    <div class="text-center">
+                        @if(insumo.costPrice)
+                            <div class="text-3xl font-bold text-purple-600">
+                                {{ formatCurrency(insumo.costPrice) }}
+                            </div>
+                            <div class="text-sm text-industrial-500">por {{ insumo.unit }}</div>
+                            <div class="text-base font-medium text-industrial-900 mt-1">Preço de Custo</div>
+                        @else
+                            <div class="text-3xl font-bold text-industrial-300">-</div>
+                            <div class="text-sm text-industrial-500">não definido</div>
+                            <div class="text-base font-medium text-industrial-900 mt-1">Preço de Custo</div>
+                        @end
+                    </div>
+
+                    <!-- Preço de Venda -->
+                    <div class="text-center">
+                        @if(insumo.salePrice)
+                            <div class="text-3xl font-bold text-green-600">
+                                {{ formatCurrency(insumo.salePrice) }}
+                            </div>
+                            <div class="text-sm text-industrial-500">por {{ insumo.unit }}</div>
+                            <div class="text-base font-medium text-industrial-900 mt-1">Preço de Venda</div>
+                        @else
+                            <div class="text-3xl font-bold text-industrial-300">-</div>
+                            <div class="text-sm text-industrial-500">não definido</div>
+                            <div class="text-base font-medium text-industrial-900 mt-1">Preço de Venda</div>
+                        @end
+                    </div>
+                </div>
+
+                <!-- Alertas de Estoque -->
+                @if(insumo.stockControl && Number(insumo.currentStock) <= Number(insumo.minimumStock))
+                    <div class="mt-6 rounded-md bg-red-50 p-4 border border-red-200">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd"/>
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <h3 class="text-sm font-medium text-red-800">Estoque Baixo</h3>
+                                <p class="mt-1 text-sm text-red-700">
+                                    O estoque atual ({{ formatDecimal(insumo.currentStock) }} {{ insumo.unit }}) está abaixo do mínimo recomendado ({{ formatDecimal(insumo.minimumStock) }} {{ insumo.unit }}).
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                @elseif(insumo.maximumStock && Number(insumo.currentStock) >= Number(insumo.maximumStock))
+                    <div class="mt-6 rounded-md bg-orange-50 p-4 border border-orange-200">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5 text-orange-400" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/>
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <h3 class="text-sm font-medium text-orange-800">Estoque Alto</h3>
+                                <p class="mt-1 text-sm text-orange-700">
+                                    O estoque atual ({{ formatDecimal(insumo.currentStock) }} {{ insumo.unit }}) está acima do máximo recomendado ({{ formatDecimal(insumo.maximumStock) }} {{ insumo.unit }}).
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                @end
+            </div>
+        </div>
+
+        <!-- Controle de Estoque -->
+        <div class="app-card  rounded-lg overflow-hidden mb-6">
+            <div class="px-6 py-4 app-border bg-transparent">
+                <h2 class="text-lg font-semibold app-strong">Controle de Estoque</h2>
+            </div>
+            <div class="p-6">
+                <dl class="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-3">
+                    <div>
+                        <dt class="text-sm font-medium app-muted">Estoque Mínimo</dt>
+                        <dd class="mt-1 text-sm app-text">{{ formatDecimal(insumo.minimumStock) }} {{ insumo.unit }}
+                        </dd>
+                    </div>
+        
+                    @if(insumo.maximumStock)
+                    <div>
+                        <dt class="text-sm font-medium app-muted">Estoque Máximo</dt>
+                        <dd class="mt-1 text-sm app-text">{{ formatDecimal(insumo.maximumStock) }} {{ insumo.unit }}
+                        </dd>
+                    </div>
+                    @end
+        
+                    <div>
+                        <dt class="text-sm font-medium app-muted">Controle de Estoque</dt>
+                        <dd class="mt-1">
+                            <span
+                                class="inline-flex px-2 py-1 text-xs font-medium rounded-full
+                                        {{ insumo.stockControl ? 'bg-green-100 text-green-800' : 'bg-industrial-100 app-muted' }}">
+                                {{ insumo.stockControl ? 'Ativo' : 'Inativo' }}
+                            </span>
+                        </dd>
+                    </div>
+                </dl>
+        
+                <!-- Formulário de Atualização de Estoque -->
+                <div class="mt-6 app-border pt-6">
+                    <h3 class="text-base font-medium app-strong mb-4">Atualizar Estoque</h3>
+                    <form method="POST" action="{{ route('insumos.updateStock', { id: insumo.id }) }}">
+                        {{ csrfField() }}
+                        <input type="hidden" name="_method" value="PUT">
+                        <div class="grid grid-cols-1 gap-4 sm:grid-cols-4">
+                            <div>
+                                <label for="operation"
+                                    class="block text-sm font-medium app-muted mb-2">Operação</label>
+                                <select name="operation" id="operation" required
+                                    class="w-full px-3 py-2 app-border rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-accent-500">
+                                    <option value="add">Adicionar</option>
+                                    <option value="subtract">Subtrair</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="quantity"
+                                    class="block text-sm font-medium app-muted mb-2">Quantidade</label>
+                                <input type="text" name="quantity" id="quantity" required
+                                    class="w-full px-3 py-2 app-border rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-accent-500"
+                                    placeholder="0,00">
+                            </div>
+                            <div>
+                                <label for="reason" class="block text-sm font-medium app-muted mb-2">Motivo</label>
+                                <input type="text" name="reason" id="reason"
+                                    class="w-full px-3 py-2 app-border rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-accent-500"
+                                    placeholder="Ex: Compra, Venda, Ajuste">
+                            </div>
+                            <div class="flex items-end">
+                                <button type="submit"
+                                    class="w-full px-4 py-2 app-border rounded-lg text-sm font-medium text-white bg-accent-600 hover:bg-accent-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent-500">
+                                    <i class="fas fa-sync-alt mr-2"></i>
+                                    Atualizar
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Informações Básicas -->
+        <div class="app-card  rounded-lg overflow-hidden mb-6">
+            <div class="px-6 py-4 app-border bg-transparent">
+                <h2 class="text-lg font-semibold app-strong flex items-center">
+                    Informações Básicas
+                </h2>
+            </div>
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    @if(insumo.code)
+                    <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 border border-blue-200">
+                        <dt class="text-xs font-medium text-blue-600 uppercase tracking-wide mb-1">Código</dt>
+                        <dd class="text-lg font-bold text-blue-900">{{ insumo.code }}</dd>
+                    </div>
+                    @end
+
+                    @if(insumo.barcode)
+                    <div class="bg-gradient-to-br from-accent-50 to-accent-100 rounded-lg p-4 border border-accent-200">
+                        <dt class="text-xs font-medium text-purple-600 uppercase tracking-wide mb-1">Código de Barras</dt>
+                        <dd class="text-lg font-mono font-bold text-purple-900">{{ insumo.barcode }}</dd>
+                    </div>
+                    @end
+
+                    <div class="bg-gradient-to-br from-pink-50 to-pink-100 rounded-lg p-4 border border-pink-200">
+                        <dt class="text-xs font-medium text-pink-600 uppercase tracking-wide mb-1">Tipo</dt>
+                        <dd class="mt-1">
+                            <span class="inline-flex items-center px-3 py-1.5 text-sm font-semibold rounded-full
+                                @if(insumo.type === 'ingredient')
+                                    bg-pink-200 text-pink-900
+                                @elseif(insumo.type === 'finished_product')
+                                    bg-blue-200 text-blue-900
+                                @elseif(insumo.type === 'beverage')
+                                    bg-orange-200 text-orange-900
+                                @else
+                                    bg-purple-200 text-purple-900
+                                @end
+                            ">
+                                <i class="fas 
+                                    @if(insumo.type === 'ingredient')
+                                        fa-leaf
+                                    @elseif(insumo.type === 'finished_product')
+                                        fa-box
+                                    @elseif(insumo.type === 'beverage')
+                                        fa-glass-martini
+                                    @else
+                                        fa-tools
+                                    @end
+                                    mr-2
+                                "></i>
+                                @if(insumo.type === 'ingredient')
+                                    Ingrediente
+                                @elseif(insumo.type === 'finished_product')
+                                    Insumo Acabado
+                                @elseif(insumo.type === 'beverage')
+                                    Bebida
+                                @else
+                                    Suprimento
+                                @end
+                            </span>
+                        </dd>
+                    </div>
+
+                    @if(insumo.category)
+                    <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-4 border border-green-200">
+                        <dt class="text-xs font-medium text-green-600 uppercase tracking-wide mb-1">Categoria</dt>
+                        <dd class="text-lg font-semibold text-green-900">{{ insumo.category }}</dd>
+                    </div>
+                    @end
+
+                    @if(insumo.subcategory)
+                    <div class="bg-gradient-to-br from-teal-50 to-teal-100 rounded-lg p-4 border border-teal-200">
+                        <dt class="text-xs font-medium text-teal-600 uppercase tracking-wide mb-1">Subcategoria</dt>
+                        <dd class="text-lg font-semibold text-teal-900">{{ insumo.subcategory }}</dd>
+                    </div>
+                    @end
+
+                    <div class="bg-gradient-to-br from-accent-50 to-accent-100 rounded-lg p-4 border border-accent-200">
+                        <dt class="text-xs font-medium text-accent-600 uppercase tracking-wide mb-1">Unidade de Medida</dt>
+                        <dd class="text-lg font-bold text-accent-900">{{ insumo.unit }}</dd>
+                    </div>
+
+                    @if(insumo.purchaseUnit)
+                    <div class="bg-gradient-to-br from-cyan-50 to-cyan-100 rounded-lg p-4 border border-cyan-200">
+                        <dt class="text-xs font-medium text-cyan-600 uppercase tracking-wide mb-1">Unidade de Compra</dt>
+                        <dd class="text-lg font-bold text-cyan-900">{{ insumo.purchaseUnit }}</dd>
+                    </div>
+                    @end
+
+                    @if(insumo.conversionFactor && insumo.conversionFactor !== 1)
+                    <div class="bg-gradient-to-br from-amber-50 to-amber-100 rounded-lg p-4 border border-amber-200">
+                        <dt class="text-xs font-medium text-amber-600 uppercase tracking-wide mb-1">Fator de Conversão</dt>
+                        <dd class="text-lg font-bold text-amber-900">{{ formatDecimal(insumo.conversionFactor) }}x</dd>
+                    </div>
+                    @end
+
+                    @if(insumo.fornecedorPadrao && insumo.fornecedorPadrao.name)
+                    <div class="bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg p-4 border border-orange-200">
+                        <dt class="text-xs font-medium text-orange-600 uppercase tracking-wide mb-1 flex items-center">
+                            <i class="fas fa-truck mr-1"></i>
+                            Fornecedor Padrão
+                        </dt>
+                        <dd class="text-lg font-semibold text-orange-900">{{ insumo.fornecedorPadrao.name }}</dd>
+                    </div>
+                    @end
+                </div>
+
+                @if(insumo.description)
+                <div class="mt-6 bg-gradient-to-r from-industrial-50 to-gray-50 rounded-lg p-4 app-border">
+                    <dt class="text-xs font-medium app-muted uppercase tracking-wide mb-2 flex items-center">
+                        <i class="fas fa-align-left mr-2"></i>
+                        Descrição
+                    </dt>
+                    <dd class="text-sm app-muted leading-relaxed">{{ insumo.description }}</dd>
+                </div>
+                @end
+            </div>
+        </div>
+
+        <!-- Informações Adicionais -->
+        @if(insumo.perishable)
+        <div class="bg-white  rounded-lg overflow-hidden mb-6">
+            <div class="px-6 py-4 border-b border-industrial-200 bg-industrial-50">
+                <h2 class="text-lg font-semibold text-industrial-900">Informações Adicionais</h2>
+            </div>
+            <div class="p-6">
+                <dl class="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
+                    <div>
+                        <dt class="text-sm font-medium text-industrial-500">Insumo Perecível</dt>
+                        <dd class="mt-1">
+                            <span class="inline-flex px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full">
+                                Sim
+                            </span>
+                        </dd>
+                    </div>
+        
+                    @if(insumo.shelfLifeDays)
+                    <div>
+                        <dt class="text-sm font-medium text-industrial-500">Prazo de Validade</dt>
+                        <dd class="mt-1 text-sm text-industrial-900">{{ insumo.shelfLifeDays }} dias</dd>
+                    </div>
+                    @end
+                </dl>
+            </div>
+        </div>
+        @end
+
+        <!-- Informações Fiscais -->
+        @if(insumo.ncm || insumo.cest || insumo.taxRate > 0)
+        <div class="bg-white  rounded-lg overflow-hidden mb-6">
+            <div class="px-6 py-4 border-b border-industrial-200 bg-industrial-50">
+                <h2 class="text-lg font-semibold text-industrial-900">Informações Fiscais</h2>
+            </div>
+            <div class="p-6">
+                <dl class="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-3">
+                    @if(insumo.ncm)
+                    <div>
+                        <dt class="text-sm font-medium text-industrial-500">NCM</dt>
+                        <dd class="mt-1 text-sm text-industrial-900">{{ insumo.ncm }}</dd>
+                    </div>
+                    @end
+
+                    @if(insumo.cest)
+                    <div>
+                        <dt class="text-sm font-medium text-industrial-500">CEST</dt>
+                        <dd class="mt-1 text-sm text-industrial-900">{{ insumo.cest }}</dd>
+                    </div>
+                    @end
+
+                    @if(Number(insumo.taxRate) > 0)
+                    <div>
+                        <dt class="text-sm font-medium text-industrial-500">Alíquota de Imposto</dt>
+                        <dd class="mt-1 text-sm text-industrial-900">{{ formatDecimal(insumo.taxRate) }}%</dd>
+                    </div>
+                    @end
+                </dl>
+            </div>
+        </div>
+        @end
+
+        <!-- Demonstrativo de Utilização (últimos 30 dias) -->
+        @if(utilizacao && utilizacao.length > 0)
+        <div class="bg-white  rounded-lg overflow-hidden mb-6">
+            <div class="px-6 py-4 border-b border-industrial-200 bg-gradient-to-r from-accent-50 to-accent-100">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-lg font-semibold text-industrial-900 flex items-center">
+                        <i class="fas fa-chart-line mr-2 text-accent-600"></i>
+                        Utilização nos Últimos 30 Dias
+                    </h2>
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-accent-200 text-accent-900">
+                        <i class="fas fa-box mr-2"></i>
+                        Total: {{ formatDecimal(totalUtilizado) }} {{ insumo.unit }}
+                    </span>
+                </div>
+            </div>
+            <div class="p-6">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-industrial-200">
+                        <thead class="bg-industrial-50">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-industrial-500 uppercase tracking-wider">
+                                    Produto
+                                </th>
+                                <th class="px-4 py-3 text-center text-xs font-medium text-industrial-500 uppercase tracking-wider">
+                                    Qtd. Receita
+                                </th>
+                                <th class="px-4 py-3 text-center text-xs font-medium text-industrial-500 uppercase tracking-wider">
+                                    Vendas
+                                </th>
+                                <th class="px-4 py-3 text-right text-xs font-medium text-industrial-500 uppercase tracking-wider">
+                                    Total Utilizado
+                                </th>
+                                <th class="px-4 py-3 text-right text-xs font-medium text-industrial-500 uppercase tracking-wider">
+                                    % do Total
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-industrial-200">
+                            @each(item in utilizacao)
+                            <tr class="hover:bg-industrial-50 transition-colors">
+                                <td class="px-4 py-3 whitespace-nowrap">
+                                    <div class="flex items-center">
+                                        <i class="fas fa-utensils text-industrial-400 mr-2"></i>
+                                        <span class="text-sm font-medium text-industrial-900">{{ item.produtoNome }}</span>
+                                    </div>
+                                </td>
+                                <td class="px-4 py-3 whitespace-nowrap text-center">
+                                    <span class="text-sm app-muted">
+                                        {{ formatDecimal(item.quantidadeReceita) }} {{ insumo.unit }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-3 whitespace-nowrap text-center">
+                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                        {{ formatNumber(item.totalVendido) }}x
+                                    </span>
+                                </td>
+                                <td class="px-4 py-3 whitespace-nowrap text-right">
+                                    <span class="text-sm font-semibold text-accent-600">
+                                        {{ formatDecimal(item.insumoUtilizado) }} {{ insumo.unit }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-3 whitespace-nowrap text-right">
+                                    <div class="flex items-center justify-end">
+                                        <div class="w-20 bg-industrial-200 rounded-full h-2 mr-2">
+                                            <div class="bg-accent-600 h-2 rounded-full" style="width: {{ (item.insumoUtilizado / totalUtilizado * 100).toFixed(1) }}%"></div>
+                                        </div>
+                                        <span class="text-xs font-medium app-muted">
+                                            {{ formatDecimal(item.insumoUtilizado / totalUtilizado * 100, 1) }}%
+                                        </span>
+                                    </div>
+                                </td>
+                            </tr>
+                            @end
+                        </tbody>
+                        <tfoot class="bg-industrial-50">
+                            <tr>
+                                <td colspan="3" class="px-4 py-3 text-right text-sm font-bold text-industrial-900">
+                                    Total Geral:
+                                </td>
+                                <td class="px-4 py-3 text-right text-sm font-bold text-accent-600">
+                                    {{ formatDecimal(totalUtilizado) }} {{ insumo.unit }}
+                                </td>
+                                <td class="px-4 py-3 text-right text-sm font-bold app-muted">
+                                    100%
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+        @else
+        <div class="bg-white  rounded-lg overflow-hidden mb-6">
+            <div class="px-6 py-4 border-b border-industrial-200 bg-gradient-to-r from-industrial-50 to-gray-100">
+                <h2 class="text-lg font-semibold text-industrial-900 flex items-center">
+                    <i class="fas fa-chart-line mr-2 text-industrial-400"></i>
+                    Utilização nos Últimos 30 Dias
+                </h2>
+            </div>
+            <div class="p-6">
+                <div class="text-center py-8">
+                    <i class="fas fa-inbox text-industrial-300 text-5xl mb-4"></i>
+                    <p class="text-industrial-500">Nenhuma utilização registrada nos últimos 30 dias</p>
+                    <p class="text-sm text-industrial-400 mt-1">Este insumo ainda não foi utilizado em produtos vendidos recentemente</p>
+                </div>
+            </div>
+        </div>
+        @end
+
+        <!-- Metadados -->
+        <div class="bg-white  rounded-lg overflow-hidden">
+            <div class="px-6 py-4 border-b border-industrial-200 bg-industrial-50">
+                <h2 class="text-lg font-semibold text-industrial-900">Informações do Sistema</h2>
+            </div>
+            <div class="p-6">
+                <dl class="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
+                    <div>
+                        <dt class="text-sm font-medium text-industrial-500">Cadastrado em</dt>
+                        <dd class="mt-1 text-sm text-industrial-900">{{ insumo.createdAt.toFormat('dd/MM/yyyy HH:mm') }}</dd>
+                    </div>
+
+                    @if(insumo.updatedAt)
+                    <div>
+                        <dt class="text-sm font-medium text-industrial-500">Última atualização</dt>
+                        <dd class="mt-1 text-sm text-industrial-900">{{ insumo.updatedAt.toFormat('dd/MM/yyyy HH:mm') }}</dd>
+                    </div>
+                    @end
+
+                    <div>
+                        <dt class="text-sm font-medium text-industrial-500">Empresa</dt>
+                        <dd class="mt-1 text-sm text-industrial-900">{{ insumo.empresa.razaoSocial }}</dd>
+                    </div>
+
+                    <div>
+                        <dt class="text-sm font-medium text-industrial-500">Status</dt>
+                        <dd class="mt-1">
+                            @if(insumo.active)
+                                <span class="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">Ativo</span>
+                            @else
+                                <span class="inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/20">Inativo</span>
+                            @end
+                        </dd>
+                    </div>
+                </dl>
+            </div>
+        </div>
+    </main>
+  @include('components/quick_actions')
+</body>
+</html>

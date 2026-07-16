@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bem-vindo ao TAVOLO</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 600px;
+            margin: 40px auto;
+            background: #ffffff;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            color: #ffffff;
+            padding: 40px 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 32px;
+            font-weight: 700;
+        }
+        .header p {
+            margin: 10px 0 0 0;
+            font-size: 16px;
+            opacity: 0.95;
+        }
+        .content {
+            padding: 40px 30px;
+        }
+        .content h2 {
+            color: #1f2937;
+            font-size: 24px;
+            margin: 0 0 20px 0;
+        }
+        .content p {
+            color: #4b5563;
+            font-size: 16px;
+            line-height: 1.6;
+            margin: 0 0 20px 0;
+        }
+        .info-box {
+            background: #f9fafb;
+            border-left: 4px solid #2563eb;
+            padding: 20px;
+            margin: 30px 0;
+            border-radius: 4px;
+        }
+        .info-box h3 {
+            color: #1f2937;
+            font-size: 18px;
+            margin: 0 0 10px 0;
+        }
+        .info-box p {
+            margin: 5px 0;
+            color: #6b7280;
+        }
+        .button-container {
+            text-align: center;
+            margin: 40px 0;
+        }
+        .button {
+            display: inline-block;
+            background: #2563eb;
+            color: #ffffff !important;
+            padding: 16px 40px;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 16px;
+            box-shadow: 0 4px 6px rgba(37, 99, 235, 0.3);
+            transition: all 0.3s ease;
+        }
+        .button:hover {
+            background: #1d4ed8;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px rgba(37, 99, 235, 0.4);
+        }
+        .features {
+            margin: 30px 0;
+        }
+        .feature-item {
+            display: flex;
+            align-items: start;
+            margin: 15px 0;
+        }
+        .feature-icon {
+            background: #dbeafe;
+            color: #2563eb;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+        .feature-text {
+            flex: 1;
+        }
+        .feature-text h4 {
+            color: #1f2937;
+            font-size: 16px;
+            margin: 0 0 5px 0;
+        }
+        .feature-text p {
+            color: #6b7280;
+            font-size: 14px;
+            margin: 0;
+        }
+        .warning {
+            background: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 16px;
+            margin: 30px 0;
+            border-radius: 4px;
+        }
+        .warning p {
+            color: #92400e;
+            margin: 0;
+            font-size: 14px;
+        }
+        .footer {
+            background: #f9fafb;
+            padding: 30px;
+            text-align: center;
+            border-top: 1px solid #e5e7eb;
+        }
+        .footer p {
+            color: #6b7280;
+            font-size: 14px;
+            margin: 5px 0;
+        }
+        .footer strong {
+            color: #1f2937;
+        }
+        .social-links {
+            margin-top: 20px;
+        }
+        .social-links a {
+            display: inline-block;
+            margin: 0 10px;
+            color: #6b7280;
+            text-decoration: none;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎉 Bem-vindo ao TAVOLO!</h1>
+            <p>Estamos felizes em tê-lo conosco</p>
+        </div>
+        
+        <div class="content">
+            <h2>Olá, {{ user.fullName }}! 👋</h2>
+            
+            <p>
+                Parabéns por se juntar ao <strong>TAVOLO</strong>, o sistema completo de gestão para restaurantes!
+                Sua conta foi criada com sucesso e você está a um passo de começar a transformar a gestão do seu negócio.
+            </p>
+
+            <div class="info-box">
+                <h3>📋 Informações da sua conta</h3>
+                <p><strong>Email:</strong> {{ user.email }}</p>
+                <p><strong>Empresa:</strong> {{ empresa.razaoSocial }}</p>
+                <p><strong>CNPJ:</strong> {{ empresa.cnpj }}</p>
+            </div>
+
+            <p>
+                <strong>Para começar, você precisa confirmar seu endereço de email.</strong>
+                Clique no botão abaixo para ativar sua conta:
+            </p>
+
+            <div class="button-container">
+                <a href="{{ verificationUrl }}" class="button">
+                    ✅ Confirmar Email
+                </a>
+            </div>
+
+            <div class="warning">
+                <p>
+                    ⚠️ <strong>Importante:</strong> Este link é válido por 24 horas. Se você não confirmar seu email
+                    dentro deste período, será necessário solicitar um novo link de verificação.
+                </p>
+            </div>
+
+            <div class="features">
+                <h3 style="color: #1f2937; margin-bottom: 20px;">🚀 O que você pode fazer com o TAVOLO:</h3>
+                
+                <div class="feature-item">
+                    <div class="feature-icon">📦</div>
+                    <div class="feature-text">
+                        <h4>Gestão de Estoque</h4>
+                        <p>Controle total de insumos, fornecedores e notas fiscais</p>
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-icon">📋</div>
+                    <div class="feature-text">
+                        <h4>Cardápio Digital</h4>
+                        <p>Crie e gerencie seu cardápio com QR Code personalizado</p>
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-icon">🧾</div>
+                    <div class="feature-text">
+                        <h4>Comandas e Pedidos</h4>
+                        <p>Sistema completo de pedidos e controle de comandas</p>
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-icon">💰</div>
+                    <div class="feature-text">
+                        <h4>Controle Financeiro</h4>
+                        <p>Acompanhe vendas, caixa e relatórios detalhados</p>
+                    </div>
+                </div>
+            </div>
+
+            <p style="margin-top: 30px;">
+                Se você não criou esta conta, pode ignorar este email com segurança.
+            </p>
+        </div>
+
+        <div class="footer">
+            <p><strong>TAVOLO</strong> - Sistema de Gestão para Restaurantes</p>
+            <p>Este é um email automático, não responda.</p>
+            <p>&copy; {{ new Date().getFullYear() }} TAVOLO. Todos os direitos reservados.</p>
+            
+            <div class="social-links">
+                <a href="https://www.tavolo.com.br">Site</a> |
+                <a href="https://www.tavolo.com.br/suporte">Suporte</a> |
+                <a href="https://www.tavolo.com.br/privacidade">Privacidade</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

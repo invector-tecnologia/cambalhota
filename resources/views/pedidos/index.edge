@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="{{ theme }}" class="h-full bg-industrial-50">
+<head>
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pedidos - Tavolo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 3px;
+    }
+  </style>
+  @vite(['resources/css/app.css', 'resources/js/app.js'])
+</head>
+<body class="h-full font-sans text-industrial-900">
+  <div class="min-h-full">
+    <header class="bg-white ">
+      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div class="flex h-16 items-center gap-3">
+          <div class="h-10 w-10 rounded-full bg-accent-500/10 text-accent-600 flex items-center justify-center">
+            <i class="fas fa-receipt"></i>
+          </div>
+          <div>
+            <h1 class="text-lg font-semibold text-industrial-900">Pedidos</h1>
+            <p class="text-sm text-industrial-500">Gerenciar pedidos do salão</p>
+          </div>
+          <div class="flex items-center gap-2 ml-auto">
+            <a href="{{ route('pedidos.kitchen') }}"
+              class="inline-flex items-center gap-2 px-4 py-2 bg-yellow-500 text-white text-sm font-semibold rounded-lg hover:bg-yellow-600">
+              <i class="fas fa-utensils"></i> Cozinha
+            </a>
+            <a href="{{ route('pedidos.create') }}"
+              class="inline-flex items-center gap-2 px-4 py-2 bg-accent-600 text-white text-sm font-semibold rounded-lg hover:bg-accent-500">
+              <i class="fas fa-plus"></i> Novo Pedido
+            </a>
+            <a href="{{ route('dashboard.index') }}"
+              class="inline-flex items-center gap-2 rounded-lg bg-industrial-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-industrial-400">
+              <i class="fas fa-home mr-2"></i> Dashboard
+            </a>
+            
+            <a href="javascript:history.back()" id="backButton"
+              class="inline-flex items-center gap-2 rounded-lg bg-industrial-800 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-industrial-700">
+              <i class="fas fa-arrow-left"></i> Voltar
+            </a>
+            
+            <script>
+              if (history.length <= 1) {
+                document.getElementById('backButton').classList.add('hidden');
+              }
+            </script>
+          </div>
+        </div>
+      </div>
+    </header>
+    <main class="flex-1">
+      <div class="mx-auto max-w-7xl py-6 sm:px-6 lg:px-8">
+        <!-- Filtros -->
+        <div class="bg-white  rounded-xl ring-1 ring-industrial-100 mb-6">
+          <div class="px-4 py-5 sm:p-6">
+            <form method="GET" action="{{ route('pedidos.index') }}" class="space-y-4">
+              <!-- Filtros de Período (Destaque) -->
+              <div>
+                <label class="block text-sm font-semibold app-muted mb-2">Período</label>
+                <div class="flex gap-2">
+                  <button type="submit" name="period" value="today"
+                    class="flex-1 inline-flex justify-center items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg {{ filters.period === 'today' || !filters.period ? 'bg-accent-600 text-white' : 'bg-white app-muted app-border hover:bg-industrial-50' }}">
+                    <i class="fas fa-calendar-day"></i> Hoje
+                  </button>
+                  <button type="submit" name="period" value="week"
+                    class="flex-1 inline-flex justify-center items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg {{ filters.period === 'week' ? 'bg-accent-600 text-white' : 'bg-white app-muted app-border hover:bg-industrial-50' }}">
+                    <i class="fas fa-calendar-week"></i> Semana
+                  </button>
+                  <button type="submit" name="period" value="month"
+                    class="flex-1 inline-flex justify-center items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg {{ filters.period === 'month' ? 'bg-accent-600 text-white' : 'bg-white app-muted app-border hover:bg-industrial-50' }}">
+                    <i class="fas fa-calendar-alt"></i> Mês
+                  </button>
+                </div>
+              </div>
+
+              <!-- Filtros Adicionais -->
+              <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                  <label class="block text-sm font-medium app-muted mb-2">Buscar</label>
+                  <input type="text" name="search"
+                    class="w-full px-4 py-2 app-border rounded-lg  focus:ring-2 focus:ring-accent-500 focus:border-accent-500"
+                    placeholder="Número ou cliente..." value="{{ filters.search || '' }}">
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium app-muted mb-2">Status</label>
+                  <select name="status"
+                    class="w-full px-4 py-2 app-border rounded-lg  focus:ring-2 focus:ring-accent-500 focus:border-accent-500">
+                    <option value="">Todos</option>
+                    <option value="pending" {{ filters.status==='pending' ? 'selected' : '' }}>Pendente</option>
+                    <option value="confirmed" {{ filters.status==='confirmed' ? 'selected' : '' }}>Confirmado</option>
+                    <option value="preparing" {{ filters.status==='preparing' ? 'selected' : '' }}>Preparando</option>
+                    <option value="ready" {{ filters.status==='ready' ? 'selected' : '' }}>Pronto</option>
+                    <option value="served" {{ filters.status==='served' ? 'selected' : '' }}>Servido</option>
+                    <option value="paid" {{ filters.status==='paid' ? 'selected' : '' }}>Pago</option>
+                    <option value="cancelled" {{ filters.status==='cancelled' ? 'selected' : '' }}>Cancelado</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium app-muted mb-2">Tipo</label>
+                  <select name="type"
+                    class="w-full px-4 py-2 app-border rounded-lg  focus:ring-2 focus:ring-accent-500 focus:border-accent-500">
+                    <option value="">Todos</option>
+                    <option value="dine_in" {{ filters.type==='dine_in' ? 'selected' : '' }}>Local</option>
+                    <option value="takeout" {{ filters.type==='takeout' ? 'selected' : '' }}>Retirada</option>
+                    <option value="delivery" {{ filters.type==='delivery' ? 'selected' : '' }}>Delivery</option>
+                  </select>
+                </div>
+
+                <div class="flex items-end">
+                  <a href="{{ route('pedidos.index') }}"
+                    class="w-full inline-flex justify-center items-center gap-2 px-4 py-2 app-border text-sm font-semibold rounded-lg app-muted bg-white hover:bg-industrial-50">
+                    <i class="fas fa-times"></i> Limpar
+                </a>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- Lista de Pedidos -->
+        <div class="bg-white  rounded-xl ring-1 ring-industrial-100">
+          <div class="px-4 py-5 sm:p-6">
+            <div class="overflow-x-auto">
+              <table class="min-w-full divide-y divide-industrial-100">
+                <thead class="bg-industrial-50">
+                  <tr>
+                    <th class="px-6 py-3 text-left text-xs font-semibold app-muted uppercase tracking-wider">Número
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold app-muted uppercase tracking-wider">
+                      Comanda/Cliente</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold app-muted uppercase tracking-wider">Tipo</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold app-muted uppercase tracking-wider">Status
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold app-muted uppercase tracking-wider">Itens
+                    </th>
+                    <th class="px-6 py-3 text-right text-xs font-semibold app-muted uppercase tracking-wider">Total
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold app-muted uppercase tracking-wider">Data/Hora
+                    </th>
+                    <th class="px-6 py-3 text-right text-xs font-semibold app-muted uppercase tracking-wider">Ações
+                    </th>
+                  </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-industrial-100">
+                  @each(pedido in pedidos.data)
+                  <tr class="hover:bg-industrial-50">
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <strong class="text-industrial-900">#{{ pedido.orderNumber }}</strong>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm app-muted">
+                      @if(pedido.comanda)
+                      <i class="fas fa-table text-industrial-400"></i> <span class="ml-1">{{ pedido.comanda.name || 'Comanda '
+                        + pedido.comanda.number }}</span>
+                      @elseif(pedido.customerName)
+                      <i class="fas fa-user text-industrial-400"></i> <span class="ml-1">{{ pedido.customerName }}</span>
+                      @else
+                      <span class="text-industrial-500">-</span>
+                      @end
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      @if(pedido.type === 'dine_in')
+                      <span class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold bg-accent-50 text-accent-700">Local</span>
+                      @elseif(pedido.type === 'takeout')
+                      <span
+                        class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold bg-yellow-50 text-yellow-700">Retirada</span>
+                      @else
+                      <span
+                        class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold bg-industrial-100 app-muted">Delivery</span>
+                      @end
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <span
+                        class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold {{ pedido.status === 'pending' ? 'bg-yellow-50 text-yellow-700' : pedido.status === 'confirmed' ? 'bg-accent-50 text-accent-700' : pedido.status === 'preparing' ? 'bg-purple-50 text-purple-700' : pedido.status === 'ready' ? 'bg-green-50 text-green-700' : pedido.status === 'served' ? 'bg-industrial-100 app-muted' : pedido.status === 'paid' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700' }}">
+                        {{ pedido.status === 'pending' ? 'Pendente' : pedido.status === 'confirmed' ? 'Confirmado' :
+                        pedido.status === 'preparing' ? 'Preparando' : pedido.status === 'ready' ? 'Pronto' :
+                        pedido.status
+                        === 'served' ? 'Servido' : pedido.status === 'paid' ? 'Pago' : 'Cancelado' }}
+                      </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm app-muted">{{ pedido.items ? pedido.items.length
+                      : 0 }} itens</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right">
+                      <strong class="text-industrial-900">{{ formatCurrency(pedido.total) }}</strong>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm app-muted">
+                      {{{ formatDateTimestamp(pedido.createdAt) }}}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div class="inline-flex gap-3">
+                        <a href="{{ route('pedidos.show', [pedido.id]) }}" class="text-accent-600 hover:text-accent-500"
+                          title="Ver detalhes">
+                          <i class="fas fa-eye"></i>
+                        </a>
+                        @if(pedido.status !== 'paid')
+                        <a href="{{ route('pedidos.edit', [pedido.id]) }}" class="app-muted hover:text-industrial-500"
+                          title="Editar">
+                          <i class="fas fa-edit"></i>
+                        </a>
+                        <button onclick="confirmDeletePedido({{ pedido.id }}, '{{ pedido.orderNumber }}')" type="button"
+                          class="text-red-600 hover:text-red-500"
+                          title="Deletar">
+                          <i class="fas fa-trash"></i>
+                        </button>
+                        @end
+                      </div>
+                    </td>
+                  </tr>
+                  @end
+                </tbody>
+              </table>
+            </div>
+
+            @if(pedidos.data.length === 0)
+            <div class="text-center py-12">
+              <i class="fas fa-clipboard-list fa-3x text-industrial-200 mb-4"></i>
+              <p class="app-muted mb-4">Nenhum pedido encontrado</p>
+              <a href="{{ route('pedidos.create') }}"
+                class="inline-flex items-center gap-2 px-4 py-2 bg-accent-600 text-white text-sm font-semibold rounded-lg hover:bg-accent-500">
+                <i class="fas fa-plus"></i> Criar Primeiro Pedido
+              </a>
+            </div>
+            @end
+          </div>
+        </div>
+
+        <!-- Paginação -->
+        @if(pedidos.meta.lastPage > 1)
+        <nav class="flex items-center justify-center mt-6" aria-label="Navegação de páginas">
+          <ul class="inline-flex gap-2">
+            @each(page in Array.from({length: pedidos.meta.lastPage}, (_, i) => i + 1))
+            <li>
+              <a class="px-3 py-2 rounded-lg font-semibold {{ pedidos.meta.currentPage === page ? 'text-white bg-accent-600' : 'app-muted bg-white app-border hover:bg-industrial-50' }}"
+                href="{{ route('pedidos.index', {}, {qs: {...filters, page}}) }}">
+                {{ page }}
+              </a>
+            </li>
+            @end
+          </ul>
+        </nav>
+        @end
+      </div>
+    </main>
+  </div>
+  @include('components/quick_actions')
+  <script>
+    function confirmDeletePedido(pedidoId, orderNumber) {
+      if (confirm(`Tem certeza que deseja deletar o pedido #${orderNumber}? Esta ação não pode ser desfeita.`)) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/comandas/pedidos/${pedidoId}`;
+        
+        const methodInput = document.createElement('input');
+        methodInput.type = 'hidden';
+        methodInput.name = '_method';
+        methodInput.value = 'DELETE';
+        
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'csrf_token';
+        csrfInput.value = document.querySelector('meta[name="csrf-token"]')?.content || '';
+        
+        form.appendChild(methodInput);
+        form.appendChild(csrfInput);
+        document.body.appendChild(form);
+        form.submit();
+      }
+    }
+  </script>
+</body>
+</html>
+@end

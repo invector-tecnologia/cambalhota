@@ -1,0 +1,16 @@
+@layout('layouts/app')
+
+@section('title')
+Teste Edge com Layout
+@end
+
+@section('body')
+<div style="padding: 20px;">
+    <h1>✅ Edge.js com Layout funcionando!</h1>
+    <p>Este teste usa o layout básico do app.</p>
+    <p>Data atual: {{ new Date().toISOString() }}</p>
+    <a href="/edge-test/simple">Teste simples</a> |
+    <a href="/edge-test/dashboard">Teste dashboard</a> |
+    <a href="/edge-test/info">Info Edge.js</a>
+</div>
+@end

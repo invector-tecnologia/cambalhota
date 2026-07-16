@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="{{ theme }}" class="h-full bg-industrial-50">
+<head>
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf-token" content="{{ csrfToken }}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <title>{{ categoria.name }} - Categoria - Tavolo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+  </style>
+  @vite(['resources/css/app.css', 'resources/js/app.js'])
+</head>
+<body class="h-full font-sans text-industrial-900">
+  <div class="min-h-full">
+    <header class="bg-white shadow">
+      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div class="flex h-16 items-center gap-3">
+          <div class="flex items-center space-x-3">
+            <h1 class="text-xl font-semibold leading-6 text-industrial-900">{{ categoria.name }}</h1>
+            <span class="inline-flex rounded-full px-2 py-1 text-xs font-semibold {{ categoria.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
+              {{ categoria.active ? 'Ativo' : 'Inativo' }}
+            </span>
+          </div>
+          <div class="flex items-center space-x-4 ml-auto">
+            <a href="{{ route('cardapio_categorias.edit', [categoria.id]) }}" 
+              class="inline-flex items-center rounded-md bg-accent-600 px-3 py-2 text-sm font-semibold text-white  hover:bg-accent-500">
+              Editar
+            </a>
+            <a href="{{ route('cardapio_categorias.index') }}" 
+              class="inline-flex items-center rounded-md bg-industrial-600 px-3 py-2 text-sm font-semibold text-white  hover:bg-industrial-500">
+              <i class="fas fa-list mr-2"></i> Lista de Categorias
+            </a>
+          </div>
+        </div>
+      </div>
+    </header>
+    <main class="flex-1">
+      <div class="mx-auto max-w-7xl py-6 sm:px-6 lg:px-8">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div class="lg:col-span-1">
+            <div class="bg-white shadow rounded-lg">
+              <div class="px-6 py-4 border-b border-industrial-200">
+                <h2 class="text-lg font-medium text-industrial-900">Detalhes</h2>
+              </div>
+              <div class="p-6 space-y-4">
+                <div>
+                  <dt class="text-sm font-medium text-industrial-500">Nome</dt>
+                  <dd class="mt-1 text-sm text-industrial-900">{{ categoria.name }}</dd>
+                </div>
+                @if(categoria.description)
+                  <div>
+                    <dt class="text-sm font-medium text-industrial-500">Descrição</dt>
+                    <dd class="mt-1 text-sm text-industrial-900">{{ categoria.description }}</dd>
+                  </div>
+                @end
+                <div>
+                  <dt class="text-sm font-medium text-industrial-500">Cor</dt>
+                  <dd class="mt-1 flex items-center space-x-2">
+                    <div class="h-6 w-6 rounded app-border" style="background-color: {{ categoria.color }}"></div>
+                    <span class="text-sm text-industrial-900 font-mono">{{ categoria.color }}</span>
+                  </dd>
+                </div>
+                <div>
+                  <dt class="text-sm font-medium text-industrial-500">Ordem de Exibição</dt>
+                  <dd class="mt-1 text-sm text-industrial-900">{{ categoria.sortOrder || 0 }}</dd>
+                </div>
+                <div>
+                  <dt class="text-sm font-medium text-industrial-500">Status</dt>
+                  <dd class="mt-1">
+                    <span class="inline-flex rounded-full px-2 py-1 text-xs font-semibold {{ categoria.active ? 'bg-green-100 text-green-800' : 'bg-industrial-100 app-muted' }}">
+                      {{ categoria.active ? 'Ativa' : 'Inativa' }}
+                    </span>
+                  </dd>
+                </div>
+                <div>
+                  <dt class="text-sm font-medium text-industrial-500">Visível no Cardápio</dt>
+                  <dd class="mt-1">
+                    <span class="inline-flex rounded-full px-2 py-1 text-xs font-semibold {{ categoria.showInMenu ? 'bg-blue-100 text-blue-800' : 'bg-industrial-100 app-muted' }}">
+                      {{ categoria.showInMenu ? 'Sim' : 'Não' }}
+                    </span>
+                  </dd>
+                </div>
+                <div>
+                  <dt class="text-sm font-medium text-industrial-500">Horário de Disponibilidade</dt>
+                  <dd class="mt-1 text-sm text-industrial-900">
+                    @if(categoria.availableFrom && categoria.availableUntil)
+                      {{ categoria.availableFrom }} - {{ categoria.availableUntil }}
+                    @else
+                      Sempre disponível
+                    @end
+                  </dd>
+                </div>
+                <div>
+                  <dt class="text-sm font-medium text-industrial-500">Criado em</dt>
+                  <dd class="mt-1 text-sm text-industrial-900">{{ categoria.createdAt.toFormat('dd/MM/yyyy HH:mm') }}</dd>
+                </div>
+                @if(categoria.updatedAt && categoria.updatedAt.toMillis() !== categoria.createdAt.toMillis())
+                  <div>
+                    <dt class="text-sm font-medium text-industrial-500">Última atualização</dt>
+                    <dd class="mt-1 text-sm text-industrial-900">{{ categoria.updatedAt.toFormat('dd/MM/yyyy HH:mm') }}</dd>
+                  </div>
+                @end
+              </div>
+            </div>
+          </div>
+          <div class="lg:col-span-2">
+            <div class="bg-white shadow rounded-lg">
+              <div class="px-6 py-4 border-b border-industrial-200 flex justify-between items-center">
+                <div>
+                  <h2 class="text-lg font-medium text-industrial-900">Itens da Categoria</h2>
+                  <p class="text-sm text-industrial-500 mt-1">{{ categoria.menuItems ? categoria.menuItems.length : 0 }} itens</p>
+                </div>
+                <a href="{{ route('cardapio_produtos.create') }}?category_id={{ categoria.id }}" class="inline-flex items-center rounded-md bg-accent-600 px-3 py-2 text-sm font-semibold text-white  hover:bg-accent-500">
+                  <svg class="-ml-0.5 mr-1.5 h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z"/></svg>
+                  Novo Item
+                </a>
+              </div>
+              @if(categoria.menuItems && categoria.menuItems.length > 0)
+                <div class="divide-y divide-industrial-200">
+                  @each(item in categoria.menuItems)
+                    <div class="px-6 py-4 hover:bg-industrial-50">
+                      <div class="flex items-center justify-between">
+                        <div class="flex-1">
+                          <div class="flex items-center space-x-2">
+                            <h3 class="text-sm font-medium text-industrial-900">{{ item.name }}</h3>
+                            <span class="inline-flex rounded-full px-2 py-1 text-xs font-semibold {{ item.isAvailable ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
+                              {{ item.isAvailable ? 'Disponível' : 'Indisponível' }}
+                            </span>
+                          </div>
+                          @if(item.description)
+                            <p class="text-sm text-industrial-500 mt-1">{{ item.description }}</p>
+                          @end
+                          <div class="flex items-center space-x-4 text-sm text-industrial-500 mt-2">
+                            @if(item.price)
+                              <span class="font-medium text-industrial-900">{{ formatCurrency(item.price) }}</span>
+                            @end
+                          </div>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                          <a href="{{ route('cardapio_produtos.show', [item.id]) }}" class="text-accent-600 hover:text-accent-900 text-sm">Ver</a>
+                          <a href="{{ route('cardapio_produtos.edit', [item.id]) }}" class="app-muted hover:text-industrial-900 text-sm">Editar</a>
+                        </div>
+                      </div>
+                    </div>
+                  @endeach
+                </div>
+              @else
+                <div class="text-center py-12">
+                  <svg class="mx-auto h-12 w-12 text-industrial-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <h3 class="mt-2 text-sm font-medium text-industrial-900">Nenhum item</h3>
+                  <p class="mt-1 text-sm text-industrial-500">Comece criando um novo item para esta categoria.</p>
+                  <div class="mt-6">
+                    <a href="{{ route('cardapio_produtos.create') }}?category_id={{ categoria.id }}" class="inline-flex items-center rounded-md bg-accent-600 px-3 py-2 text-sm font-semibold text-white  hover:bg-accent-500">
+                      <svg class="-ml-0.5 mr-1.5 h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z"/></svg>
+                      Novo Item
+                    </a>
+                  </div>
+                </div>
+              @end
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+  @include('components/quick_actions')
+</body>
+</html>

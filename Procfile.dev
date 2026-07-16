@@ -1,0 +1,5 @@
+# Procfile para desenvolvimento local
+# Execute com: heroku local -f Procfile.dev
+
+web: cd build && node bin/server.js
+worker: node ace upload:logs:worker

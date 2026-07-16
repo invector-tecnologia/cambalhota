@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="{{ theme }}" class="h-full bg-industrial-50">
+<head>
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf-token" content="{{ csrfToken }}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <title>{{ produto.name }} - Cardápio - Tavolo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:#f1f5f9}::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:3px}</style>
+  @vite(['resources/css/app.css', 'resources/js/app.js'])
+</head>
+<body class="h-full font-sans text-industrial-900">
+  <div class="min-h-full">
+    <header class="bg-white shadow">
+      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div class="flex h-16 items-center gap-3">
+          <h1 class="text-xl font-semibold leading-6 text-industrial-900">Detalhes do Produto - {{ produto.name }}</h1>
+          <div class="flex space-x-2 ml-auto">
+            <a href="{{ route('cardapio_produtos.edit', { id: produto.id }) }}" class="inline-flex items-center rounded-md bg-accent-600 px-3 py-2 text-sm font-semibold text-white  hover:bg-accent-500">Editar</a>
+            <a href="{{ route('cardapio_produtos.index') }}" 
+              class="inline-flex items-center rounded-md bg-industrial-600 px-3 py-2 text-sm font-semibold text-white  hover:bg-industrial-500">
+              <i class="fas fa-list mr-2"></i> Lista de Produtos
+            </a>
+          </div>
+        </div>
+      </div>
+    </header>
+    <main class="flex-1">
+      <div class="mx-auto max-w-4xl py-6 sm:px-6 lg:px-8">
+        <div class="space-y-6">
+          <!-- Informações Básicas -->
+          <div class="bg-white shadow rounded-lg">
+            <div class="px-6 py-4 border-b border-industrial-200 flex justify-between items-center">
+              <h2 class="text-lg font-medium text-industrial-900">Informações Básicas</h2>
+              <div class="flex gap-2">
+                @if(produto.available)
+                  <span class="inline-flex items-center rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-800">Disponível</span>
+                @else
+                  <span class="inline-flex items-center rounded-full bg-industrial-100 px-3 py-1 text-xs font-medium app-muted">Indisponível</span>
+                @end
+                @if(produto.active)
+                  </span><span class="inline-flex items-center rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-800">Ativo</span>
+                @else
+                  <span class="inline-flex items-center rounded-full bg-red-100 px-3 py-1 text-xs font-medium text-red-800">Inativo</span>
+                @end
+              </div>
+            </div>
+            <div class="p-6">
+              <dl class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                <div>
+                  <dt class="text-sm font-medium text-industrial-500">Nome</dt>
+                  <dd class="mt-1 text-sm text-industrial-900">{{ produto.name }}</dd>
+                </div>
+                <div>
+                  <dt class="text-sm font-medium text-industrial-500">Categoria</dt>
+                  <dd class="mt-1 text-sm text-industrial-900">{{ produto.cardapioCategoria ? produto.cardapioCategoria.name : 'N/A' }}</dd>
+                </div>
+                <div>
+                  <dt class="text-sm font-medium text-industrial-500">Ordem de Exibição</dt>
+                  <dd class="mt-1 text-sm text-industrial-900">{{ produto.sortOrder || 0 }}</dd>
+                </div>
+                <div>
+                  <dt class="text-sm font-medium text-industrial-500">Tempo de Preparo</dt>
+                  <dd class="mt-1 text-sm text-industrial-900">{{ produto.preparationTime ? produto.preparationTime + ' min' : 'N/A' }}</dd>
+                </div>
+                @if(produto.imageUrl)
+                  <div class="sm:col-span-2">
+                    <dt class="text-sm font-medium text-industrial-500">Imagem</dt>
+                    <dd class="mt-2">
+                      <img src="{{ produto.imageUrl }}" alt="{{ produto.name }}" class="h-48 w-auto rounded-lg object-cover ring-1 ring-industrial-100">
+                    </dd>
+                  </div>
+                @endif
+                <div class="sm:col-span-2">
+                  <dt class="text-sm font-medium text-industrial-500">Descrição</dt>
+                  <dd class="mt-1 text-sm text-industrial-900">{{ produto.description || 'Sem descrição' }}</dd>
+                </div>
+              </dl>
+            </div>
+          </div>
+
+          <!-- Disponibilidade de Estoque -->
+          <div class="bg-white shadow rounded-lg">
+            <div class="px-6 py-4 border-b border-industrial-200">
+              <h2 class="text-lg font-medium text-industrial-900">Disponibilidade de Estoque</h2>
+            </div>
+            <div class="p-6">
+              <dl class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                <div>
+                  <dt class="text-sm font-medium text-industrial-500">Máximo Possível de Fazer</dt>
+                  <dd class="mt-2">
+                    <span class="text-3xl font-bold {{ maxPossibleQuantity > 0 ? 'text-green-600' : 'text-red-600' }}">
+                      {{ maxPossibleQuantity }} unid.
+                    </span>
+                    <p class="mt-2 text-sm text-industrial-500">
+                      Com base no estoque atual dos ingredientes
+                    </p>
+                  </dd>
+                </div>
+                <div>
+                  <dt class="text-sm font-medium text-industrial-500">Status de Estoque</dt>
+                  <dd class="mt-2">
+                    @if(isAvailable)
+                      <span class="inline-flex items-center rounded-full bg-green-100 px-4 py-2 text-sm font-semibold text-green-800">
+                        <i class="fas fa-check-circle mr-2"></i> Produto Disponível
+                      </span>
+                    @else
+                      <span class="inline-flex items-center rounded-full bg-orange-100 px-4 py-2 text-sm font-semibold text-orange-800">
+                        <i class="fas fa-exclamation-triangle mr-2"></i> Sem Estoque Suficiente
+                      </span>
+                    @end
+                  </dd>
+                </div>
+              </dl>
+            </div>
+          </div>
+
+          <!-- Ingredientes -->
+          <div class="bg-white shadow rounded-lg">
+            <div class="px-6 py-4 border-b border-industrial-200 flex justify-between items-center">
+              <h2 class="text-lg font-medium text-industrial-900">Ingredientes</h2>
+              <span class="text-sm font-medium text-industrial-900">Custo Total: {{ formatCurrency(produto.costPrice) }}</span>
+            </div>
+            <div class="p-6">
+              @if(produto.ingredientes && produto.ingredientes.length > 0)
+                <div class="overflow-x-auto">
+                  <table class="min-w-full divide-y divide-industrial-200">
+                    <thead class="bg-industrial-50">
+                      <tr>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-industrial-500 uppercase">Insumo</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-industrial-500 uppercase">Quantidade</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-industrial-500 uppercase">Unidade</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-industrial-500 uppercase">Custo Unit.</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-industrial-500 uppercase">Custo Total</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-industrial-500 uppercase">Estoque Atual</th>
+                      </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-industrial-200">
+                      @each(ingrediente in produto.ingredientes)
+                        <tr>
+                          <td class="px-4 py-3 text-sm text-industrial-900">{{ ingrediente.insumo.name }}</td>
+                          <td class="px-4 py-3 text-sm text-industrial-900">{{ formatDecimal(ingrediente.quantity) }}</td>
+                          <td class="px-4 py-3 text-sm text-industrial-500">{{ ingrediente.unit }}</td>
+                          <td class="px-4 py-3 text-sm text-industrial-900">{{ formatCurrency(ingrediente.unitCost) }}</td>
+                          <td class="px-4 py-3 text-sm font-medium text-industrial-900">{{ formatCurrency(ingrediente.totalCost) }}</td>
+                          <td class="px-4 py-3">
+                            @if(ingrediente.insumo.stockControl)
+                              <span class="text-sm {{ Number(ingrediente.insumo.currentStock) >= Number(ingrediente.quantity) ? 'text-green-600 font-medium' : 'text-red-600 font-medium' }}">
+                                {{ formatDecimal(ingrediente.insumo.currentStock) }} {{ ingrediente.unit }}
+                              </span>
+                            @else
+                              <span class="text-sm text-industrial-400">Sem controle</span>
+                            @end
+                          </td>
+                        </tr>
+                      @end
+                    </tbody>
+                  </table>
+                </div>
+                <div class="mt-4 flex justify-between items-center text-sm">
+                  <span class="text-industrial-500">Total de ingredientes: {{ produto.ingredientes.length }}</span>
+                  <span class="text-industrial-900 font-medium">Markup: {{ formatDecimal(produto.markupPercentage) }}% | Preço de Venda: {{ formatCurrency(produto.salePrice) }}</span>
+                </div>
+              @else
+                <div class="text-center py-8">
+                  <svg class="mx-auto h-12 w-12 text-industrial-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                  </svg>
+                  <p class="mt-2 text-sm text-industrial-500">Nenhum ingrediente cadastrado</p>
+                  <a href="{{ route('cardapio_produtos.edit', { id: produto.id }) }}" class="mt-4 inline-flex items-center rounded-md bg-accent-600 px-3 py-2 text-sm font-semibold text-white  hover:bg-accent-500">
+                    Adicionar Ingredientes
+                  </a>
+                </div>
+              @end
+            </div>
+          </div>
+
+          <!-- Preços e Custos -->
+          <div class="bg-white shadow rounded-lg">
+            <div class="px-6 py-4 border-b border-industrial-200">
+              <h2 class="text-lg font-medium text-industrial-900">Preços e Custos</h2>
+            </div>
+            <div class="p-6">
+              <dl class="grid grid-cols-1 gap-6 sm:grid-cols-3">
+                <div>
+                  <dt class="text-sm font-medium text-industrial-500">Preço de Custo</dt>
+                  <dd class="mt-1 text-sm text-industrial-900">{{ formatCurrency(produto.costPrice) }}</dd>
+                </div>
+                <div>
+                  <dt class="text-sm font-medium text-industrial-500">Markup</dt>
+                  <dd class="mt-1 text-sm text-industrial-900">{{ produto.markupPercentage ? formatDecimal(produto.markupPercentage) + '%' : 'N/A' }}</dd>
+                </div>
+                <div>
+                  <dt class="text-sm font-medium text-industrial-500">Preço de Venda</dt>
+                  <dd class="mt-1 text-sm font-semibold text-industrial-900">{{ formatCurrency(produto.salePrice) }}</dd>
+                </div>
+              </dl>
+            </div>
+          </div>
+
+          <!-- Informações Nutricionais -->
+          @if(produto.calories || produto.protein || produto.carbs || produto.fat)
+            <div class="bg-white shadow rounded-lg">
+              <div class="px-6 py-4 border-b border-industrial-200">
+                <h2 class="text-lg font-medium text-industrial-900">Informações Nutricionais</h2>
+              </div>
+              <div class="p-6">
+                <dl class="grid grid-cols-2 gap-6 sm:grid-cols-4">
+                  <div>
+                    <dt class="text-sm font-medium text-industrial-500">Calorias</dt>
+                    <dd class="mt-1 text-sm text-industrial-900">{{ produto.calories ? produto.calories + ' kcal' : 'N/A' }}</dd>
+                  </div>
+                  <div>
+                    <dt class="text-sm font-medium text-industrial-500">Proteínas</dt>
+                    <dd class="mt-1 text-sm text-industrial-900">{{ produto.protein ? Number(produto.protein).toFixed(1) + 'g' : 'N/A' }}</dd>
+                  </div>
+                  <div>
+                    <dt class="text-sm font-medium text-industrial-500">Carboidratos</dt>
+                    <dd class="mt-1 text-sm text-industrial-900">{{ produto.carbs ? Number(produto.carbs).toFixed(1) + 'g' : 'N/A' }}</dd>
+                  </div>
+                  <div>
+                    <dt class="text-sm font-medium text-industrial-500">Gorduras</dt>
+                    <dd class="mt-1 text-sm text-industrial-900">{{ produto.fat ? Number(produto.fat).toFixed(1) + 'g' : 'N/A' }}</dd>
+                  </div>
+                </dl>
+              </div>
+            </div>
+          @end
+
+          <!-- Restrições Alimentares -->
+          <div class="bg-white shadow rounded-lg">
+            <div class="px-6 py-4 border-b border-industrial-200">
+              <h2 class="text-lg font-medium text-industrial-900">Restrições Alimentares</h2>
+            </div>
+            <div class="p-6">
+              <div class="space-y-4">
+                <div class="flex flex-wrap gap-2">
+                  @if(produto.vegetarian)
+                    <span class="inline-flex items-center rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-800">🥬 Vegetariano</span>
+                  @end
+                  @if(produto.vegan)
+                    <span class="inline-flex items-center rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-800">🌱 Vegano</span>
+                  @end
+                  @if(produto.glutenFree)
+                    <span class="inline-flex items-center rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-800">🌾 Sem Glúten</span>
+                  @end
+                  @if(produto.lactoseFree)
+                    <span class="inline-flex items-center rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-800">🥛 Sem Lactose</span>
+                  @end
+                  @if(!produto.vegetarian && !produto.vegan && !produto.glutenFree && !produto.lactoseFree)
+                    <span class="text-sm text-industrial-500">Nenhuma restrição especificada</span>
+                  @end
+                </div>
+                @if(produto.spiceLevel && produto.spiceLevel !== 'none')
+                  <div>
+                    <dt class="text-sm font-medium text-industrial-500">Nível de Pimenta</dt>
+                    <dd class="mt-1">
+                      @if(produto.spiceLevel === 'mild')
+                        <span class="inline-flex items-center rounded-full bg-yellow-100 px-3 py-1 text-xs font-medium text-yellow-800">🌶️ Suave</span>
+                      @elseif(produto.spiceLevel === 'medium')
+                        <span class="inline-flex items-center rounded-full bg-orange-100 px-3 py-1 text-xs font-medium text-orange-800">🌶️🌶️ Médio</span>
+                      @elseif(produto.spiceLevel === 'hot')
+                        <span class="inline-flex items-center rounded-full bg-red-100 px-3 py-1 text-xs font-medium text-red-800">🌶️🌶️🌶️ Picante</span>
+                      @elseif(produto.spiceLevel === 'very_hot')
+                        <span class="inline-flex items-center rounded-full bg-red-200 px-3 py-1 text-xs font-medium text-red-900">🌶️🌶️🌶️🌶️ Muito Picante</span>
+                      @end
+                    </dd>
+                  </div>
+                @end
+                @if(produto.allergens && produto.allergens.length > 0)
+                  <div>
+                    <dt class="text-sm font-medium text-industrial-500">Alérgenos</dt>
+                    <dd class="mt-1 text-sm text-industrial-900">
+                      {{ produto.allergens.join(', ') }}
+                    </dd>
+                  </div>
+                @end
+              </div>
+            </div>
+          </div>
+
+          <!-- Disponibilidade e Horários -->
+          <div class="bg-white shadow rounded-lg">
+            <div class="px-6 py-4 border-b border-industrial-200">
+              <h2 class="text-lg font-medium text-industrial-900">Disponibilidade e Horários</h2>
+            </div>
+            <div class="p-6">
+              <dl class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                @if(produto.availableFrom || produto.availableUntil)
+                  <div>
+                    <dt class="text-sm font-medium text-industrial-500">Horário de Disponibilidade</dt>
+                    <dd class="mt-1 text-sm text-industrial-900">
+                      {{ produto.availableFrom || '00:00' }} até {{ produto.availableUntil || '23:59' }}
+                    </dd>
+                  </div>
+                @end
+                @if(availableDaysFormatted)
+                  <div>
+                    <dt class="text-sm font-medium text-industrial-500">Dias Disponíveis</dt>
+                    <dd class="mt-1 text-sm text-industrial-900">
+                      {{ availableDaysFormatted }}
+                    </dd>
+                  </div>
+                @end
+                <div>
+                  <dt class="text-sm font-medium text-industrial-500">Requer Preparo na Cozinha</dt>
+                  <dd class="mt-1">
+                    @if(produto.requiresPreparation !== false)
+                      <span class="inline-flex items-center rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-800">
+                        <i class="fas fa-check-circle mr-1"></i> Sim
+                      </span>
+                    @else
+                      <span class="inline-flex items-center rounded-full bg-industrial-100 px-3 py-1 text-xs font-medium app-muted">
+                        <i class="fas fa-times-circle mr-1"></i> Não
+                      </span>
+                    @end
+                  </dd>
+                </div>
+              </dl>
+            </div>
+          </div>
+
+          <!-- Controle de Estoque -->
+          <div class="bg-white shadow rounded-lg">
+            <div class="px-6 py-4 border-b border-industrial-200">
+              <h2 class="text-lg font-medium text-industrial-900">Controle de Estoque</h2>
+            </div>
+            <div class="p-6">
+              <dl class="grid grid-cols-1 gap-6 sm:grid-cols-3">
+                <div>
+                  <dt class="text-sm font-medium text-industrial-500">Rastrear Estoque</dt>
+                  <dd class="mt-1 text-sm text-industrial-900">{{ produto.trackStock ? 'Sim' : 'Não' }}</dd>
+                </div>
+                @if(produto.dailyLimit)
+                  <div>
+                    <dt class="text-sm font-medium text-industrial-500">Limite Diário</dt>
+                    <dd class="mt-1 text-sm text-industrial-900">{{ produto.dailyLimit }}</dd>
+                  </div>
+                @end
+                <div>
+                  <dt class="text-sm font-medium text-industrial-500">Vendidos Hoje</dt>
+                  <dd class="mt-1 text-sm text-industrial-900">{{ produto.dailySold || 0 }}</dd>
+                </div>
+              </dl>
+            </div>
+          </div>
+
+          <!-- Características Adicionais -->
+          @if(produto.tags && produto.tags.length > 0)
+            <div class="bg-white shadow rounded-lg">
+              <div class="px-6 py-4 border-b border-industrial-200">
+                <h2 class="text-lg font-medium text-industrial-900">Tags</h2>
+              </div>
+              <div class="p-6">
+                <div class="flex flex-wrap gap-2">
+                  @each(tag in produto.tags)
+                    <span class="inline-flex items-center rounded-full bg-accent-100 px-3 py-1 text-xs font-medium text-accent-800">{{ tag }}</span>
+                  @end
+                </div>
+              </div>
+            </div>
+          @end
+
+          <div class="bg-white shadow rounded-lg">
+            <div class="px-6 py-4 border-b border-industrial-200"><h2 class="text-lg font-medium text-industrial-900">Metadados</h2></div>
+            <div class="p-6">
+              <dl class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                <div>
+                  <dt class="text-sm font-medium text-industrial-500">Criado em</dt>
+                  <dd class="mt-1 text-sm text-industrial-900">{{ formatDateTimestamp(produto.createdAt) }}</dd>
+                </div>
+                <div>
+                  <dt class="text-sm font-medium text-industrial-500">Atualizado em</dt>
+                  <dd class="mt-1 text-sm text-industrial-900">{{ formatDateTimestamp(produto.updatedAt) }}</dd>
+                </div>
+              </dl>
+            </div>
+          </div>
+          <div class="bg-white shadow rounded-lg">
+            <div class="px-6 py-4 border-b border-industrial-200"><h2 class="text-lg font-medium text-industrial-900">Ações</h2></div>
+            <div class="p-6 flex space-x-4">
+              <a href="{{ route('cardapio_produtos.edit', { id: produto.id }) }}" class="inline-flex items-center rounded-md bg-accent-600 px-4 py-2 text-sm font-semibold text-white  hover:bg-accent-500">Editar Item</a>
+              <form method="POST" action="{{ route('cardapio_produtos.destroy.post', { id: produto.id }) }}" onsubmit="return confirm('Tem certeza que deseja excluir este item?')">
+                {{ csrfField() }}
+                <button type="submit" class="inline-flex items-center rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white  hover:bg-red-500">Excluir Item</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+  @include('components/quick_actions')
+</body>
+</html>

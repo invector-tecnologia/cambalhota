@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="{{ theme }}" class="h-full bg-industrial-50">
+<head>
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf-token" content="{{ csrfToken }}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <title>
+    Notas Fiscais - Almoxarifado - Tavolo
+  </title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- TailwindCSS -->
+  @vite(['resources/css/app.css', 'resources/js/app.js'])
+</head>
+<body class="h-full font-sans text-industrial-900">
+    <div class="min-h-full">
+        <!-- Cabeçalho -->
+        <header class="bg-white ring-1 ring-industrial-100">
+            <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                <div class="flex h-16 items-center gap-3">
+                    <div class="h-10 w-10 rounded-full bg-accent-500/10 text-accent-600 flex items-center justify-center">
+                        <i class="fas fa-file-invoice"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-lg font-semibold text-industrial-900">Notas Fiscais Eletrônicas</h1>
+                        <p class="text-sm text-industrial-500">Gestão de NFes</p>
+                    </div>
+                    <div class="flex items-center gap-3 ml-auto">
+                        <a href="{{ route('notas_fiscais.create') }}" class="inline-flex items-center gap-2 rounded-lg bg-accent-600 px-3 py-2 text-sm font-semibold text-white  hover:bg-accent-500">
+                            <i class="fas fa-file-import"></i>
+                            Importar NFe
+                        </a>
+                        <a href="{{ route('dashboard.index') }}"
+                            class="inline-flex items-center gap-2 rounded-lg bg-industrial-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-industrial-400">
+                            <i class="fas fa-home mr-2"></i> Dashboard
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Conteúdo principal -->
+        <main class="flex-1">
+            <div class="mx-auto max-w-7xl py-6 sm:px-6 lg:px-8">
+                <!-- Filtros -->
+                <div class="bg-white  rounded-xl ring-1 ring-industrial-100 mb-6">
+                    <div class="px-6 py-4 border-b border-industrial-100">
+                        <h2 class="text-lg font-semibold text-industrial-900">Filtros</h2>
+                    </div>
+                    <div class="p-6">
+                        <form method="GET" class="space-y-4">
+                            <div class="grid grid-cols-1 gap-4 md:grid-cols-5">
+                                <!-- Pesquisar -->
+                                <div class="md:col-span-2">
+                                    <label for="search" class="block text-sm font-semibold app-muted mb-1">Pesquisar</label>
+                                    <input type="text" name="search" id="search" value="{{ filters.search }}" 
+                                           placeholder="Número, chave ou fornecedor..."
+                                           class="block w-full rounded-lg border-industrial-200  focus:border-accent-500 focus:ring-accent-500 sm:text-sm">
+                                </div>
+
+                                <!-- Status -->
+                                <div>
+                                    <label for="status" class="block text-sm font-semibold app-muted mb-1">Status</label>
+                                    <select name="status" id="status" class="block w-full rounded-lg border-industrial-200  focus:border-accent-500 focus:ring-accent-500 sm:text-sm">
+                                        <option value="">Todos</option>
+                                        <option value="pending" {{ filters.status === 'pending' ? 'selected' : '' }}>Pendente</option>
+                                        <option value="processing" {{ filters.status === 'processing' ? 'selected' : '' }}>Processando</option>
+                                        <option value="processed" {{ filters.status === 'processed' ? 'selected' : '' }}>Processada</option>
+                                        <option value="error" {{ filters.status === 'error' ? 'selected' : '' }}>Erro</option>
+                                    </select>
+                                </div>
+
+                                <!-- Data De -->
+                                <div>
+                                    <label for="date_from" class="block text-sm font-semibold app-muted mb-1">Data De</label>
+                                    <input type="date" name="date_from" id="date_from" value="{{ filters.dateFrom }}"
+                                           class="block w-full rounded-lg border-industrial-200  focus:border-accent-500 focus:ring-accent-500 sm:text-sm">
+                                </div>
+
+                                <!-- Data Até -->
+                                <div>
+                                    <label for="date_to" class="block text-sm font-semibold app-muted mb-1">Data Até</label>
+                                    <input type="date" name="date_to" id="date_to" value="{{ filters.dateTo }}"
+                                           class="block w-full rounded-lg border-industrial-200  focus:border-accent-500 focus:ring-accent-500 sm:text-sm">
+                                </div>
+                            </div>
+
+                            <div class="flex justify-between">
+                                <button type="submit" class="inline-flex items-center gap-2 rounded-lg bg-accent-600 px-3 py-2 text-sm font-semibold text-white  hover:bg-accent-500">
+                                    Filtrar
+                                </button>
+                                <a href="{{ route('notas_fiscais.index') }}" class="inline-flex items-center rounded-lg bg-industrial-200 px-3 py-2 text-sm font-semibold app-muted  hover:bg-industrial-300">
+                                    Limpar Filtros
+                                </a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Lista de NFes -->
+                <div class="bg-white  rounded-xl ring-1 ring-industrial-100">
+                    <div class="px-6 py-4 border-b border-industrial-100">
+                        <h2 class="text-lg font-semibold text-industrial-900">
+                            Notas Fiscais ({{ nfes.data.length }} de {{ nfes.meta.total }})
+                        </h2>
+                    </div>
+                    
+                    @if(nfes.data.length === 0)
+                        <div class="text-center py-12">
+                            <i class="fas fa-file-invoice text-6xl text-industrial-200 mb-4"></i>
+                            <h3 class="mt-2 text-sm font-semibold text-industrial-900">Nenhuma nota fiscal encontrada</h3>
+                            <p class="mt-1 text-sm app-muted">Comece importando uma NFe.</p>
+                            <div class="mt-6">
+                                <a href="{{ route('notas_fiscais.create') }}" class="inline-flex items-center gap-2 rounded-lg bg-accent-600 px-3 py-2 text-sm font-semibold text-white  hover:bg-accent-500">
+                                    <i class="fas fa-file-import"></i>
+                                    Importar NFe
+                                </a>
+                            </div>
+                        </div>
+                    @else
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-industrial-100">
+                                <thead class="bg-industrial-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-semibold app-muted uppercase tracking-wider">NFe</th>
+                            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+                                        <th class="px-6 py-3 text-left text-xs font-semibold app-muted uppercase tracking-wider">Emissão</th>
+                                        <th class="px-6 py-3 text-left text-xs font-semibold app-muted uppercase tracking-wider">Valor</th>
+                                        <th class="px-6 py-3 text-left text-xs font-semibold app-muted uppercase tracking-wider">Status</th>
+                                        <th class="px-6 py-3 text-left text-xs font-semibold app-muted uppercase tracking-wider">Estoque</th>
+                                        <th class="relative px-6 py-3"><span class="sr-only">Ações</span></th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-industrial-100">
+                                    @each(nfe in nfes.data)
+                                        <tr class="hover:bg-industrial-50">
+                                            <td class="px-6 py-4">
+                                                <div>
+                                                    <div class="text-sm font-semibold text-industrial-900">{{ nfe.number }}/{{ nfe.series }}</div>
+                                                    <div class="text-sm app-muted">{{ nfe.access_key.substring(0, 16) }}...</div>
+                                                </div>
+                                            </td>
+                                            <td class="px-6 py-4">
+                                                <div class="text-sm text-industrial-900">{{ nfe.supplier.name }}</div>
+                                                <div class="text-sm app-muted">{{ nfe.supplier.document }}</div>
+                                            </td>
+                                            <td class="px-6 py-4 text-sm text-industrial-900">
+                                                {{{ formatDateOnlyTimestamp(nfe.issue_date) }}}
+                                            </td>
+                                            <td class="px-6 py-4 text-sm font-semibold text-industrial-900">
+                                                {{ formatCurrency(nfe.total_value) }}
+                                            </td>
+                                            <td class="px-6 py-4">
+                                                <span class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold
+                                                    @if(nfe.status === 'pending')
+                                                        bg-yellow-50 text-yellow-700
+                                                    @elseif(nfe.status === 'processing')
+                                                        bg-blue-50 text-blue-700
+                                                    @elseif(nfe.status === 'processed')
+                                                        bg-green-50 text-green-700
+                                                    @else
+                                                        bg-red-50 text-red-700
+                                                    @endif
+                                                ">
+                                                    @if(nfe.status === 'pending')
+                                                        Pendente
+                                                    @elseif(nfe.status === 'processing')
+                                                        Processando
+                                                    @elseif(nfe.status === 'processed')
+                                                        Processada
+                                                    @else
+                                                        Erro
+                                                    @endif
+                                                </span>
+                                            </td>
+                                            <td class="px-6 py-4">
+                                                @if(nfe.entry_date)
+                                                    <span class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold bg-green-50 text-green-700">
+                                                        Aplicado
+                                                    </span>
+                                                @else
+                                                    <span class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold bg-yellow-50 text-yellow-700">
+                                                        Pendente
+                                                    </span>
+                                                @endif
+                                            </td>
+                                            <td class="px-6 py-4 text-right text-sm font-medium">
+                                                <div class="inline-flex gap-3">
+                                                    <a href="{{ route('notas_fiscais.show', { id: nfe.id }) }}" class="text-accent-600 hover:text-accent-500">
+                                                        Ver
+                                                    </a>
+                                                    @if(nfe.status === 'error')
+                                                        <form method="POST" action="{{ route('notas_fiscais.reprocess', { id: nfe.id }) }}" class="inline">
+                                                            {{ csrfField() }}
+                                                            <button type="submit" class="app-muted hover:text-industrial-500">
+                                                            Reprocessar
+                                                        </button>
+                                                    </form>
+                                                @endif
+                                            </td>
+                                        </tr>
+                                    @endeach
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Paginação -->
+                        @if(nfes.meta.last_page > 1)
+                            <div class="bg-white px-4 py-3 flex items-center justify-between border-t border-industrial-100 sm:px-6">
+                                <div class="flex-1 flex justify-between sm:hidden">
+                                    @if(nfes.meta.current_page > 1)
+                                        <a href="?page={{ nfes.meta.current_page - 1 }}&search={{ filters.search }}&status={{ filters.status }}&date_from={{ filters.dateFrom }}&date_to={{ filters.dateTo }}"
+                                           class="relative inline-flex items-center px-4 py-2 app-border text-sm font-semibold rounded-lg app-muted bg-white hover:bg-industrial-50">
+                                            Anterior
+                                        </a>
+                                    @endif
+                                    @if(nfes.meta.current_page < nfes.meta.last_page)
+                                        <a href="?page={{ nfes.meta.current_page + 1 }}&search={{ filters.search }}&status={{ filters.status }}&date_from={{ filters.dateFrom }}&date_to={{ filters.dateTo }}"
+                                           class="ml-3 relative inline-flex items-center px-4 py-2 app-border text-sm font-semibold rounded-lg app-muted bg-white hover:bg-industrial-50">
+                                            Próximo
+                                        </a>
+                                    @endif
+                                </div>
+                                <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                                    <div>
+                                        <p class="text-sm app-muted">
+                                            Mostrando
+                                            <span class="font-medium">{{ (nfes.meta.current_page - 1) * nfes.meta.per_page + 1 }}</span>
+                                            até
+                                            <span class="font-medium">{{ Math.min(nfes.meta.current_page * nfes.meta.per_page, nfes.meta.total) }}</span>
+                                            de
+                                            <span class="font-medium">{{ nfes.meta.total }}</span>
+                                            resultados
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
+                    @endif
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Auto-submit do formulário ao mudar filtros
+        document.getElementById('status').addEventListener('change', function() {
+            this.form.submit();
+        });
+        document.getElementById('date_from').addEventListener('change', function() {
+            this.form.submit();
+        });
+        document.getElementById('date_to').addEventListener('change', function() {
+            this.form.submit();
+        });
+    </script>
+  @include('components/quick_actions')
+</body>
+</html>

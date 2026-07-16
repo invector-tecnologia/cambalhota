@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf-token" content="{{ csrfToken }}">
+  <title>Relatórios - Tavolo</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- TailwindCSS -->
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+  <!-- Custom CSS -->
+  @vite(['resources/css/app.css'])
+  <style>
+    /* Scrollbar customization */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 3px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+
+    /* Gradient hover effects */
+    .gradient-hover {
+      transition: all 0.3s ease;
+    }
+
+    .gradient-hover:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    }
+
+    /* WCAG AA Contrast Rules for Tabs */
+    .tab-button {
+      color: #64748b;
+      border-bottom: 3px solid transparent;
+      transition: all 0.3s ease;
+    }
+
+    .tab-button:hover {
+      color: #1d4ed8;
+      background-color: rgba(29, 78, 216, 0.05);
+    }
+
+    .tab-button.active {
+      color: #1d4ed8;
+      background-color: rgba(29, 78, 216, 0.08);
+      border-bottom: 3px solid #1d4ed8;
+      font-weight: 600;
+    }
+
+  </style>
+
+  @vite(['resources/css/app.css', 'resources/js/app.js'])
+</head>
+<body class="min-h-screen app-bg font-sans app-text antialiased">
+  <div class="min-h-screen app-bg">
+    <div class="flex flex-col min-h-screen">
+      <!-- Header -->
+      <header class="app-bg app-border-b sticky top-0 z-20">
+        <div class="px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+          <div class="flex items-center space-x-3">
+            <i class="fas fa-chart-bar app-text text-xl"></i>
+            <div>
+              <h1 class="text-lg font-semibold app-text">Business Intelligence</h1>
+              <p class="text-xs app-muted">Relatórios e análises em tempo real</p>
+            </div>
+          </div>
+          <a href="{{ route('dashboard.index') }}"
+            class="inline-flex items-center gap-2 rounded-lg bg-industrial-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-industrial-400">
+            <i class="fas fa-home mr-2"></i> Dashboard
+          </a>
+        </div>
+      </header>
+
+      <!-- Content -->
+      <main class="flex-1 overflow-auto">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+
+          <!-- Model Tabs - WCAG AA Contrast -->
+          <div class="app-card app-border rounded-lg overflow-hidden">
+            <div class="flex border-b app-border-b overflow-x-auto">
+              <a href="?model=sales&start_date={{ filters.startDate }}&end_date={{ filters.endDate }}" 
+                class="tab-button flex-1 px-4 py-4 text-center font-semibold text-sm min-w-max @if(modelType === 'sales') active @end">
+                <i class="fas fa-money-bill-wave mr-2"></i> Vendas
+              </a>
+              <a href="?model=orders&start_date={{ filters.startDate }}&end_date={{ filters.endDate }}" 
+                class="tab-button flex-1 px-4 py-4 text-center font-semibold text-sm min-w-max @if(modelType === 'orders') active @end">
+                <i class="fas fa-receipt mr-2"></i> Pedidos
+              </a>
+              <a href="?model=employees&start_date={{ filters.startDate }}&end_date={{ filters.endDate }}" 
+                class="tab-button flex-1 px-4 py-4 text-center font-semibold text-sm min-w-max @if(modelType === 'employees') active @end">
+                <i class="fas fa-users mr-2"></i> Funcionários
+              </a>
+              <a href="?model=products&start_date={{ filters.startDate }}&end_date={{ filters.endDate }}" 
+                class="tab-button flex-1 px-4 py-4 text-center font-semibold text-sm min-w-max @if(modelType === 'products') active @end">
+                <i class="fas fa-box mr-2"></i> Produtos
+              </a>
+              <a href="?model=suppliers&start_date={{ filters.startDate }}&end_date={{ filters.endDate }}" 
+                class="tab-button flex-1 px-4 py-4 text-center font-semibold text-sm min-w-max @if(modelType === 'suppliers') active @end">
+                <i class="fas fa-truck mr-2"></i> Fornecedores
+              </a>
+              <a href="?model=inventory&start_date={{ filters.startDate }}&end_date={{ filters.endDate }}" 
+                class="tab-button flex-1 px-4 py-4 text-center font-semibold text-sm min-w-max @if(modelType === 'inventory') active @end">
+                <i class="fas fa-cubes mr-2"></i> Estoque
+              </a>
+            </div>
+
+            <!-- Filters (Context-specific) -->
+            <form method="GET" class="p-4 grid grid-cols-1 md:grid-cols-5 gap-3 bg-gradient-to-r from-accent-50 to-transparent">
+              <div>
+                <label for="start_date" class="text-xs app-muted block mb-1 font-semibold">Início</label>
+                <input id="start_date" type="date" name="start_date" value="{{ filters.startDate }}" class="w-full app-card app-border rounded px-2 py-1 text-sm app-text" />
+              </div>
+              <div>
+                <label for="end_date" class="text-xs app-muted block mb-1 font-semibold">Fim</label>
+                <input id="end_date" type="date" name="end_date" value="{{ filters.endDate }}" class="w-full app-card app-border rounded px-2 py-1 text-sm app-text" />
+              </div>
+              <input type="hidden" name="model" value="{{ modelType }}" />
+              <div class="md:col-span-2"></div>
+              <button type="submit" class="px-4 py-2 bg-accent-600 text-white rounded font-semibold hover:bg-accent-700 transition-colors text-sm flex items-center justify-center">
+                <i class="fas fa-search mr-2"></i> Aplicar
+              </button>
+            </form>
+          </div>
+
+          <!-- KPIs Section - Dynamic per Model -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            @if(modelType === 'sales')
+              <!-- Sales KPIs -->
+              <div class="app-card app-border rounded-lg p-4 gradient-hover">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <p class="text-xs font-semibold app-muted uppercase tracking-wide">Quantidade de Vendas</p>
+                    <p class="text-3xl font-bold app-text mt-1">{{ kpis.count }}</p>
+                  </div>
+                  <div class="text-4xl text-accent-500 rounded-full w-12 h-12 flex items-center justify-center">
+                    <i class="fas fa-shopping-bag"></i>
+                  </div>
+                </div>
+              </div>
+              <div class="app-card app-border rounded-lg p-4 gradient-hover">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <p class="text-xs font-semibold app-muted uppercase tracking-wide">Faturamento Total</p>
+                    <p class="text-3xl font-bold app-text mt-1">{{ formatCurrency(kpis.total || 0) }}</p>
+                  </div>
+                  <div class="text-4xl text-accent-500 rounded-full w-12 h-12 flex items-center justify-center">
+                    <i class="fas fa-money-bill"></i>
+                  </div>
+                </div>
+              </div>
+              <div class="app-card app-border rounded-lg p-4 gradient-hover">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <p class="text-xs font-semibold app-muted uppercase tracking-wide">Ticket Médio</p>
+                    <p class="text-3xl font-bold app-text mt-1">{{ formatCurrency(kpis.average || 0) }}</p>
+                  </div>
+                  <div class="text-4xl text-accent-500 rounded-full w-12 h-12 flex items-center justify-center">
+                    <i class="fas fa-chart-pie"></i>
+                  </div>
+                </div>
+              </div>
+            @elseif(modelType === 'orders')
+              <!-- Orders KPIs -->
+              <div class="app-card app-border rounded-lg p-4 gradient-hover">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <p class="text-xs font-semibold app-muted uppercase tracking-wide">Total de Pedidos</p>
+                    <p class="text-3xl font-bold app-text mt-1">{{ kpis.count }}</p>
+                  </div>
+                  <div class="text-4xl text-accent-500 rounded-full w-12 h-12 flex items-center justify-center">
+                    <i class="fas fa-receipt"></i>
+                  </div>
+                </div>
+              </div>
+              <div class="app-card app-border rounded-lg p-4 gradient-hover">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <p class="text-xs font-semibold app-muted uppercase tracking-wide">Pedidos Pagos</p>
+                    <p class="text-3xl font-bold app-text mt-1">{{ kpis.paidCount }}</p>
+                  </div>
+                  <div class="text-4xl text-accent-500 rounded-full w-12 h-12 flex items-center justify-center">
+                    <i class="fas fa-check-circle"></i>
+                  </div>
+                </div>
+              </div>
+              <div class="app-card app-border rounded-lg p-4 gradient-hover">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <p class="text-xs font-semibold app-muted uppercase tracking-wide">Taxa de Conversão</p>
+                    <p class="text-3xl font-bold app-text mt-1">{{ kpis.conversionRate }}%</p>
+                  </div>
+                  <div class="text-4xl text-accent-500 rounded-full w-12 h-12 flex items-center justify-center">
+                    <i class="fas fa-percentage"></i>
+                  </div>
+                </div>
+              </div>
+            @elseif(modelType === 'employees')
+              <!-- Employees KPIs -->
+              <div class="app-card app-border rounded-lg p-4 gradient-hover">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <p class="text-xs font-semibold app-muted uppercase tracking-wide">Total de Funcionários</p>
+                    <p class="text-3xl font-bold app-text mt-1">{{ kpis.total }}</p>
+                  </div>
+                  <div class="text-4xl text-accent-500 rounded-full w-12 h-12 flex items-center justify-center">
+                    <i class="fas fa-users"></i>
+                  </div>
+                </div>
+              </div>
+              <div class="app-card app-border rounded-lg p-4 gradient-hover">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <p class="text-xs font-semibold app-muted uppercase tracking-wide">Ativos</p>
+                    <p class="text-3xl font-bold app-text mt-1">{{ kpis.active }}</p>
+                  </div>
+                  <div class="text-4xl text-accent-500 rounded-full w-12 h-12 flex items-center justify-center">
+                    <i class="fas fa-user-check"></i>
+                  </div>
+                </div>
+              </div>
+              <div class="app-card app-border rounded-lg p-4 gradient-hover">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <p class="text-xs font-semibold app-muted uppercase tracking-wide">Inativos</p>
+                    <p class="text-3xl font-bold app-text mt-1">{{ kpis.inactive }}</p>
+                  </div>
+                  <div class="text-4xl text-accent-500 rounded-full w-12 h-12 flex items-center justify-center">
+                    <i class="fas fa-user-slash"></i>
+                  </div>
+                </div>
+              </div>
+            @elseif(modelType === 'products')
+              <!-- Products KPIs -->
+              <div class="app-card app-border rounded-lg p-4 gradient-hover">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <p class="text-xs font-semibold app-muted uppercase tracking-wide">Total de Produtos</p>
+                    <p class="text-3xl font-bold app-text mt-1">{{ kpis.total }}</p>
+                  </div>
+                  <div class="text-4xl text-accent-500 rounded-full w-12 h-12 flex items-center justify-center">
+                    <i class="fas fa-box"></i>
+                  </div>
+                </div>
+              </div>
+              <div class="app-card app-border rounded-lg p-4 gradient-hover">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <p class="text-xs font-semibold app-muted uppercase tracking-wide">Ativos</p>
+                    <p class="text-3xl font-bold app-text mt-1">{{ kpis.active }}</p>
+                  </div>
+                  <div class="text-4xl text-accent-500 rounded-full w-12 h-12 flex items-center justify-center">
+                    <i class="fas fa-check"></i>
+                  </div>
+                </div>
+              </div>
+              <div class="app-card app-border rounded-lg p-4 gradient-hover">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <p class="text-xs font-semibold app-muted uppercase tracking-wide">Inativos</p>
+                    <p class="text-3xl font-bold app-text mt-1">{{ kpis.inactive }}</p>
+                  </div>
+                  <div class="text-4xl text-accent-500 rounded-full w-12 h-12 flex items-center justify-center">
+                    <i class="fas fa-ban"></i>
+                  </div>
+                </div>
+              </div>
+            @elseif(modelType === 'suppliers')
+              <!-- Suppliers KPIs -->
+              <div class="app-card app-border rounded-lg p-4 gradient-hover">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <p class="text-xs font-semibold app-muted uppercase tracking-wide">Total de Fornecedores</p>
+                    <p class="text-3xl font-bold app-text mt-1">{{ kpis.total }}</p>
+                  </div>
+                  <div class="text-4xl text-accent-500 rounded-full w-12 h-12 flex items-center justify-center">
+                    <i class="fas fa-truck"></i>
+                  </div>
+                </div>
+              </div>
+              <div class="app-card app-border rounded-lg p-4 gradient-hover">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <p class="text-xs font-semibold app-muted uppercase tracking-wide">Ativos</p>
+                    <p class="text-3xl font-bold app-text mt-1">{{ kpis.active }}</p>
+                  </div>
+                  <div class="text-4xl text-accent-500 rounded-full w-12 h-12 flex items-center justify-center">
+                    <i class="fas fa-check-circle"></i>
+                  </div>
+                </div>
+              </div>
+              <div class="app-card app-border rounded-lg p-4 gradient-hover">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <p class="text-xs font-semibold app-muted uppercase tracking-wide">Inativos</p>
+                    <p class="text-3xl font-bold app-text mt-1">{{ kpis.inactive }}</p>
+                  </div>
+                  <div class="text-4xl text-accent-500 rounded-full w-12 h-12 flex items-center justify-center">
+                    <i class="fas fa-times-circle"></i>
+                  </div>
+                </div>
+              </div>
+            @elseif(modelType === 'inventory')
+              <!-- Inventory KPIs -->
+              <div class="app-card app-border rounded-lg p-4 gradient-hover">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <p class="text-xs font-semibold app-muted uppercase tracking-wide">Total de Insumos</p>
+                    <p class="text-3xl font-bold app-text mt-1">{{ kpis.total }}</p>
+                  </div>
+                  <div class="text-4xl text-accent-500 rounded-full w-12 h-12 flex items-center justify-center">
+                    <i class="fas fa-cubes"></i>
+                  </div>
+                </div>
+              </div>
+              <div class="app-card app-border rounded-lg p-4 gradient-hover">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <p class="text-xs font-semibold app-muted uppercase tracking-wide">Estoque Normal</p>
+                    <p class="text-3xl font-bold app-text mt-1">{{ kpis.sufficient }}</p>
+                  </div>
+                  <div class="text-4xl text-accent-500 rounded-full w-12 h-12 flex items-center justify-center">
+                    <i class="fas fa-check"></i>
+                  </div>
+                </div>
+              </div>
+              <div class="app-card app-border rounded-lg p-4 gradient-hover">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <p class="text-xs font-semibold app-muted uppercase tracking-wide">Baixo Estoque</p>
+                    <p class="text-3xl font-bold app-text mt-1">{{ kpis.lowStock }}</p>
+                  </div>
+                  <div class="text-4xl text-accent-500 rounded-full w-12 h-12 flex items-center justify-center">
+                    <i class="fas fa-exclamation-triangle"></i>
+                  </div>
+                </div>
+              </div>
+            @end
+          </div>
+
+          <!-- Charts -->
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div class="app-card app-border rounded-lg p-4">
+              <div class="flex items-center space-x-2 mb-4">
+                <i class="fas fa-credit-card app-text text-lg"></i>
+                <p class="text-sm font-bold app-text">
+                  @if(modelType === 'sales')
+                    Vendas por método de pagamento
+                  @elseif(modelType === 'orders')
+                    Pedidos por status
+                  @elseif(modelType === 'employees')
+                    Status dos funcionários
+                  @elseif(modelType === 'products')
+                    Produtos por categoria
+                  @elseif(modelType === 'suppliers')
+                    Status dos fornecedores
+                  @elseif(modelType === 'inventory')
+                    Status do estoque
+                  @end
+                </p>
+              </div>
+              <div class="relative w-full" style="height: 350px;">
+                <canvas id="paymentChart"></canvas>
+              </div>
+            </div>
+            <div class="app-card app-border rounded-lg p-4">
+              <div class="flex items-center space-x-2 mb-4">
+                <i class="fas fa-chart-line app-text text-lg"></i>
+                <p class="text-sm font-bold app-text">
+                  @if(modelType === 'sales')
+                    Faturamento por dia
+                  @elseif(modelType === 'orders')
+                    Pedidos por dia
+                  @elseif(modelType === 'employees')
+                    Contratações por período
+                  @elseif(modelType === 'products')
+                    Produtos adicionados
+                  @elseif(modelType === 'suppliers')
+                    Fornecedores cadastrados
+                  @elseif(modelType === 'inventory')
+                    Movimento de estoque
+                  @end
+                </p>
+              </div>
+              <div class="relative w-full" style="height: 350px;">
+                <canvas id="lineChart"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Table -->
+          <div class="app-card app-border rounded-lg p-4">
+            <div class="flex items-center justify-between mb-4 pb-4 app-border-b">
+              <div class="text-sm app-text font-semibold">
+                <span>Total: <span class="app-text">{{ pagination.total }}</span> itens</span>
+              </div>
+              <div class="text-sm app-muted">
+                Página <span class="app-text font-semibold">{{ pagination.currentPage }}</span> de <span class="app-text font-semibold">{{ pagination.totalPages }}</span>
+              </div>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="min-w-full text-sm">
+                <thead>
+                  <tr class="app-border-b">
+                    @if(modelType === 'sales')
+                      <th class="text-left py-3 px-3 app-text font-bold">Número</th>
+                      <th class="text-left py-3 px-3 app-text font-bold">Forma de Pagamento</th>
+                      <th class="text-left py-3 px-3 app-text font-bold">Valor</th>
+                      <th class="text-left py-3 px-3 app-text font-bold">Data</th>
+                    @elseif(modelType === 'orders')
+                      <th class="text-left py-3 px-3 app-text font-bold">Número</th>
+                      <th class="text-left py-3 px-3 app-text font-bold">Status</th>
+                      <th class="text-left py-3 px-3 app-text font-bold">Tipo</th>
+                      <th class="text-left py-3 px-3 app-text font-bold">Data</th>
+                    @elseif(modelType === 'employees')
+                      <th class="text-left py-3 px-3 app-text font-bold">Nome</th>
+                      <th class="text-left py-3 px-3 app-text font-bold">Status</th>
+                      <th class="text-left py-3 px-3 app-text font-bold">Email</th>
+                      <th class="text-left py-3 px-3 app-text font-bold">Cadastrado em</th>
+                    @elseif(modelType === 'products')
+                      <th class="text-left py-3 px-3 app-text font-bold">Nome</th>
+                      <th class="text-left py-3 px-3 app-text font-bold">Status</th>
+                      <th class="text-left py-3 px-3 app-text font-bold">Preço</th>
+                      <th class="text-left py-3 px-3 app-text font-bold">Cadastrado em</th>
+                    @elseif(modelType === 'suppliers')
+                      <th class="text-left py-3 px-3 app-text font-bold">Nome</th>
+                      <th class="text-left py-3 px-3 app-text font-bold">Status</th>
+                      <th class="text-left py-3 px-3 app-text font-bold">Email</th>
+                      <th class="text-left py-3 px-3 app-text font-bold">Cadastrado em</th>
+                    @elseif(modelType === 'inventory')
+                      <th class="text-left py-3 px-3 app-text font-bold">Nome</th>
+                      <th class="text-left py-3 px-3 app-text font-bold">Quantidade Atual</th>
+                      <th class="text-left py-3 px-3 app-text font-bold">Mínimo</th>
+                      <th class="text-left py-3 px-3 app-text font-bold">Última Atualização</th>
+                    @end
+                  </tr>
+                </thead>
+                <tbody>
+                  @each(row in rows)
+                    <tr class="app-border-b hover:app-accent-bg transition-colors">
+                      @if(modelType === 'sales')
+                        <!-- Sales Row -->
+                        <td class="py-3 px-3 app-text font-semibold">#{{ row.number }}</td>
+                        <td class="py-3 px-3 capitalize app-text">
+                          <span class="inline-block px-2 py-1 rounded text-xs bg-blue-100 text-blue-700 font-semibold">{{ row.paymentMethod }}</span>
+                        </td>
+                        <td class="py-3 px-3 app-text font-semibold">{{ formatCurrency(row.amount || 0) }}</td>
+                        <td class="py-3 px-3 app-muted text-xs">{{ row.date?.toFormat ? formatDateTimestamp(row.date) : row.date }}</td>
+                      @elseif(modelType === 'orders')
+                        <!-- Orders Row -->
+                        <td class="py-3 px-3 app-text font-semibold">#{{ row.number }}</td>
+                        <td class="py-3 px-3 capitalize app-text">
+                          <span class="inline-block px-2 py-1 rounded text-xs bg-accent-100 text-accent-700 font-semibold">{{ row.status }}</span>
+                        </td>
+                        <td class="py-3 px-3 capitalize app-text text-xs">{{ row.type }}</td>
+                        <td class="py-3 px-3 app-muted text-xs">{{ row.date?.toFormat ? formatDateTimestamp(row.date) : row.date }}</td>
+                      @elseif(modelType === 'employees')
+                        <!-- Employees Row -->
+                        <td class="py-3 px-3 app-text font-semibold">{{ row.name }}</td>
+                        <td class="py-3 px-3 capitalize app-text">
+                          <span class="inline-block px-2 py-1 rounded text-xs @if(row.status === 'Ativo') bg-green-100 text-green-700 @else bg-red-100 text-red-700 @end font-semibold">{{ row.status }}</span>
+                        </td>
+                        <td class="py-3 px-3 app-muted text-xs truncate">{{ row.email }}</td>
+                        <td class="py-3 px-3 app-muted text-xs">{{ row.date?.toFormat ? formatDateOnlyTimestamp(row.date) : row.date }}</td>
+                      @elseif(modelType === 'products')
+                        <!-- Products Row -->
+                        <td class="py-3 px-3 app-text font-semibold">{{ row.name }}</td>
+                        <td class="py-3 px-3 capitalize app-text">
+                          <span class="inline-block px-2 py-1 rounded text-xs @if(row.status === 'Ativo') bg-green-100 text-green-700 @else bg-red-100 text-red-700 @end font-semibold">{{ row.status }}</span>
+                        </td>
+                        <td class="py-3 px-3 app-text font-semibold">{{ formatCurrency(row.price || 0) }}</td>
+                        <td class="py-3 px-3 app-muted text-xs">{{ row.date?.toFormat ? formatDateOnlyTimestamp(row.date) : row.date }}</td>
+                      @elseif(modelType === 'suppliers')
+                        <!-- Suppliers Row -->
+                        <td class="py-3 px-3 app-text font-semibold">{{ row.name }}</td>
+                        <td class="py-3 px-3 capitalize app-text">
+                          <span class="inline-block px-2 py-1 rounded text-xs @if(row.status === 'Ativo') bg-green-100 text-green-700 @else bg-red-100 text-red-700 @end font-semibold">{{ row.status }}</span>
+                        </td>
+                        <td class="py-3 px-3 app-muted text-xs truncate">{{ row.email }}</td>
+                        <td class="py-3 px-3 app-muted text-xs">{{ row.date?.toFormat ? formatDateOnlyTimestamp(row.date) : row.date }}</td>
+                      @elseif(modelType === 'inventory')
+                        <!-- Inventory Row -->
+                        <td class="py-3 px-3 app-text font-semibold">{{ row.name }}</td>
+                        <td class="py-3 px-3 app-text font-semibold @if(row.current <= row.minimum) text-red-600 @end">{{ row.current }}</td>
+                        <td class="py-3 px-3 app-text">{{ row.minimum }}</td>
+                        <td class="py-3 px-3 app-muted text-xs">{{ row.date?.toFormat ? formatDateTimestamp(row.date) : row.date }}</td>
+                      @end
+                    </tr>
+                  @end
+                </tbody>
+              </table>
+            </div>
+            <div class="flex items-center justify-between mt-4 pt-4 app-border-t">
+              <div class="flex gap-2">
+                @if(pagination.currentPage > 1)
+                  <a href="?page={{ pagination.currentPage - 1 }}&per_page={{ pagination.perPage }}&model={{ modelType }}&start_date={{ filters.startDate }}&end_date={{ filters.endDate }}" class="px-3 py-2 app-card app-border rounded text-sm app-text hover:app-accent-bg transition-colors font-semibold">
+                    <i class="fas fa-chevron-left mr-1"></i> Anterior
+                  </a>
+                @end
+                @if(pagination.currentPage < pagination.totalPages)
+                  <a href="?page={{ pagination.currentPage + 1 }}&per_page={{ pagination.perPage }}&model={{ modelType }}&start_date={{ filters.startDate }}&end_date={{ filters.endDate }}" class="px-3 py-2 app-card app-border rounded text-sm app-text hover:app-accent-bg transition-colors font-semibold">
+                    Próxima <i class="fas fa-chevron-right ml-1"></i>
+                  </a>
+                @end
+              </div>
+              <span class="text-sm app-muted">Mostrando {{ rows.length }} de {{ pagination.total }}</span>
+            </div>
+          </div>
+        </div>
+      </main>
+  </div>
+
+  <script>
+    // Aguarda Chart.js estar disponível
+    function initializeCharts() {
+      // Parse dados do servidor (JSON strings injetados como raw)
+      let chartData = {{{ charts }}};
+
+      // Gráfico de métodos de pagamento / status
+      const paymentCanvas = document.getElementById('paymentChart');
+      if (paymentCanvas && chartData && chartData[0] && chartData[0].labels && chartData[0].data) {
+        new Chart(paymentCanvas, {
+          type: 'pie',
+          data: {
+            labels: chartData[0].labels,
+            datasets: [{
+              data: chartData[0].data,
+              backgroundColor: ['#10b981', '#3b82f6', '#a855f7', '#f59e0b', '#ec4899', '#06b6d4']
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: {
+                  padding: 15,
+                  font: { size: 12, weight: '600' }
+                }
+              },
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    return context.label + ': ' + context.parsed + ' transação(ões)';
+                  }
+                }
+              }
+            }
+          }
+        });
+      }
+
+      // Gráfico de linha
+      const lineCanvas = document.getElementById('lineChart');
+      if (lineCanvas && chartData && chartData[1] && chartData[1].labels && chartData[1].data) {
+        new Chart(lineCanvas, {
+          type: 'line',
+          data: {
+            labels: chartData[1].labels,
+            datasets: [{
+              label: 'Dados',
+              data: chartData[1].data,
+              borderColor: '#2563eb',
+              backgroundColor: 'rgba(37, 99, 235, 0.1)',
+              borderWidth: 2,
+              tension: 0.3,
+              fill: true,
+              pointRadius: 5,
+              pointBackgroundColor: '#2563eb',
+              pointBorderColor: '#fff',
+              pointBorderWidth: 2,
+              pointHoverRadius: 7
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              y: {
+                beginAtZero: true,
+                ticks: {
+                  callback: function(value) {
+                    return new Intl.NumberFormat('pt-BR').format(value);
+                  },
+                  font: { size: 11 }
+                }
+              },
+              x: {
+                ticks: {
+                  font: { size: 11 }
+                }
+              }
+            },
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: {
+                  padding: 15,
+                  font: { size: 12, weight: '600' }
+                }
+              },
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    return 'Valor: ' + new Intl.NumberFormat('pt-BR', {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2
+                    }).format(context.parsed.y);
+                  }
+                }
+              }
+            }
+          }
+        });
+      }
+    }
+
+    // Verifica se Chart.js está disponível
+    if (typeof Chart === 'undefined') {
+      console.error('Chart.js não foi carregado');
+    } else {
+      // Aguarda o DOM estar pronto
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initializeCharts);
+      } else {
+        initializeCharts();
+      }
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="{{ theme }}" class="h-full bg-industrial-50">
+<head>
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf-token" content="{{ csrfToken }}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <title>Itens do Cardápio - Tavolo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+  </style>
+  @vite(['resources/css/app.css', 'resources/js/app.js'])
+</head>
+<body class="h-full font-sans text-industrial-900">
+  <div class="min-h-full">
+    <header class="bg-white shadow-sm">
+      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div class="flex h-16 items-center gap-3">
+          <div class="h-10 w-10 rounded-full bg-accent-500/10 text-accent-600 flex items-center justify-center">
+            <i class="fas fa-utensils"></i>
+          </div>
+          <div>
+            <h1 class="text-lg font-semibold text-industrial-900">Itens do Cardápio</h1>
+            <p class="text-sm text-industrial-500">Gestão de produtos</p>
+          </div>
+          <div class="flex items-center gap-2 ml-auto">            
+            <a href="{{ route('cardapio_produtos.create') }}" class="inline-flex items-center gap-2 rounded-lg bg-accent-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-accent-500">
+              <i class="fas fa-plus"></i>
+              Novo Produto
+            </a>            
+            <a href="{{ route('dashboard.index') }}"
+              class="inline-flex items-center gap-2 rounded-lg bg-industrial-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-industrial-400">
+              <i class="fas fa-home mr-2"></i> Dashboard
+            </a>
+          </div>
+        </div>
+      </div>
+    </header>
+    <main class="flex-1">
+      <div class="mx-auto max-w-7xl py-6 sm:px-6 lg:px-8">
+        <div class="bg-white shadow-sm rounded-xl ring-1 ring-industrial-100 mb-6">
+          <div class="px-6 py-4 border-b border-industrial-100"><h2 class="text-lg font-semibold text-industrial-900">Filtros</h2></div>
+          <div class="p-6">
+            <form method="GET" class="grid grid-cols-1 gap-4 md:grid-cols-4">
+              <div>
+                <label for="search" class="block text-sm font-semibold app-muted mb-1">Buscar</label>
+                <input type="text" name="search" id="search" value="{{ request.input('search', '') }}" placeholder="Nome..." class="block w-full rounded-lg border-industrial-200 shadow-sm focus:border-accent-500 focus:ring-accent-500 sm:text-sm">
+              </div>
+              <div>
+                <label for="category_id" class="block text-sm font-semibold app-muted mb-1">Categoria</label>
+                <select name="category_id" id="category_id" class="block w-full rounded-lg border-industrial-200 shadow-sm focus:border-accent-500 focus:ring-accent-500 sm:text-sm">
+                  <option value="">Todas</option>
+                  @each(categoria in categorias)
+                    <option value="{{ categoria.id }}" {{ request.input('category_id') == categoria.id.toString() ? 'selected' : '' }}>{{ categoria.name }}</option>
+                  @end
+                </select>
+              </div>
+              <div>
+                <label for="status" class="block text-sm font-semibold app-muted mb-1">Status</label>
+                <select name="status" id="status" class="block w-full rounded-lg border-industrial-200 shadow-sm focus:border-accent-500 focus:ring-accent-500 sm:text-sm">
+                  <option value="">Todos</option>
+                  <option value="available" {{ request.input('status') === 'available' ? 'selected' : '' }}>Disponível</option>
+                  <option value="unavailable" {{ request.input('status') === 'unavailable' ? 'selected' : '' }}>Indisponível</option>
+                </select>
+              </div>
+              <div class="flex items-end gap-2">
+                <button type="submit" class="flex-1 inline-flex justify-center items-center gap-2 rounded-lg bg-accent-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-accent-500">Filtrar</button>
+                @if(request.input('search') || request.input('category_id') || request.input('status'))
+                  <a href="{{ route('cardapio_produtos.index') }}" class="inline-flex items-center rounded-lg bg-industrial-200 px-3 py-2 text-sm font-semibold app-muted shadow-sm hover:bg-industrial-300">Limpar</a>
+                @end
+              </div>
+            </form>
+          </div>
+        </div>
+        <div class="bg-white shadow-sm rounded-xl ring-1 ring-industrial-100">
+          <div class="px-6 py-4 border-b border-industrial-100"><h2 class="text-lg font-semibold text-industrial-900">Lista de Produtos</h2></div>
+          @if(produtos.length === 0)
+            <div class="text-center py-12">
+              <i class="fas fa-utensils text-6xl text-industrial-200 mb-4"></i>
+              <h3 class="mt-2 text-sm font-semibold text-industrial-900">Nenhum item encontrado</h3>
+              <p class="mt-1 text-sm text-industrial-500">Comece criando um novo item para o cardápio.</p>
+              <div class="mt-6">
+                <a href="{{ route('cardapio_produtos.create') }}" class="inline-flex items-center gap-2 rounded-lg bg-accent-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-accent-500">
+                  <i class="fas fa-plus"></i>
+                  Novo Produto
+                </a>
+              </div>
+            </div>
+          @else
+            <div class="overflow-x-auto">
+              <table class="min-w-full divide-y divide-industrial-100">
+                <thead class="bg-industrial-50">
+                  <tr>
+                    <th class="px-6 py-3 text-left text-xs font-semibold app-muted uppercase tracking-wider">Item</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold app-muted uppercase tracking-wider">Categoria</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold app-muted uppercase tracking-wider">Preço</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold app-muted uppercase tracking-wider">Máximo Possível</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold app-muted uppercase tracking-wider">Status</th>
+                    <th class="relative px-6 py-3"><span class="sr-only">Ações</span></th>
+                  </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-industrial-100">
+                  @each(produto in produtos)
+                    <tr class="hover:bg-industrial-50">
+                      <td class="px-6 py-4">
+                        <div>
+                          <div class="text-sm font-semibold text-industrial-900">{{ produto.name }}</div>
+                          @if(produto.description)
+                            <div class="text-sm app-muted">{{ produto.description.substring(0, 60) }}{{ produto.description.length > 60 ? '...' : '' }}</div>
+                          @end
+                        </div>
+                      </td>
+                      <td class="px-6 py-4 text-sm app-muted">{{ produto.cardapioCategoria ? produto.cardapioCategoria.name : 'Sem categoria' }}</td>
+                      <td class="px-6 py-4 text-sm font-semibold text-industrial-900">{{ produto.salePrice ? formatCurrency(produto.salePrice) : 'R$ 0,00' }}</td>
+                      <td class="px-6 py-4 text-sm font-semibold {{ produto.maxPossibleQuantity > 0 ? 'text-green-700' : 'text-red-700' }}">
+                        {{ produto.maxPossibleQuantity }} unid.
+                      </td>
+                      <td class="px-6 py-4">
+                        @if(produto.available)
+                          <span class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold {{ produto.isAvailable ? 'bg-green-50 text-green-700' : 'bg-orange-50 text-orange-700' }}">
+                            {{ produto.isAvailable ? '✓ Disponível' : '⚠ Sem estoque' }}
+                          </span>
+                        @else
+                          <span class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold bg-red-50 text-red-700">
+                            ✕ Desativado
+                          </span>
+                        @end
+                      </td>
+                      <td class="px-6 py-4 text-right text-sm font-medium">
+                        <div class="inline-flex gap-3">
+                          <a href="{{ route('cardapio_produtos.show', { id: produto.id }) }}" class="text-accent-600 hover:text-accent-500">Ver</a>
+                          <a href="{{ route('cardapio_produtos.edit', { id: produto.id }) }}" class="app-muted hover:text-industrial-500">Editar</a>
+                          <form action="{{ route('cardapio_produtos.destroy.post', { id: produto.id }) }}" method="POST" class="inline" onsubmit="return confirm('Tem certeza?')">
+                            {{ csrfField() }}
+                            <button type="submit" class="text-red-600 hover:text-red-500">Excluir</button>
+                          </form>
+                        </div>
+                      </td>
+                    </tr>
+                  @end
+                </tbody>
+              </table>
+            </div>
+          @end
+        </div>
+      </div>
+    </main>
+  </div>
+  <script>
+    document.getElementById('category_id').addEventListener('change', function() { this.form.submit(); });
+    document.getElementById('status').addEventListener('change', function() { this.form.submit(); });
+  </script>
+  @include('components/quick_actions')
+</body>
+</html>

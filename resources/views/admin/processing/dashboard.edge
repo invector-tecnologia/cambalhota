@@ -1,0 +1,225 @@
+@layout('layouts/app')
+
+@section('title', 'Reprocessamento de Dados')
+
+@section('content')
+<div class="min-h-screen app-bg">
+  <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+    {{-- Cabeçalho --}}
+    <div class="mb-8">
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-3xl font-bold app-strong">Reprocessamento de Dados</h1>
+          <p class="mt-2 app-muted">Gerenciar e reprocessar entidades com falhas de processamento</p>
+        </div>
+        <div class="flex gap-2">
+          <a href="{{ route('processing.rulesIndex') }}" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+            <i class="fas fa-cogs mr-2"></i>Gerenciar Regras
+          </a>
+          <button onclick="showBatchReprocessModal()" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+            <i class="fas fa-sync mr-2"></i>Reprocessar em Lote
+          </button>
+        </div>
+      </div>
+    </div>
+
+    {{-- Alertas --}}
+    @if(flashMessages.has('success'))
+      <div class="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg text-green-800">
+        <i class="fas fa-check-circle mr-2"></i>{{ flashMessages.get('success') }}
+      </div>
+    @endif
+
+    @if(flashMessages.has('error'))
+      <div class="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-800">
+        <i class="fas fa-exclamation-circle mr-2"></i>{{ flashMessages.get('error') }}
+      </div>
+    @endif
+
+    @if(flashMessages.has('warning'))
+      <div class="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-800">
+        <i class="fas fa-exclamation-triangle mr-2"></i>{{ flashMessages.get('warning') }}
+      </div>
+    @endif
+
+    {{-- Filtros --}}
+    <div class="mb-6 bg-white rounded-lg shadow p-4">
+      <form method="GET" class="flex gap-4 items-end">
+        <div>
+          <label class="block text-sm font-medium app-text mb-1">Tipo de Entidade</label>
+          <select name="entity_type" class="px-3 py-2 border border-gray-300 rounded-lg w-40">
+            <option value="">Todos</option>
+            <option value="Pedido" @selected(filters.entityType === 'Pedido')>Pedido</option>
+            <option value="Venda" @selected(filters.entityType === 'Venda')>Venda</option>
+            <option value="Comanda" @selected(filters.entityType === 'Comanda')>Comanda</option>
+            <option value="Nfe" @selected(filters.entityType === 'Nfe')>NFe</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium app-text mb-1">Status</label>
+          <select name="status" class="px-3 py-2 app-border rounded-lg w-40">
+            <option value="">Todos</option>
+            <option value="pending" @selected(filters.status === 'pending')>Pendente</option>
+            <option value="partial" @selected(filters.status === 'partial')>Parcial</option>
+            <option value="failed" @selected(filters.status === 'failed')>Falho</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium app-text mb-1">ID da Entidade</label>
+          <input type="text" name="search" placeholder="Digite o ID..." value="{{ filters.search }}" class="px-3 py-2 app-border rounded-lg w-40">
+        </div>
+
+        <button type="submit" class="px-4 py-2 bg-accent-600 text-white rounded-lg hover:bg-accent-700">
+          <i class="fas fa-search mr-2"></i>Filtrar
+        </button>
+      </form>
+    </div>
+
+    {{-- Tabela de Entidades --}}
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+      <table class="min-w-full divide-y app-border">
+        <thead class="app-bg">
+          <tr>
+            <th class="px-6 py-3 text-left text-xs font-medium app-text uppercase">Tipo</th>
+            <th class="px-6 py-3 text-left text-xs font-medium app-text uppercase">ID</th>
+            <th class="px-6 py-3 text-left text-xs font-medium app-text uppercase">Status</th>
+            <th class="px-6 py-3 text-left text-xs font-medium app-text uppercase">Regras</th>
+            <th class="px-6 py-3 text-left text-xs font-medium app-text uppercase">Última Tentativa</th>
+            <th class="px-6 py-3 text-left text-xs font-medium app-text uppercase">Ações</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y app-border">
+          @each(entity in failedEntities)
+            <tr class="hover:bg-gray-50">
+              <td class="px-6 py-4 text-sm app-text">
+                <span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
+                  {{ entity.entityType }}
+                </span>
+              </td>
+              <td class="px-6 py-4 text-sm app-text">#{{ entity.entityId }}</td>
+              <td class="px-6 py-4 text-sm">
+                @if(entity.status === 'complete')
+                  <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
+                    <i class="fas fa-check mr-1"></i>Completo
+                  </span>
+                @elseif(entity.status === 'partial')
+                  <span class="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-medium">
+                    <i class="fas fa-exclamation-triangle mr-1"></i>Parcial
+                  </span>
+                @elseif(entity.status === 'failed')
+                  <span class="px-3 py-1 bg-red-100 text-red-800 rounded-full text-xs font-medium">
+                    <i class="fas fa-times mr-1"></i>Falho
+                  </span>
+                @else
+                  <span class="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-medium">
+                    <i class="fas fa-clock mr-1"></i>Pendente
+                  </span>
+                @endif
+              </td>
+              <td class="px-6 py-4 text-sm app-muted">
+                @if(entity.lastProcessedAt)
+                  {{ luxon.DateTime.fromISO(entity.lastProcessedAt).toRelative() }}
+                @else
+                  <span class="app-muted">Nunca</span>
+                @endif
+              </td>
+              <td class="px-6 py-4 text-sm">
+                <a href="{{ route('processing.show', { entityType: entity.entityType, entityId: entity.entityId }) }}" 
+                   class="text-blue-600 hover:text-blue-800 mr-4">
+                  <i class="fas fa-eye"></i> Ver
+                </a>
+                <form method="POST" 
+                      action="{{ route('processing.reprocess', { entityType: entity.entityType, entityId: entity.entityId }) }}" 
+                      class="inline"
+                      onsubmit="return confirm('Reprocessar esta entidade?')">
+                  @csrf
+                  <button type="submit" class="text-green-600 hover:text-green-800">
+                    <i class="fas fa-sync-alt"></i> Reprocessar
+                  </button>
+                </form>
+              </td>
+            </tr>
+          @endeach
+        </tbody>
+      </table>
+
+      @if(failedEntities.length === 0)
+        <div class="p-8 text-center app-muted">
+          <i class="fas fa-check-circle text-4xl mb-4 text-green-400"></i>
+          <p class="text-lg font-medium">Nenhuma entidade com falhas!</p>
+          <p class="text-sm mt-1">Todas as entidades foram processadas com sucesso.</p>
+        </div>
+      @endif
+    </div>
+
+    {{-- Paginação --}}
+    @if(pagination.lastPage > 1)
+      <div class="mt-6 flex justify-center items-center gap-2">
+        @if(pagination.currentPage > 1)
+          <a href="?page=1" class="px-3 py-2 bg-white border border-gray-300 rounded hover:bg-gray-50">Primeira</a>
+          <a href="?page={{ pagination.currentPage - 1 }}" class="px-3 py-2 bg-white border border-gray-300 rounded hover:bg-gray-50">Anterior</a>
+        @endif
+
+        <span class="px-4 py-2">Página {{ pagination.currentPage }} de {{ pagination.lastPage }}</span>
+
+        @if(pagination.currentPage < pagination.lastPage)
+          <a href="?page={{ pagination.currentPage + 1 }}" class="px-3 py-2 bg-white border border-gray-300 rounded hover:bg-gray-50">Próxima</a>
+          <a href="?page={{ pagination.lastPage }}" class="px-3 py-2 bg-white border border-gray-300 rounded hover:bg-gray-50">Última</a>
+        @endif
+      </div>
+    @endif
+  </div>
+</div>
+
+{{-- Modal de Reprocessamento em Lote --}}
+<div id="batchReprocessModal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">
+  <div class="app-card rounded-lg shadow-xl p-6 max-w-md w-full mx-4">
+    <h2 class="text-2xl font-bold app-strong mb-4">Reprocessar em Lote</h2>
+    
+    <form method="POST" action="{{ route('processing.batchReprocess') }}">
+      @csrf
+      
+      <div class="mb-4">
+        <label class="block text-sm font-medium app-text mb-1">Tipo de Entidade</label>
+        <select name="entityType" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+          <option value="">Todos</option>
+          <option value="Pedido">Pedido</option>
+          <option value="Venda">Venda</option>
+          <option value="Comanda">Comanda</option>
+          <option value="Nfe">NFe</option>
+        </select>
+      </div>
+
+      <div class="mb-4">
+        <label class="block text-sm font-medium app-text mb-1">Status</label>
+        <select name="status" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+          <option value="">Todos com falha</option>
+          <option value="partial">Apenas Parcial</option>
+          <option value="failed">Apenas Falho</option>
+        </select>
+      </div>
+
+      <div class="flex gap-2">
+        <button type="button" onclick="hideBatchReprocessModal()" class="flex-1 px-4 py-2 app-muted app-border rounded-lg hover:bg-industrial-50">
+          Cancelar
+        </button>
+        <button type="submit" class="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+          <i class="fas fa-sync mr-2"></i>Reprocessar
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function showBatchReprocessModal() {
+  document.getElementById('batchReprocessModal').classList.remove('hidden')
+}
+
+function hideBatchReprocessModal() {
+  document.getElementById('batchReprocessModal').classList.add('hidden')
+}
+</script>
+@endsection

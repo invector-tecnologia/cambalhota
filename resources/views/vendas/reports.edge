@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="{{ theme }}" class="h-full bg-industrial-50">
+<head>
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Relatórios Financeiros - Tavolo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .slide-in {
+      animation: slideIn 0.5s ease-out;
+    }
+    .stat-card {
+      transition: all 0.3s ease;
+    }
+    .stat-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 20px -5px rgb(0 0 0 / 0.15);
+    }
+    @media print {
+      .no-print { display: none !important; }
+      body { background: white !important; }
+    }
+  </style>
+  @vite(['resources/css/app.css', 'resources/js/app.js'])
+</head>
+<body class="h-full font-sans text-industrial-900">
+  <div class="min-h-full">
+    <header class="bg-white  no-print">
+      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div class="flex h-16 items-center gap-3">
+          <div class="flex items-center gap-3 ml-auto">
+            <div class="h-10 w-10 rounded-full bg-accent-500/10 text-accent-600 flex items-center justify-center">
+              <i class="fas fa-file-invoice-dollar"></i>
+            </div>
+            <h1 class="text-lg font-semibold text-industrial-900">Relatórios Financeiros</h1>
+          </div>
+          <div class="flex items-center space-x-3 ml-auto">
+            <button onclick="exportToCSV()" 
+              class="inline-flex items-center rounded-lg bg-accent-600 px-3 py-2 text-sm font-semibold text-white  hover:bg-accent-500">
+              <i class="fas fa-file-csv mr-2"></i> Exportar CSV
+            </button>
+            <button onclick="window.print()"
+              class="inline-flex items-center rounded-lg bg-white px-3 py-2 text-sm font-semibold app-muted  ring-1 ring-inset ring-industrial-200 hover:bg-industrial-50">
+              <i class="fas fa-print mr-2"></i> Imprimir
+            </button>
+            <a href="{{ route('vendas.dashboard') }}"
+              class="inline-flex items-center rounded-lg bg-accent-600 px-3 py-2 text-sm font-semibold text-white  hover:bg-accent-500">
+              <i class="fas fa-chart-line mr-2"></i> Dashboard
+            </a>
+            <a href="{{ route('vendas.index') }}"
+              class="inline-flex items-center rounded-lg bg-industrial-800 px-3 py-2 text-sm font-semibold text-white  hover:bg-industrial-700">
+              <i class="fas fa-list mr-2"></i> Ver Vendas
+            </a>
+          </div>
+        </div>
+      </div>
+    </header>
+    <main class="flex-1 py-6">
+      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+
+        <!-- Filtros -->
+        <div class="bg-white  rounded-xl mb-6 slide-in no-print ring-1 ring-industrial-100">
+          <div class="px-6 py-4 border-b border-industrial-100 bg-industrial-50">
+            <h2 class="text-lg font-semibold text-industrial-900 flex items-center">
+              <i class="fas fa-filter text-accent-600 mr-2"></i>
+              Filtros de Relatório
+            </h2>
+          </div>
+          <div class="p-6">
+            <form method="GET" class="grid grid-cols-1 gap-4 md:grid-cols-5">
+              <div>
+                <label class="block text-sm font-semibold app-muted mb-1">
+                  <i class="far fa-calendar-alt mr-1"></i> Data Inicial
+                </label>
+                <input type="date" name="date_from" value="{{ filters.dateFrom }}"
+                  class="block w-full rounded-lg border-industrial-200  focus:border-accent-500 focus:ring-accent-500 text-sm">
+              </div>
+              <div>
+                <label class="block text-sm font-semibold app-muted mb-1">
+                  <i class="far fa-calendar-check mr-1"></i> Data Final
+                </label>
+                <input type="date" name="date_to" value="{{ filters.dateTo }}"
+                  class="block w-full rounded-lg border-industrial-200  focus:border-accent-500 focus:ring-accent-500 text-sm">
+              </div>
+              <div>
+                <label class="block text-sm font-semibold app-muted mb-1">
+                  <i class="fas fa-layer-group mr-1"></i> Agrupar por
+                </label>
+                <select name="group_by"
+                  class="block w-full rounded-lg border-industrial-200  focus:border-accent-500 focus:ring-accent-500 text-sm">
+                  <option value="day" {{ filters.groupBy==='day' ? 'selected' : '' }}>📅 Dia</option>
+                  <option value="week" {{ filters.groupBy==='week' ? 'selected' : '' }}>📆 Semana</option>
+                  <option value="month" {{ filters.groupBy==='month' ? 'selected' : '' }}>📊 Mês</option>
+                </select>
+              </div>
+              <div class="md:col-span-2 flex items-end space-x-2">
+                <button type="submit"
+                  class="flex-1 inline-flex justify-center items-center rounded-lg bg-accent-600 px-4 py-2 text-sm font-semibold text-white  hover:bg-accent-500">
+                  <i class="fas fa-search mr-2"></i> Gerar Relatório
+                </button>
+                <a href="{{ route('vendas.reports') }}"
+                  class="inline-flex items-center rounded-lg bg-industrial-200 px-4 py-2 text-sm font-semibold app-muted hover:bg-industrial-100">
+                  <i class="fas fa-redo mr-2"></i> Limpar
+                </a>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        @eval(totalSales = 0.0)
+        @eval(totalProfit = 0.0)
+        @eval(totalCost = 0.0)
+        @eval(totalTransactions = 0)
+        @each(data in salesData)
+        @eval(totalSales = totalSales + parseFloat(data.$extras.total_sales || 0))
+        @eval(totalProfit = totalProfit + parseFloat(data.$extras.total_profit || 0))
+        @eval(totalTransactions = totalTransactions + parseInt(data.$extras.total_transactions || 0))
+        @end
+        @eval(totalCost = totalSales - totalProfit)
+        @eval(profitMargin = totalSales > 0 ? (totalProfit / totalSales) * 100 : 0)
+
+        <!-- Cards de Resumo -->
+        <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-5 mb-6">
+          <!-- Total de Vendas -->
+          <div class="stat-card slide-in overflow-hidden rounded-xl bg-gradient-to-br from-accent-500 to-indigo-600 ring-1 ring-industrial-100">
+            <div class="p-5">
+              <div class="flex flex-col">
+                <div class="flex justify-between items-start mb-2">
+                  <p class="text-accent-100 text-xs font-medium uppercase">Total Vendas</p>
+                  <div class="rounded-full bg-white/20 p-2">
+                    <i class="fas fa-dollar-sign text-white text-lg"></i>
+                  </div>
+                </div>
+                <p class="text-3xl font-bold text-white">
+                  {{ formatCurrency(Number(totalSales)) }}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Lucro Total -->
+          <div class="stat-card slide-in overflow-hidden rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 ring-1 ring-industrial-100" style="animation-delay: 0.1s;">
+            <div class="p-5">
+              <div class="flex flex-col">
+                <div class="flex justify-between items-start mb-2">
+                  <p class="text-emerald-100 text-xs font-medium uppercase">Lucro Total</p>
+                  <div class="rounded-full bg-white/20 p-2">
+                    <i class="fas fa-chart-line text-white text-lg"></i>
+                  </div>
+                </div>
+                <p class="text-3xl font-bold text-white">
+                  {{ formatCurrency(Number(totalProfit)) }}
+                </p>
+                <p class="text-xs text-emerald-100 mt-1">
+                  Margem: {{ profitMargin.toFixed(1) }}%
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Custo Total -->
+          <div class="stat-card slide-in overflow-hidden rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 ring-1 ring-industrial-100" style="animation-delay: 0.2s;">
+            <div class="p-5">
+              <div class="flex flex-col">
+                <div class="flex justify-between items-start mb-2">
+                  <p class="text-orange-100 text-xs font-medium uppercase">Custo Total</p>
+                  <div class="rounded-full bg-white/20 p-2">
+                    <i class="fas fa-coins text-white text-lg"></i>
+                  </div>
+                </div>
+                <p class="text-3xl font-bold text-white">
+                  {{ formatCurrency(Number(totalCost)) }}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Transações -->
+          <div class="stat-card slide-in overflow-hidden rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 ring-1 ring-industrial-100" style="animation-delay: 0.3s;">
+            <div class="p-5">
+              <div class="flex flex-col">
+                <div class="flex justify-between items-start mb-2">
+                  <p class="text-blue-100 text-xs font-medium uppercase">Transações</p>
+                  <div class="rounded-full bg-white/20 p-2">
+                    <i class="fas fa-receipt text-white text-lg"></i>
+                  </div>
+                </div>
+                <p class="text-3xl font-bold text-white">
+                  {{ totalTransactions }}
+                </p>
+                <p class="text-xs text-blue-100 mt-1">
+                  vendas realizadas
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Ticket Médio -->
+          <div class="stat-card slide-in overflow-hidden rounded-xl bg-gradient-to-br from-accent-500 to-accent-700 ring-1 ring-industrial-100" style="animation-delay: 0.4s;">
+            <div class="p-5">
+              <div class="flex flex-col">
+                <div class="flex justify-between items-start mb-2">
+                  <p class="text-purple-100 text-xs font-medium uppercase">Ticket Médio</p>
+                  <div class="rounded-full bg-white/20 p-2">
+                    <i class="fas fa-calculator text-white text-lg"></i>
+                  </div>
+                </div>
+                <p class="text-3xl font-bold text-white">
+                  {{ formatCurrency(totalTransactions > 0 ? Number(totalSales / totalTransactions) : 0) }}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Gráficos -->
+        <div class="grid grid-cols-1 gap-6 lg:grid-cols-2 mb-6">
+          <!-- Evolução das Vendas -->
+          <div class="bg-white  rounded-xl overflow-hidden ring-1 ring-industrial-100">
+            <div class="px-6 py-4 border-b border-industrial-100 bg-industrial-50">
+              <h2 class="text-lg font-semibold text-industrial-900 flex items-center">
+                <i class="fas fa-chart-area text-accent-600 mr-2"></i>
+                Evolução das Vendas e Lucro
+              </h2>
+            </div>
+            <div class="p-6">
+              <canvas id="salesChart" style="max-height: 350px;"></canvas>
+            </div>
+          </div>
+
+          <!-- Comparativo de Performance -->
+          <div class="bg-white  rounded-xl overflow-hidden ring-1 ring-industrial-100">
+            <div class="px-6 py-4 border-b border-industrial-100 bg-industrial-50">
+              <h2 class="text-lg font-semibold text-industrial-900 flex items-center">
+                <i class="fas fa-chart-bar text-green-600 mr-2"></i>
+                Performance por Período
+              </h2>
+            </div>
+            <div class="p-6">
+              <canvas id="barChart" style="max-height: 350px;"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tabela de Dados Detalhados -->
+        <div class="bg-white  rounded-xl overflow-hidden ring-1 ring-industrial-100">
+          <div class="px-6 py-4 border-b border-industrial-100 bg-industrial-50">
+            <div class="flex justify-between items-center">
+              <h2 class="text-lg font-semibold text-industrial-900 flex items-center">
+                <i class="fas fa-table app-muted mr-2"></i>
+                Dados Detalhados por Período
+              </h2>
+              <span class="text-sm app-muted">
+                Total de registros: {{ salesData.length }}
+              </span>
+            </div>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-industrial-100" id="dataTable">
+              <thead class="bg-industrial-50">
+                <tr>
+                  <th class="px-6 py-3 text-left text-xs font-semibold app-muted uppercase tracking-wider">
+                    <i class="far fa-calendar mr-1"></i>
+                    {{ filters.groupBy === 'month' ? 'Mês' : filters.groupBy === 'week' ? 'Semana' : 'Data' }}
+                  </th>
+                  <th class="px-6 py-3 text-right text-xs font-semibold app-muted uppercase tracking-wider">
+                    <i class="fas fa-dollar-sign mr-1"></i> Vendas
+                  </th>
+                  <th class="px-6 py-3 text-right text-xs font-semibold app-muted uppercase tracking-wider">
+                    <i class="fas fa-coins mr-1"></i> Custo
+                  </th>
+                  <th class="px-6 py-3 text-right text-xs font-semibold app-muted uppercase tracking-wider">
+                    <i class="fas fa-chart-line mr-1"></i> Lucro
+                  </th>
+                  <th class="px-6 py-3 text-right text-xs font-semibold app-muted uppercase tracking-wider">
+                    <i class="fas fa-percentage mr-1"></i> Margem
+                  </th>
+                  <th class="px-6 py-3 text-right text-xs font-semibold app-muted uppercase tracking-wider">
+                    <i class="fas fa-receipt mr-1"></i> Transações
+                  </th>
+                  <th class="px-6 py-3 text-right text-xs font-semibold app-muted uppercase tracking-wider">
+                    <i class="fas fa-calculator mr-1"></i> Ticket Médio
+                  </th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-industrial-100">
+                @each(data in salesData)
+                @let(sales = parseFloat(data.$extras.total_sales || 0))
+                @let(profit = parseFloat(data.$extras.total_profit || 0))
+                @let(cost = sales - profit)
+                @let(transactions = parseInt(data.$extras.total_transactions || 0))
+                @let(averageTicket = transactions > 0 ? sales / transactions : 0)
+                @let(margin = sales > 0 ? (profit / sales) * 100 : 0)
+                <tr class="hover:bg-industrial-50 transition">
+                  <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-industrial-900">
+                    {{ data.$extras.date }}
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-industrial-900 text-right font-semibold">
+                    {{ formatCurrency(sales) }}
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-orange-600 text-right font-semibold">
+                    {{ formatCurrency(cost) }}
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-green-600 text-right font-semibold">
+                    {{ formatCurrency(profit) }}
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-right">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ margin >= 30 ? 'bg-green-50 text-green-700' : margin >= 20 ? 'bg-accent-500/10 text-accent-700' : margin >= 10 ? 'bg-yellow-50 text-yellow-700' : 'bg-red-50 text-red-700' }}">
+                      {{ margin.toFixed(1) }}%
+                    </span>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-right">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-accent-500/10 text-accent-700">
+                      {{ transactions }}
+                    </span>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-industrial-900 text-right font-semibold">
+                    {{ formatCurrency(averageTicket) }}
+                  </td>
+                </tr>
+                @end
+                @if(salesData.length === 0)
+                <tr>
+                  <td colspan="7" class="px-6 py-12 text-center">
+                    <div class="flex flex-col items-center">
+                      <i class="fas fa-chart-line text-industrial-300 text-5xl mb-4"></i>
+                      <p class="app-muted text-lg font-medium">Nenhum dado encontrado</p>
+                      <p class="text-industrial-500 text-sm mt-2">Ajuste os filtros para visualizar resultados</p>
+                    </div>
+                  </td>
+                </tr>
+                @end
+              </tbody>
+              @if(salesData.length > 0)
+              <tfoot class="bg-industrial-50 border-t-2 border-industrial-100">
+                <tr class="font-bold">
+                  <td class="px-6 py-4 text-sm text-industrial-900">
+                    <i class="fas fa-calculator mr-2"></i> TOTAIS
+                  </td>
+                  <td class="px-6 py-4 text-sm financial-total text-right">
+                    <i class="fas fa-money-bill mr-1"></i>{{ formatCurrency(Number(totalSales)) }}
+                  </td>
+                  <td class="px-6 py-4 text-sm text-orange-600 text-right">
+                    {{ formatCurrency(Number(totalCost)) }}
+                  </td>
+                  <td class="px-6 py-4 text-sm text-green-600 text-right">
+                    {{ formatCurrency(Number(totalProfit)) }}
+                  </td>
+                  <td class="px-6 py-4 text-right">
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-bold {{ profitMargin >= 30 ? 'bg-green-50 text-green-700' : profitMargin >= 20 ? 'bg-accent-500/10 text-accent-700' : profitMargin >= 10 ? 'bg-yellow-50 text-yellow-700' : 'bg-red-50 text-red-700' }}">
+                      {{ profitMargin.toFixed(1) }}%
+                    </span>
+                  </td>
+                  <td class="px-6 py-4 text-right">
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-bold bg-accent-500/10 text-accent-700">
+                      {{ totalTransactions }}
+                    </span>
+                  </td>
+                  <td class="px-6 py-4 text-sm text-industrial-900 text-right">
+                    {{ formatCurrency(totalTransactions > 0 ? Number(totalSales / totalTransactions) : 0) }}
+                  </td>
+                </tr>
+              </tfoot>
+              @end
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // Dados para os gráficos
+    const salesData = {!! JSON.stringify(salesData)!!};
+
+    // Preparar dados
+    const labels = salesData.map(d => d.$extras.date);
+    const salesValues = salesData.map(d => parseFloat(d.$extras.total_sales || 0));
+    const profitValues = salesData.map(d => parseFloat(d.$extras.total_profit || 0));
+    const costValues = salesValues.map((sale, i) => sale - profitValues[i]);
+    const transactionValues = salesData.map(d => parseInt(d.$extras.total_transactions || 0));
+
+    // Gráfico de Linha - Evolução
+    const ctx1 = document.getElementById('salesChart');
+    new Chart(ctx1, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: 'Vendas',
+            data: salesValues,
+            borderColor: 'rgb(99, 102, 241)',
+            backgroundColor: 'rgba(99, 102, 241, 0.1)',
+            tension: 0.4,
+            fill: true,
+            borderWidth: 3,
+            pointRadius: 4,
+            pointHoverRadius: 6
+          },
+          {
+            label: 'Lucro',
+            data: profitValues,
+            borderColor: 'rgb(16, 185, 129)',
+            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+            tension: 0.4,
+            fill: true,
+            borderWidth: 3,
+            pointRadius: 4,
+            pointHoverRadius: 6
+          },
+          {
+            label: 'Custo',
+            data: costValues,
+            borderColor: 'rgb(249, 115, 22)',
+            backgroundColor: 'rgba(249, 115, 22, 0.1)',
+            tension: 0.4,
+            fill: true,
+            borderWidth: 3,
+            pointRadius: 4,
+            pointHoverRadius: 6
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        interaction: {
+          mode: 'index',
+          intersect: false,
+        },
+        plugins: {
+          legend: {
+            position: 'top',
+            labels: {
+              padding: 15,
+              font: {
+                size: 12,
+                weight: 'bold'
+              },
+              usePointStyle: true
+            }
+          },
+          tooltip: {
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            padding: 12,
+            titleFont: {
+              size: 14,
+              weight: 'bold'
+            },
+            bodyFont: {
+              size: 13
+            },
+            callbacks: {
+              label: function (context) {
+                let label = context.dataset.label || '';
+                if (label) {
+                  label += ': ';
+                }
+                label += 'R$ ' + context.parsed.y.toFixed(2);
+                return label;
+              }
+            }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              callback: function (value) {
+                return 'R$ ' + value.toFixed(2);
+              }
+            },
+            grid: {
+              color: 'rgba(0, 0, 0, 0.05)'
+            }
+          },
+          x: {
+            grid: {
+              display: false
+            }
+          }
+        }
+      }
+    });
+
+    // Gráfico de Barras - Performance
+    const ctx2 = document.getElementById('barChart');
+    new Chart(ctx2, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: 'Vendas',
+            data: salesValues,
+            backgroundColor: 'rgba(99, 102, 241, 0.8)',
+            borderColor: 'rgb(99, 102, 241)',
+            borderWidth: 2
+          },
+          {
+            label: 'Lucro',
+            data: profitValues,
+            backgroundColor: 'rgba(16, 185, 129, 0.8)',
+            borderColor: 'rgb(16, 185, 129)',
+            borderWidth: 2
+          },
+          {
+            label: 'Transações (x10)',
+            data: transactionValues.map(v => v * 10),
+            backgroundColor: 'rgba(59, 130, 246, 0.8)',
+            borderColor: 'rgb(59, 130, 246)',
+            borderWidth: 2
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+          legend: {
+            position: 'top',
+            labels: {
+              padding: 15,
+              font: {
+                size: 12,
+                weight: 'bold'
+              },
+              usePointStyle: true
+            }
+          },
+          tooltip: {
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            padding: 12,
+            callbacks: {
+              label: function (context) {
+                let label = context.dataset.label || '';
+                if (label) {
+                  label += ': ';
+                }
+                const value = label.includes('x10') ? context.parsed.y / 10 : context.parsed.y;
+                label += label.includes('Transações') ? Math.round(value) : 'R$ ' + value.toFixed(2);
+                return label;
+              }
+            }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              callback: function (value) {
+                return 'R$ ' + value.toFixed(0);
+              }
+            },
+            grid: {
+              color: 'rgba(0, 0, 0, 0.05)'
+            }
+          },
+          x: {
+            grid: {
+              display: false
+            }
+          }
+        }
+      }
+    });
+
+    // Função para exportar CSV
+    function exportToCSV() {
+      const data = {!! JSON.stringify(salesData)!!};
+      
+      let csv = 'Data,Total Vendas,Custo,Lucro,Margem %,Transações,Ticket Médio\n';
+      
+      data.forEach(row => {
+        const sales = parseFloat(row.$extras.total_sales || 0);
+        const profit = parseFloat(row.$extras.total_profit || 0);
+        const cost = sales - profit;
+        const transactions = parseInt(row.$extras.total_transactions || 0);
+        const avgTicket = transactions > 0 ? sales / transactions : 0;
+        const margin = sales > 0 ? (profit / sales) * 100 : 0;
+        
+        csv += `${row.$extras.date},${sales.toFixed(2)},${cost.toFixed(2)},${profit.toFixed(2)},${margin.toFixed(2)},${transactions},${avgTicket.toFixed(2)}\n`;
+      });
+      
+      // Adicionar totais
+      const totalSales = {{ totalSales }};
+      const totalProfit = {{ totalProfit }};
+      const totalCost = totalSales - totalProfit;
+      const totalTrans = {{ totalTransactions }};
+      const avgTicket = totalTrans > 0 ? totalSales / totalTrans : 0;
+      const margin = totalSales > 0 ? (totalProfit / totalSales) * 100 : 0;
+      
+      csv += `\nTOTAL,${totalSales.toFixed(2)},${totalCost.toFixed(2)},${totalProfit.toFixed(2)},${margin.toFixed(2)},${totalTrans},${avgTicket.toFixed(2)}\n`;
+      
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      
+      link.setAttribute('href', url);
+      link.setAttribute('download', `relatorio_financeiro_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  </script>
+  @include('components/quick_actions')
+</body>
+</html>

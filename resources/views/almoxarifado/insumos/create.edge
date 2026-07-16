@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="{{ theme }}" class="h-full bg-industrial-50">
+<head>
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrfToken }}">
+    <title>Novo Insumo - Almoxarifado - Tavolo</title>
+    @vite(['resources/css/app.css'])
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    </head>
+<body class="h-full font-sans text-industrial-900">
+    <!-- Cabeçalho -->
+    <header class="app-card shadow">
+        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div class="flex h-16 items-center gap-3">
+                <div class="flex">
+                    <h1 class="text-xl font-semibold leading-6 app-strong app-strong">Novo Insumo</h1>
+                </div>
+                <div class="flex items-center space-x-4 ml-auto">
+                    <a href="{{ route('insumos.index') }}" class="inline-flex items-center rounded-md bg-industrial-600 px-3 py-2 text-sm font-semibold text-white  hover:bg-industrial-500">
+                        <i class="fas fa-list mr-2"></i> Lista de Insumos
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+
+    <!-- Main Content -->
+    <main class="max-w-6xl mx-auto py-6 sm:px-6 lg:px-8">
+        <!-- Page Header -->
+        <div class="mb-8">
+            <div class="flex items-center space-x-3 mb-4">
+                <a href="/almoxarifado/insumos" class="text-industrial-400 hover:app-muted">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                    </svg>
+                </a>
+                <h1 class="text-3xl font-bold app-strong app-strong">
+                    Novo Insumo
+                </h1>
+            </div>
+            <p class="app-muted">
+                Cadastre um novo insumo para o almoxarifado
+            </p>
+        </div>
+
+        <!-- Form -->
+        <div class="app-card rounded-lg overflow-hidden">
+            <form action="/almoxarifado/insumos" method="POST" class="space-y-8 p-6">
+                {{ csrfField() }}
+                
+                <!-- Seção: Informações Básicas -->
+                <div>
+                    <h3 class="text-lg font-semibold app-strong mb-4 app-border pb-2">Informações Básicas</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Nome -->
+                        <div class="md:col-span-2">
+                            <label for="name" class="block text-sm font-medium app-muted mb-2">
+                                Nome do Insumo *
+                            </label>
+                            <input 
+                                type="text" 
+                                name="name" 
+                                id="name" 
+                                required
+                                value="{{ old('name') || '' }}"
+                                class="w-full px-3 py-2 app-border rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-accent-500"
+                                placeholder="Ex: Filé de Frango"
+                            >
+                        </div>
+
+                        <!-- Código -->
+                        <div>
+                            <label for="code" class="block text-sm font-medium app-muted mb-2">
+                                Código
+                            </label>
+                            <input 
+                                type="text" 
+                                name="code" 
+                                id="code"
+                                value="{{ old('code') || '' }}"
+                                class="w-full px-3 py-2 app-border rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-accent-500"
+                                placeholder="Ex: FRG001"
+                            >
+                        </div>
+
+                        <!-- Código de Barras -->
+                        <div>
+                            <label for="barcode" class="block text-sm font-medium app-muted mb-2">
+                                Código de Barras
+                            </label>
+                            <input 
+                                type="text" 
+                                name="barcode" 
+                                id="barcode"
+                                value="{{ old('barcode') || '' }}"
+                                class="w-full px-3 py-2 app-border rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-accent-500"
+                                placeholder="Ex: 7891234567890"
+                            >
+                        </div>
+
+                        <!-- Tipo -->
+                        <div>
+                            <label for="type" class="block text-sm font-medium app-muted mb-2">
+                                Tipo *
+                            </label>
+                            <select 
+                                name="type" 
+                                id="type" 
+                                required
+                                class="w-full px-3 py-2 app-border rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-accent-500"
+                            >
+                                <option value="">Selecione o tipo</option>
+                                <option value="ingredient" {{ old('type') === 'ingredient' ? 'selected' : '' }}>Ingrediente</option>
+                                <option value="finished_product" {{ old('type') === 'finished_product' ? 'selected' : '' }}>Insumo Acabado</option>
+                                <option value="beverage" {{ old('type') === 'beverage' ? 'selected' : '' }}>Bebida</option>
+                                <option value="insumo" {{ old('type') === 'insumo' ? 'selected' : '' }}>Suprimento</option>
+                            </select>
+                        </div>
+
+                        <!-- Categoria -->
+                        <div>
+                            <label for="category" class="block text-sm font-medium app-muted mb-2">
+                                Categoria
+                            </label>
+                            <input 
+                                type="text" 
+                                name="category" 
+                                id="category"
+                                value="{{ old('category') || '' }}"
+                                class="w-full px-3 py-2 app-border rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-accent-500"
+                                placeholder="Ex: Carnes, Laticínios, Bebidas"
+                            >
+                        </div>
+
+                        <!-- Subcategoria -->
+                        <div>
+                            <label for="subcategory" class="block text-sm font-medium app-muted mb-2">
+                                Subcategoria
+                            </label>
+                            <input 
+                                type="text" 
+                                name="subcategory" 
+                                id="subcategory"
+                                value="{{ old('subcategory') || '' }}"
+                                class="w-full px-3 py-2 app-border rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-accent-500"
+                                placeholder="Ex: Aves, Bovinos"
+                            >
+                        </div>
+
+                        <!-- Unidade de Medida -->
+                        <div>
+                            <label for="unit" class="block text-sm font-medium app-muted mb-2">
+                                Unidade de Medida *
+                            </label>
+                            <input 
+                                type="text" 
+                                name="unit" 
+                                id="unit" 
+                                required
+                                value="{{ old('unit') || '' }}"
+                                class="w-full px-3 py-2 app-border rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-accent-500"
+                                placeholder="Ex: kg, un, l"
+                            >
+                        </div>
+
+                        <!-- Unidade de Compra -->
+                        <div>
+                            <label for="purchase_unit" class="block text-sm font-medium app-muted mb-2">
+                                Unidade de Compra
+                            </label>
+                            <input 
+                                type="text" 
+                                name="purchase_unit" 
+                                id="purchase_unit"
+                                value="{{ old('purchase_unit') || '' }}"
+                                class="w-full px-3 py-2 app-border rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-accent-500"
+                                placeholder="Ex: cx, kg, un"
+                            >
+                        </div>
+
+                        <!-- Fator de Conversão -->
+                        <div>
+                            <label for="conversion_factor" class="block text-sm font-medium app-muted mb-2">
+                                Fator de Conversão
+                            </label>
+                            <input 
+                                type="text" 
+                                name="conversion_factor" 
+                                id="conversion_factor"
+                                value="{{ old('conversion_factor') || '1' }}"
+                                class="w-full px-3 py-2 app-border rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-accent-500"
+                            >
+                            <p class="mt-1 text-sm app-muted">Quantas unidades de medida há em uma unidade de compra</p>
+                        </div>
+
+                        <!-- Fornecedor Padrão -->
+                        <div>
+                            <label for="fornecedor_padrao_id" class="block text-sm font-medium app-muted mb-2">
+                                Fornecedor Padrão
+                            </label>
+                            <select 
+                                name="fornecedor_padrao_id" 
+                                id="fornecedor_padrao_id"
+                                class="w-full px-3 py-2 app-border rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-accent-500"
+                            >
+                                <option value="">Selecione um fornecedor</option>
+                                @each(fornecedor in fornecedores)
+                                    <option value="{{ fornecedor.id }}" {{ old('fornecedor_padrao_id') == fornecedor.id ? 'selected' : '' }}>
+                                        {{ fornecedor.name }}
+                                    </option>
+                                @endeach
+                            </select>
+                        </div>
+
+                        <!-- Descrição -->
+                        <div class="md:col-span-2">
+                            <label for="description" class="block text-sm font-medium app-muted mb-2">
+                                Descrição
+                            </label>
+                            <textarea 
+                                name="description" 
+                                id="description" 
+                                rows="3"
+                                class="w-full px-3 py-2 app-border rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-accent-500"
+                                placeholder="Descrição detalhada do insumo..."
+                            >{{ old('description') || '' }}</textarea>
+                        </div>
+                    </div>
+                </div>
+
+
+                <!-- Seção: Preços -->
+                <div>
+                    <h3 class="text-lg font-semibold app-strong mb-4 app-border pb-2">Preços</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <!-- Preço de Compra -->
+                        <div>
+                            <label for="purchase_price" class="block text-sm font-medium app-muted mb-2">
+                                Preço de Compra *
+                            </label>
+                            <div class="relative">                                
+                                <input 
+                                    type="text" 
+                                    name="purchase_price" 
+                                    id="purchase_price" 
+                                    required
+                                    value="{{ formatCurrency(old('purchase_price') || '') }}"
+                                    data-mask="currency"
+                                    class="w-full pl-10 pr-3 py-2 app-border rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-accent-500"
+                                    placeholder="0,00"
+                                >
+                            </div>
+                        </div>
+
+                        <!-- Preço de Custo -->
+                        <div>
+                            <label for="cost_price" class="block text-sm font-medium app-muted mb-2">
+                                Preço de Custo
+                            </label>
+                            <div class="relative">                                
+                                <input 
+                                    type="text" 
+                                    name="cost_price" 
+                                    id="cost_price"
+                                    value="{{ formatCurrency(old('cost_price') || '') }}"
+                                    data-mask="currency"
+                                    class="w-full pl-10 pr-3 py-2 app-border rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-accent-500"
+                                    placeholder="0,00"
+                                >
+                            </div>
+                        </div>
+
+                        <!-- Preço de Venda -->
+                        <div>
+                            <label for="sale_price" class="block text-sm font-medium app-muted mb-2">
+                                Preço de Venda
+                            </label>
+                            <div class="relative">                                
+                                <input 
+                                    type="text" 
+                                    name="sale_price" 
+                                    id="sale_price"
+                                    value="{{ formatCurrency(old('sale_price') || '') }}"
+                                    data-mask="currency"
+                                    class="w-full pl-10 pr-3 py-2 app-border rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-accent-500"
+                                    placeholder="0,00"
+                                >
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Seção: Controle de Estoque -->
+                <div>
+                    <h3 class="text-lg font-semibold app-strong mb-4 app-border pb-2">Controle de Estoque</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <!-- Estoque Atual -->
+                        <div>
+                            <label for="current_stock" class="block text-sm font-medium app-muted mb-2">
+                                Estoque Atual *
+                            </label>
+                            <input 
+                                type="text" 
+                                name="current_stock" 
+                                id="current_stock" 
+                                value="{{ old('current_stock') || '0' }}" 
+                                required
+                                data-mask="decimal"
+                                data-decimals="2"
+                                class="w-full px-3 py-2 app-border rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-accent-500"
+                            >
+                        </div>
+
+                        <!-- Estoque Mínimo -->
+                        <div>
+                            <label for="minimum_stock" class="block text-sm font-medium app-muted mb-2">
+                                Estoque Mínimo *
+                            </label>
+                            <input 
+                                type="text" 
+                                name="minimum_stock" 
+                                id="minimum_stock" 
+                                value="{{ old('minimum_stock') || '0' }}" 
+                                required
+                                data-mask="decimal"
+                                data-decimals="2"
+                                class="w-full px-3 py-2 app-border rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-accent-500"
+                            >
+                        </div>
+
+                        <!-- Estoque Máximo -->
+                        <div>
+                            <label for="maximum_stock" class="block text-sm font-medium app-muted mb-2">
+                                Estoque Máximo
+                            </label>
+                            <input 
+                                type="text" 
+                                name="maximum_stock" 
+                                id="maximum_stock"
+                                value="{{ old('maximum_stock') || '' }}"
+                                data-mask="decimal"
+                                data-decimals="2"
+                                class="w-full px-3 py-2 app-border rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-accent-500"
+                            >
+                        </div>
+                    </div>
+
+                    <!-- Controle de Estoque -->
+                    <div class="mt-6">
+                        <div class="flex items-start">
+                            <div class="flex items-center h-5">
+                                <input 
+                                    type="checkbox" 
+                                    name="stock_control" 
+                                    id="stock_control" 
+                                    value="true" 
+                                    checked
+                                    class="h-4 w-4 rounded border-industrial-300 text-accent-600 focus:ring-accent-500"
+                                >
+                            </div>
+                            <div class="ml-3">
+                                <label for="stock_control" class="text-sm font-medium app-text">
+                                    Controlar Estoque
+                                </label>
+                                <p class="text-sm app-muted">
+                                    Ativar alertas quando o estoque atingir os limites configurados
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
+                <!-- Seção: Informações Fiscais -->
+                <div>
+                    <h3 class="text-lg font-semibold app-strong mb-4 app-border pb-2">Informações Fiscais</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <!-- NCM -->
+                        <div>
+                            <label for="ncm" class="block text-sm font-medium app-muted mb-2">
+                                NCM
+                            </label>
+                            <input 
+                                type="text" 
+                                name="ncm" 
+                                id="ncm"
+                                value="{{ old('ncm') || '' }}"
+                                class="w-full px-3 py-2 app-border rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-accent-500"
+                                placeholder="Ex: 02071200"
+                            >
+                        </div>
+
+                        <!-- CEST -->
+                        <div>
+                            <label for="cest" class="block text-sm font-medium app-muted mb-2">
+                                CEST
+                            </label>
+                            <input 
+                                type="text" 
+                                name="cest" 
+                                id="cest"
+                                value="{{ old('cest') || '' }}"
+                                class="w-full px-3 py-2 app-border rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-accent-500"
+                                placeholder="Ex: 1700100"
+                            >
+                        </div>
+
+                        <!-- Alíquota de Imposto -->
+                        <div>
+                            <label for="tax_rate" class="block text-sm font-medium app-muted mb-2">
+                                Alíquota de Imposto (%)
+                            </label>
+                            <input 
+                                type="text" 
+                                name="tax_rate" 
+                                id="tax_rate"
+                                value="{{ formatDecimal(old('tax_rate')) || '0' }}"
+                                class="w-full px-3 py-2 app-border rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-accent-500"
+                            >
+                        </div>
+                    </div>
+                </div>
+
+
+                <!-- Seção: Informações Adicionais -->
+                <div>
+                    <h3 class="text-lg font-semibold app-strong mb-4 app-border pb-2">Informações Adicionais</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Perecível -->
+                        <div>
+                            <div class="flex items-start">
+                                <div class="flex items-center h-5">
+                                    <input 
+                                        type="checkbox" 
+                                        name="perishable" 
+                                        id="perishable" 
+                                        value="true"
+                                        class="h-4 w-4 rounded border-industrial-300 text-accent-600 focus:ring-accent-500"
+                                    >
+                                </div>
+                                <div class="ml-3">
+                                    <label for="perishable" class="text-sm font-medium app-text">
+                                        Insumo Perecível
+                                    </label>
+                                    <p class="text-sm app-muted">
+                                        Insumo tem prazo de validade
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Prazo de Validade em Dias -->
+                        <div id="shelf_life_container" style="display: none;">
+                            <label for="shelf_life_days" class="block text-sm font-medium app-muted mb-2">
+                                Prazo de Validade (dias)
+                            </label>
+                            <input 
+                                type="text" 
+                                name="shelf_life_days" 
+                                id="shelf_life_days"
+                                value="{{ old('shelf_life_days') || '' }}"
+                                class="w-full px-3 py-2 app-border rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-accent-500"
+                                placeholder="Ex: 30"
+                            >
+                        </div>
+
+                        <!-- Ativo -->
+                        <div>
+                            <div class="flex items-start">
+                                <div class="flex items-center h-5">
+                                    <input 
+                                        type="checkbox" 
+                                        name="active" 
+                                        id="active" 
+                                        value="true" 
+                                        checked
+                                        class="h-4 w-4 rounded border-industrial-300 text-accent-600 focus:ring-accent-500"
+                                    >
+                                </div>
+                                <div class="ml-3">
+                                    <label for="active" class="text-sm font-medium app-text">
+                                        Insumo Ativo
+                                    </label>
+                                    <p class="text-sm app-muted">
+                                        Insumo disponível para uso no sistema
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Botões de Ação -->
+                <div class="flex justify-end space-x-3 pt-6 app-border-t">
+                    <a 
+                        href="{{ route('insumos.index') }}" 
+                        class="px-4 py-2 app-border rounded-lg text-sm font-medium app-text bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent-500"
+                    >
+                        Cancelar
+                    </a>
+                    <button 
+                        type="submit" 
+                        class="px-4 py-2 app-border rounded-lg text-sm font-medium text-white bg-accent-600 hover:bg-accent-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent-500"
+                    >
+                        <i class="fas fa-save mr-2"></i>
+                        Salvar Insumo
+                    </button>
+                </div>
+            </form>
+        </div>
+    </main>
+
+    <script>
+        // Mostrar/esconder campo de prazo de validade
+        document.getElementById('perishable').addEventListener('change', function() {
+            const container = document.getElementById('shelf_life_container');
+            if (this.checked) {
+                container.style.display = 'block';
+            } else {
+                container.style.display = 'none';
+                document.getElementById('shelf_life_days').value = '';
+            }
+        });
+
+        // Nota: Formatação automática de moeda e decimal aplicada via data-mask
+        // Definida em resources/js/number-formatter.js
+    </script>
+    @include('components/quick_actions')
+</body>
+</html>

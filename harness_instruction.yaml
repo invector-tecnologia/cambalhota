@@ -1,9 +1,9 @@
 apiVersion: antigravity.google.com/v1alpha1
 kind: BootstrapRunbook
 metadata:
-  name: veterin-ai-driven-ignition
-  description: "Ignition file para instrumentação automática da arquitetura multiagentes do projeto Veterin."
-  author: "Max (AI Driven Engineer)"
+  name: tavolo-ai-driven-ignition
+  description: "Ignition file para instrumentação automática da arquitetura multiagentes do projeto Tavolo (Restaurant ERP)."
+  author: "Bernardo Rosmaninho"
 
 # ---------------------------------------------------------------------------
 # INSTRUÇÕES PARA O AGENTE EXECUTOR (AI INSTRUCTIONS):
@@ -33,11 +33,12 @@ phases:
         - "mkdir -p docs/engineering/adrs/"
         - "mkdir -p docs/engineering/qa_plans/"
         # Diretórios de agentes e skills
-        - "mkdir -p .agents/arch .agents/eng .agents/prod .agents/qa"
+        - "mkdir -p .agents/arch .agents/eng .agents/prod .agents/qa .agents/fiscal"
+        - "mkdir -p .agents/skills/adonis-backend"
+        - "mkdir -p .agents/skills/tailwind-frontend"
+        - "mkdir -p .agents/skills/japa-qa"
+        - "mkdir -p .agents/skills/fiscal-domain"
         - "mkdir -p .agents/skills/adr-generator"
-        - "mkdir -p .agents/skills/rust-backend"
-        - "mkdir -p .agents/skills/flutter-frontend"
-        - "mkdir -p .agents/skills/qa-gherkin"
         # Criação de placeholders para rules globais e docs core
         - "touch AGENTS.md README.md docs/instrumentation.md docs/scope.md"
         - "touch docs/engineering/constitution.md docs/engineering/architecture_map.md docs/product/features_map.md"
@@ -65,12 +66,12 @@ phases:
                 {
                   "name": "constitution-guard",
                   "trigger": "PreToolUse",
-                  "description": "Valida ausência do schema public e credenciais hardcoded antes da escrita de código."
+                  "description": "Valida uso exclusivo do schema 'tavolo' e ausência de schema public antes da escrita de código."
                 },
                 {
                   "name": "adr-prerequisite",
                   "trigger": "PreToolUse",
-                  "description": "Verifica existência de ADR correspondente antes da geração em backend/ ou frontend/."
+                  "description": "Verifica existência de ADR correspondente antes da geração de controllers ou models."
                 }
               ]
             }
@@ -80,14 +81,16 @@ phases:
     execution:
       type: file-generation
       files:
-        - path: ".agents/skills/rust-backend/SKILL.md"
-          content: "# Padrões Rust\n- Actix-web, sqlx, serde, tracing, DDD em camadas, thiserror.\n- Regras de schema PostgreSQL rigorosas."
-        - path: ".agents/skills/flutter-frontend/SKILL.md"
-          content: "# Padrões Flutter\n- Design system dark-mode, go_router, Riverpod/Bloc."
+        - path: ".agents/skills/adonis-backend/SKILL.md"
+          content: "# Padrões AdonisJS v6\n- Controladores finos, lógicas em app/services/.\n- Acesso a banco 100% via Lucid ORM.\n- Validação via Vine.js.\n- Regra rígida: schema PostgreSQL = tavolo."
+        - path: ".agents/skills/tailwind-frontend/SKILL.md"
+          content: "# Padrões Edge.js e Tailwind CSS\n- Views em resources/views/ com sintaxe Edge.\n- Classes utilitárias do TailwindCSS para responsividade.\n- Componentização Edge para reuso."
+        - path: ".agents/skills/japa-qa/SKILL.md"
+          content: "# Padrões Japa Testing\n- Testes funcionais e unitários (TDD puro preferido).\n- Zero acoplamento de banco de dados onde possível.\n- Suítes separadas (unit / functional)."
+        - path: ".agents/skills/fiscal-domain/SKILL.md"
+          content: "# Padrões do Módulo Fiscal\n- Emissão de NFC-e/NF-e com regras da SEFAZ multi-UF.\n- Assinatura XML (certificado A1) e validação XSD.\n- Atenção especial ao FISCAL_ENCRYPTION_KEY e rotinas de contingência."
         - path: ".agents/skills/adr-generator/SKILL.md"
           content: "# Template de ADR\n- Seções obrigatórias: Contexto, Decisão, Trade-offs, Consequências, Status. Nomenclatura NNN_nome.md."
-        - path: ".agents/skills/qa-gherkin/SKILL.md"
-          content: "# Padrões QA\n- Cenários Gherkin pt-BR. Cobertura: happy path, edge cases, erro, multi-tenant."
 
   - name: 05-agents-manifests
     description: "Instanciação dos subagentes no workspace"
@@ -95,13 +98,15 @@ phases:
       type: file-generation
       files:
         - path: ".agents/prod/agent.md"
-          content: "> [!NOTE]\n> Agente configurado via runbook. Referência ao manifesto Antigravity principal da arquitetura de produto."
+          content: "> [!NOTE]\n> Agente configurado via runbook. Referência ao manifesto Antigravity principal de produto (Tavolo ERP)."
         - path: ".agents/arch/agent.md"
-          content: "> [!NOTE]\n> Agente configurado via runbook. Referência ao manifesto Antigravity principal da arquitetura de sistemas."
+          content: "> [!NOTE]\n> Agente configurado via runbook. Referência ao manifesto Antigravity principal de arquitetura do AdonisJS/Postgres."
         - path: ".agents/eng/agent.md"
-          content: "> [!NOTE]\n> Agente configurado via runbook. Referência ao manifesto Antigravity principal de engenharia de software."
+          content: "> [!NOTE]\n> Agente configurado via runbook. Referência ao manifesto Antigravity principal de engenharia fullstack."
         - path: ".agents/qa/agent.md"
-          content: "> [!NOTE]\n> Agente configurado via runbook. Referência ao manifesto Antigravity principal de validação e testes."
+          content: "> [!NOTE]\n> Agente configurado via runbook. Referência ao manifesto Antigravity principal de testes automatizados com Japa."
+        - path: ".agents/fiscal/agent.md"
+          content: "> [!NOTE]\n> Agente especializado no contexto fiscal crítico (SEFAZ, NFC-e, XML, A1)."
 
   - name: 06-final-binding
     description: "Aplica e valida a configuração na CLI"

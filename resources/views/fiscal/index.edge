@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="{{ theme }}" class="h-full bg-industrial-50">
+<head>
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fiscal • Notas Emitidas</title>
+  <meta name="csrf-token" content="{{ csrfToken }}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <style>
+    .badge { padding: 0.125rem 0.5rem; border-radius: 9999px; font-size: 0.75rem; }
+  </style>
+  @vite(['resources/css/app.css'])
+</head>
+<body class="h-full font-sans text-industrial-900">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <h1 class="text-2xl font-bold text-industrial-900">Notas Fiscais Emitidas</h1>
+        <p class="text-industrial-500 text-sm">Consulte suas NFC-e e execute ações fiscais.</p>
+      </div>
+      <a href="{{ route('dashboard.index') }}"
+        class="inline-flex items-center gap-2 rounded-lg bg-industrial-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-industrial-400">
+        <i class="fas fa-home mr-2"></i> Dashboard
+      </a>
+    </div>
+
+    <!-- Resumo por status -->
+    <div class="grid grid-cols-2 md:grid-cols-6 gap-3 mb-6">
+      <div class="bg-white rounded-lg shadow p-3 text-center">
+        <div class="text-xs text-industrial-500">Total</div>
+        <div class="text-xl font-bold">{{ counters?.all || 0 }}</div>
+      </div>
+      <div class="bg-white rounded-lg shadow p-3 text-center">
+        <div class="text-xs text-green-600">Autorizadas</div>
+        <div class="text-xl font-bold text-green-700">{{ counters?.authorized || 0 }}</div>
+      </div>
+      <div class="bg-white rounded-lg shadow p-3 text-center">
+        <div class="text-xs text-yellow-600">Pendentes</div>
+        <div class="text-xl font-bold text-yellow-700">{{ counters?.pending || 0 }}</div>
+      </div>
+      <div class="bg-white rounded-lg shadow p-3 text-center">
+        <div class="text-xs app-muted">Canceladas</div>
+        <div class="text-xl font-bold app-muted">{{ counters?.cancelled || 0 }}</div>
+      </div>
+      <div class="bg-white rounded-lg shadow p-3 text-center">
+        <div class="text-xs text-orange-600">Contingência</div>
+        <div class="text-xl font-bold text-orange-700">{{ counters?.contingency || 0 }}</div>
+      </div>
+      <div class="bg-white rounded-lg shadow p-3 text-center">
+        <div class="text-xs text-red-600">Erros</div>
+        <div class="text-xl font-bold text-red-700">{{ counters?.error || 0 }}</div>
+      </div>
+    </div>
+
+    <!-- Filtros -->
+    <form method="GET" class="bg-white rounded-lg shadow p-4 mb-6">
+      <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <div>
+          <label class="block text-sm app-muted mb-1">Início</label>
+          <input type="date" name="start_date" value="{{ filters.startDate || '' }}" class="w-full app-border rounded px-3 py-2 text-sm" />
+        </div>
+        <div>
+          <label class="block text-sm app-muted mb-1">Fim</label>
+          <input type="date" name="end_date" value="{{ filters.endDate || '' }}" class="w-full app-border rounded px-3 py-2 text-sm" />
+        </div>
+        <div>
+          <label class="block text-sm app-muted mb-1">Status</label>
+          <select name="status" class="w-full app-border rounded px-3 py-2 text-sm">
+            <option value="">Todos</option>
+            <option value="PENDING" {{ filters.status === 'PENDING' ? 'selected' : '' }}>Pendente</option>
+            <option value="AUTHORIZED" {{ filters.status === 'AUTHORIZED' ? 'selected' : '' }}>Autorizada</option>
+            <option value="CANCELLED" {{ filters.status === 'CANCELLED' ? 'selected' : '' }}>Cancelada</option>
+            <option value="CONTINGENCY" {{ filters.status === 'CONTINGENCY' ? 'selected' : '' }}>Contingência</option>
+            <option value="ERROR" {{ filters.status === 'ERROR' ? 'selected' : '' }}>Erro</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm app-muted mb-1">Itens por página</label>
+          <select name="limit" class="w-full app-border rounded px-3 py-2 text-sm">
+            <option {{ String(filters.limit||20) === '10' ? 'selected' : '' }} value="10">10</option>
+            <option {{ String(filters.limit||20) === '20' ? 'selected' : '' }} value="20">20</option>
+            <option {{ String(filters.limit||20) === '50' ? 'selected' : '' }} value="50">50</option>
+          </select>
+        </div>
+        <div class="flex items-end">
+          <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm"><i class="fa fa-filter mr-1"></i> Filtrar</button>
+        </div>
+      </div>
+    </form>
+
+    <!-- Exportação contábil -->
+    <div class="bg-white rounded-lg shadow p-4 mb-6">
+      <form id="exportForm" class="flex flex-wrap items-end gap-3">
+        <div>
+          <label class="block text-sm app-muted mb-1">Mês</label>
+          <input type="number" min="1" max="12" name="month" class="w-28 app-border rounded px-3 py-2 text-sm" placeholder="mm" />
+        </div>
+        <div>
+          <label class="block text-sm app-muted mb-1">Ano</label>
+          <input type="number" min="2000" max="2100" name="year" class="w-32 app-border rounded px-3 py-2 text-sm" placeholder="aaaa" />
+        </div>
+        <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded text-sm"><i class="fa fa-file-zipper mr-1"></i> Baixar ZIP (contabilidade)</button>
+        <span id="exportMsg" class="text-sm app-muted"></span>
+      </form>
+    </div>
+
+    <!-- Tabela -->
+    <div class="bg-white rounded-lg shadow overflow-x-auto">
+      <table class="min-w-full divide-y divide-industrial-200">
+        <thead class="bg-industrial-50">
+          <tr>
+            <th class="px-4 py-3 text-left text-xs font-medium text-industrial-500">Data da venda</th>
+            <th class="px-4 py-3 text-left text-xs font-medium text-industrial-500">Venda</th>
+            <th class="px-4 py-3 text-left text-xs font-medium text-industrial-500">Status</th>
+            <th class="px-4 py-3 text-right text-xs font-medium text-industrial-500">Ações</th>
+          </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-industrial-100">
+          @if((paginator?.data || []).length === 0)
+            <tr>
+              <td colspan="4" class="px-4 py-6 text-center text-industrial-400">Sem notas para exibir.</td>
+            </tr>
+          @else
+            @each(note in paginator.data)
+              <tr class="hover:bg-industrial-50">
+                <td class="px-4 py-3 text-sm app-muted">
+                  @if(note.venda && note.venda.saleDate)
+                    {{{ formatDateTimestamp(note.venda.saleDate) }}}
+                  @else
+                    -
+                  @end
+                </td>
+                <td class="px-4 py-3 text-sm">
+                  @if(note.venda)
+                    <a class="text-blue-600 hover:text-blue-800" href="{{ route('vendas.show', [note.venda.id]) }}">
+                      Venda #{{ note.venda.saleNumber || note.venda.id }}
+                    </a>
+                  @else
+                    -
+                  @end
+                </td>
+                <td class="px-4 py-3">
+                  @if(note.status === 'AUTHORIZED')
+                    <span class="badge bg-green-100 text-green-700">Autorizada</span>
+                  @elseif(note.status === 'PENDING')
+                    <span class="badge bg-yellow-100 text-yellow-700">Pendente</span>
+                  @elseif(note.status === 'CANCELLED')
+                    <span class="badge bg-industrial-200 app-muted">Cancelada</span>
+                  @elseif(note.status === 'CONTINGENCY')
+                    <span class="badge bg-orange-100 text-orange-700">Contingência</span>
+                  @else
+                    <span class="badge bg-red-100 text-red-700">Erro</span>
+                  @end
+                </td>
+                <td class="px-4 py-3 text-sm">
+                  <div class="flex justify-end gap-2">
+                    <button class="px-3 py-1 rounded bg-white border app-muted text-xs hover:bg-industrial-50" onclick="openDetails('{{ note.id }}')"><i class="fa fa-eye mr-1"></i>Detalhes</button>
+                    <button class="px-3 py-1 rounded bg-blue-600 text-white text-xs hover:bg-blue-700" onclick="openDanfe('{{ note.id }}')"><i class="fa fa-file-pdf mr-1"></i>DANFE</button>
+                    <a class="px-3 py-1 rounded bg-accent-600 text-white text-xs hover:bg-accent-700" href="/api/fiscal/xml/{{ note.id }}"><i class="fa fa-code mr-1"></i>XML</a>
+                    <button class="px-3 py-1 rounded bg-slate-600 text-white text-xs hover:bg-slate-700" onclick="queryStatus('{{ note.id }}')"><i class="fa fa-magnifying-glass mr-1"></i>Status</button>
+                    @if(note.status === 'AUTHORIZED')
+                      <button class="px-3 py-1 rounded bg-red-600 text-white text-xs hover:bg-red-700" onclick="cancelNote('{{ note.id }}')"><i class="fa fa-ban mr-1"></i>Cancelar</button>
+                    @end
+                  </div>
+                </td>
+              </tr>
+            @endeach
+          @endif
+        </tbody>
+      </table>
+
+      <!-- Paginação -->
+      <div class="p-4 flex items-center justify-between text-sm app-muted">
+        <div>
+          Página {{ paginator?.meta?.current_page || 1 }} de {{ paginator?.meta?.last_page || 1 }}
+        </div>
+        <div class="flex gap-2">
+          @if((paginator?.meta?.current_page || 1) > 1)
+            <a class="px-3 py-1 border rounded hover:bg-industrial-50" href="?page={{ paginator.meta.current_page - 1 }}&limit={{ filters.limit || 20 }}&status={{ filters.status || '' }}&start_date={{ filters.startDate || '' }}&end_date={{ filters.endDate || '' }}">Anterior</a>
+          @endif
+          @if((paginator?.meta?.current_page || 1) < (paginator?.meta?.last_page || 1))
+            <a class="px-3 py-1 border rounded hover:bg-industrial-50" href="?page={{ paginator.meta.current_page + 1 }}&limit={{ filters.limit || 20 }}&status={{ filters.status || '' }}&start_date={{ filters.startDate || '' }}&end_date={{ filters.endDate || '' }}">Próxima</a>
+          @endif
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Detalhes -->
+  <div id="detailsModal" class="hidden fixed inset-0 bg-black/40 z-50 items-center justify-center">
+    <div class="bg-white rounded-lg ring-1 ring-industrial-100xl w-full max-w-lg p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-semibold">Detalhes da Nota</h3>
+        <button onclick="closeDetails()" class="text-industrial-500 hover:app-muted"><i class="fa fa-times"></i></button>
+      </div>
+      <div id="detailsBody" class="text-sm app-muted space-y-2">
+        Carregando...
+      </div>
+      <div class="mt-6 text-right">
+        <button onclick="closeDetails()" class="px-4 py-2 rounded bg-industrial-100 hover:bg-industrial-200 app-muted text-sm">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function copyToClipboard(text) {
+      navigator.clipboard.writeText(text).then(() => {
+        alert('Chave copiada!')
+      })
+    }
+
+    async function openDetails(id) {
+      const modal = document.getElementById('detailsModal')
+      const body = document.getElementById('detailsBody')
+      modal.classList.remove('hidden'); modal.classList.add('flex')
+      body.textContent = 'Carregando...'
+      try {
+        const res = await fetch(`/api/fiscal/notes/${id}`, { credentials: 'include' })
+        const d = await res.json()
+        if (!d?.success) throw new Error(d?.message || 'Falha ao carregar')
+        const n = d.data
+        body.innerHTML = `
+          <div><span class="text-industrial-500">ID:</span> ${n.id}</div>
+          <div><span class="text-industrial-500">Venda:</span> ${n.venda_id || '-'}</div>
+          <div><span class="text-industrial-500">Status:</span> ${n.status}</div>
+          <div><span class="text-industrial-500">Chave:</span> ${n.access_key || '-'}</div>
+          <div><span class="text-industrial-500">Protocolo:</span> ${n.protocol_number || '-'}</div>
+          <div><span class="text-industrial-500">Criada:</span> ${n.created_at}</div>
+          <div><span class="text-industrial-500">Atualizada:</span> ${n.updated_at}</div>
+          ${n.error_log ? `<pre class="bg-industrial-50 p-2 rounded border overflow-auto">${JSON.stringify(n.error_log, null, 2)}</pre>` : ''}
+        `
+      } catch (e) {
+        body.textContent = 'Erro ao carregar detalhes.'
+      }
+    }
+    function closeDetails() {
+      const modal = document.getElementById('detailsModal')
+      modal.classList.add('hidden'); modal.classList.remove('flex')
+    }
+
+    async function openDanfe(id) {
+      try {
+        const res = await fetch(`/api/fiscal/danfe/${id}`, { credentials: 'include' })
+        const data = await res.json()
+        if (data?.danfe_url) {
+          window.open(data.danfe_url, '_blank')
+        } else {
+          alert('DANFE não disponível para esta nota.')
+        }
+      } catch (e) {
+        alert('Erro ao buscar DANFE: ' + (e?.message || e))
+      }
+    }
+
+    async function queryStatus(id) {
+      try {
+        const res = await fetch(`/api/fiscal/status/${id}`, { credentials: 'include' })
+        const data = await res.json()
+        if (data?.success) {
+          alert(`Status atual: ${data.current_status}\nSEFAZ: ${JSON.stringify(data.sefaz_status)}`)
+          location.reload()
+        } else {
+          alert('Erro ao consultar status: ' + (data?.message || ''))
+        }
+      } catch (e) {
+        alert('Erro ao consultar status: ' + (e?.message || e))
+      }
+    }
+
+    async function cancelNote(id) {
+      const justification = prompt('Informe a justificativa para cancelamento (mín. 15 caracteres):')
+      if (!justification || justification.length < 15) return
+      try {
+        const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+        const res = await fetch(`/api/fiscal/cancel/${id}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf },
+          credentials: 'include',
+          body: JSON.stringify({ justification })
+        })
+        const data = await res.json()
+        if (data?.success) {
+          alert('Nota cancelada com sucesso.')
+          location.reload()
+        } else {
+          alert('Falha ao cancelar: ' + (data?.message || ''))
+        }
+      } catch (e) {
+        alert('Erro ao cancelar: ' + (e?.message || e))
+      }
+    }
+
+    document.getElementById('exportForm')?.addEventListener('submit', async (ev) => {
+      ev.preventDefault()
+      const month = ev.target.month.value
+      const year = ev.target.year.value
+      const msg = document.getElementById('exportMsg')
+      msg.textContent = 'Gerando ZIP...'
+      try {
+        const url = `/api/fiscal/export-accounting.zip?month=${encodeURIComponent(month)}&year=${encodeURIComponent(year)}`
+        const res = await fetch(url, { credentials: 'include' })
+        if (!res.ok) {
+          const j = await res.json().catch(()=>null)
+          throw new Error(j?.message || j?.error || 'Falha ao gerar ZIP')
+        }
+        // Baixar arquivo
+        const blob = await res.blob()
+        const a = document.createElement('a')
+        const dlUrl = window.URL.createObjectURL(blob)
+        a.href = dlUrl
+        a.download = `nfce_${year}_${String(month).padStart(2,'0')}.zip`
+        document.body.appendChild(a)
+        a.click()
+        a.remove()
+        window.URL.revokeObjectURL(dlUrl)
+        msg.textContent = 'ZIP baixado com sucesso.'
+      } catch (e) {
+        msg.textContent = 'Erro: ' + (e?.message || e)
+      }
+    })
+
+    // Polling automático para notas PENDING - atualiza a cada 15 segundos
+    let pollingInterval = null
+    
+    function startPollingForPendingNotes() {
+      const hasPending = {{ counters?.pending || 0 }} > 0
+      
+      if (hasPending && !pollingInterval) {
+        console.log('[FISCAL] Iniciando polling para notas pendentes (15s)')
+        pollingInterval = setInterval(() => {
+          console.log('[FISCAL] Recarregando página para atualizar notas pendentes...')
+          window.location.reload()
+        }, 15000) // 15 segundos
+      }
+    }
+
+    function stopPolling() {
+      if (pollingInterval) {
+        console.log('[FISCAL] Parando polling')
+        clearInterval(pollingInterval)
+        pollingInterval = null
+      }
+    }
+
+    // Inicia polling ao carregar a página
+    startPollingForPendingNotes()
+
+    // Para o polling quando a página é descarregada
+    window.addEventListener('beforeunload', stopPolling)
+  </script>
+</body>
+</html>

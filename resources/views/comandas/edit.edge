@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="{{ theme }}">
+<head>
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Editar Comanda {{ comanda.number }} - Tavolo</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    @vite(['resources/css/app.css'])
+</head>
+<body class="bg-industrial-50 min-h-screen">
+    @include('components/quick_actions')
+    
+    <header class="bg-white">
+        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div class="flex h-16 items-center gap-3">
+                <h1 class="text-xl font-semibold leading-6 text-industrial-900">Editar Comanda {{ comanda.number }}</h1>
+                <div class="flex items-center gap-2 ml-auto">
+                    <a 
+                        href="{{ route('comandas.index') }}" 
+                        class="inline-flex items-center gap-2 rounded-md bg-industrial-800 px-3 py-2 text-sm font-semibold text-white hover:bg-industrial-500"
+                    >
+                        <i class="fas fa-list mr-2"></i>
+                        Lista de Comandas
+                    </a>
+                    <a href="javascript:history.back()" id="backButton"
+                        class="inline-flex items-center gap-2 rounded-lg bg-industrial-800 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-industrial-700">
+                        <i class="fas fa-arrow-left"></i> Voltar
+                    </a>
+                    
+                    <script>
+                        if (history.length <= 1) {
+                            document.getElementById('backButton').classList.add('hidden');
+                        }
+                    </script>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+        <div class="mb-8">
+            <div class="flex items-center gap-3 mb-4">
+                <a href="{{ route('comandas.index') }}" class="text-industrial-500 hover:app-muted">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                    </svg>
+                </a>
+                <h1 class="text-3xl font-bold text-industrial-900">Editar Comanda {{ comanda.number }}</h1>
+            </div>
+            <p class="app-muted ml-8">
+                Atualize as informações da comanda
+            </p>
+        </div>
+
+        <div class="bg-white  rounded-lg overflow-hidden">
+            <form action="{{ route('comandas.update', [comanda.id]) }}" method="POST" class="space-y-8 p-6">
+                {{ csrfField() }}
+                <input type="hidden" name="_method" value="PUT">
+                
+                <!-- Seção: Informações Básicas -->
+                <div>
+                    <h3 class="text-lg font-medium app-strong mb-4 app-border pb-2">Informações Básicas</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium app-muted mb-2">Número</label>
+                            <div class="w-full px-3 py-2 bg-industrial-50 app-border rounded-lg app-muted">
+                                {{ comanda.number }}
+                            </div>
+                            <p class="mt-1 text-sm text-industrial-500">Número gerado automaticamente pelo sistema</p>
+                        </div>
+                        <div>
+                            <label for="mesaId" class="block text-sm font-medium app-muted mb-2">Mesa (Opcional)</label>
+                            <select 
+                                id="mesaId" 
+                                name="mesaId" 
+                                class="w-full px-3 py-2 app-border rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-accent-500"
+                            >
+                                <option value="">Sem mesa</option>
+                                @each(mesa in mesas)
+                                    <option value="{{ mesa.id }}" {{ (old('mesaId') || comanda.mesaId) == mesa.id ? 'selected' : '' }}>
+                                        Mesa {{ mesa.number }} {{ mesa.name ? '- ' + mesa.name : '' }}
+                                    </option>
+                                @end
+                            </select>
+                            <p class="mt-1 text-sm text-industrial-500">Agrupe esta comanda a uma mesa</p>
+                        </div>
+                        <div class="md:col-span-2">
+                            <label for="name" class="block text-sm font-medium app-muted mb-2">Nome / Descrição</label>
+                            <input 
+                                type="text"
+                                id="name" 
+                                name="name" 
+                                value="{{ old('name', comanda.name) }}" 
+                                maxlength="100"
+                                placeholder="Ex: Cliente VIP, Aniversário"
+                                class="w-full px-3 py-2 app-border rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-accent-500"
+                            >
+                            <p class="mt-1 text-sm text-industrial-500">Descrição opcional para identificar a comanda</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Seção: Status e Configurações -->
+                <div>
+                    <h3 class="text-lg font-medium app-strong mb-4 app-border pb-2">Status e Configurações</h3>
+                    <div class="space-y-6">
+                        <div class="flex items-center h-5">                            
+                            <input 
+                                type="checkbox" 
+                                id="active" 
+                                name="active" 
+                                value="true" 
+                                {{ old('active', comanda.active) ? 'checked' : '' }}
+                                class="h-4 w-4 rounded border-industrial-300 text-accent-600 focus:ring-accent-500"
+                            >
+                            <div class="ml-3">
+                                <label class="text-sm font-medium app-muted" for="active">Comanda ativa</label>
+                                <p class="text-sm text-industrial-500">Comandas inativas não aparecem para uso no sistema</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Seção: Observações -->
+                <div>
+                    <h3 class="text-lg font-medium app-strong mb-4 app-border pb-2">Observações</h3>
+                    <textarea
+                        id="notes" 
+                        name="notes" 
+                        rows="3"
+                        placeholder="Informações adicionais sobre a comanda..."
+                        class="w-full px-3 py-2 app-border rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-accent-500"
+                    >{{ old('notes', comanda.notes || '') }}</textarea>
+                </div>
+
+                <!-- Seção: Metadados -->
+                <div>
+                    <h3 class="text-lg font-medium app-strong mb-4 app-border pb-2">Metadados</h3>
+                    <dl class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <dt class="text-sm font-medium text-industrial-500">Criada em</dt>
+                            <dd class="mt-1 text-sm text-industrial-900">{{ comanda.createdAt.toFormat('dd/MM/yyyy HH:mm') }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-sm font-medium text-industrial-500">Última atualização</dt>
+                            <dd class="mt-1 text-sm text-industrial-900">{{ comanda.updatedAt.toFormat('dd/MM/yyyy HH:mm') }}</dd>
+                        </div>
+                    </dl>
+                </div>
+
+                <!-- Botões -->
+                <div class="border-t pt-6">
+                    <div class="flex items-center justify-between">
+                        <button 
+                            type="button"
+                            onclick="confirmarExclusao()"
+                            class="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-red-700 ring-1 ring-inset ring-red-300 hover:bg-red-50"
+                        >
+                            <i class="fas fa-trash"></i>
+                            Excluir Comanda
+                        </button>
+                        <div class="flex items-center gap-3">
+                            <a 
+                                href="{{ route('comandas.show', [comanda.id]) }}" 
+                                class="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold app-muted ring-1 ring-inset ring-industrial-300 hover:bg-industrial-50"
+                            >
+                                <i class="fas fa-times"></i>
+                                Cancelar
+                            </a>
+                            <button 
+                                type="submit" 
+                                class="inline-flex items-center gap-2 rounded-lg bg-accent-600 px-4 py-2 text-sm font-semibold text-white hover:bg-accent-500"
+                            >
+                                <i class="fas fa-save"></i>
+                                Salvar Alterações
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </main>
+
+    <!-- Modal de Confirmação de Exclusão -->
+    <div id="deleteModal" class="hidden fixed inset-0 bg-industrial-500 bg-opacity-75 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg-xl max-w-md w-full mx-4">
+            <div class="px-6 py-4 border-b border-industrial-200">
+                <h5 class="text-lg font-semibold">Confirmar Exclusão</h5>
+            </div>
+            <div class="px-6 py-4">
+                <p>Tem certeza que deseja excluir a comanda <strong>{{ comanda.number }}</strong>?</p>
+                <p class="text-red-600 text-sm mt-2">Esta ação não pode ser desfeita.</p>
+            </div>
+            <div class="px-6 py-4 bg-industrial-50 flex justify-end gap-3 rounded-b-lg">
+                <button 
+                    type="button"
+                    class="inline-flex items-center px-4 py-2 app-border text-sm font-medium rounded-lg app-muted bg-white hover:bg-industrial-50"
+                    onclick="document.getElementById('deleteModal').classList.add('hidden')"
+                >
+                    Cancelar
+                </button>
+                <form action="{{ route('comandas.destroy', [comanda.id]) }}" method="POST" class="inline">
+                    {{ csrfField() }}
+                    @!method('DELETE')
+                    <button 
+                        type="submit"
+                        class="inline-flex items-center px-4 py-2 bg-accent-600 text-white text-sm font-medium rounded-lg hover:bg-accent-700"
+                    >
+                        Excluir
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function confirmarExclusao() {
+            document.getElementById('deleteModal').classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
+@end

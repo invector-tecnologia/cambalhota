@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light" class="h-full bg-industrial-50">
+  <head>
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    
+    <!-- SEO Meta Tags -->
+    <title>TAVOLO - Sistema de Gestão Completo para Restaurantes | ERP Gastronômico</title>
+    <meta name="description" content="Sistema completo de gestão para restaurantes, bares e lanchonetes. Controle de estoque, cardápio, pedidos, vendas e financeiro. Aumente sua produtividade e lucros com o TAVOLO." />
+    <meta name="keywords" content="sistema restaurante, ERP gastronômico, gestão de restaurante, controle de estoque, cardápio digital, pedidos online, sistema de vendas, controle financeiro, PDV restaurante, pedido por voz IA, mesas e comandas, emissão NFC-e, NFC-e restaurante, acessibilidade WCAG, suporte inteligente" />
+    <meta name="author" content="TAVOLO" />
+    <meta name="robots" content="index, follow" />
+    <meta name="theme-color" content="#0a1c40" />
+    <meta name="application-name" content="TAVOLO" />
+    <link rel="canonical" href="https://www.tavolo.com.br/" />
+    <link rel="alternate" href="https://www.tavolo.com.br/" hreflang="pt-BR" />
+    <link rel="alternate" type="text/plain" href="/llms.txt" />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="TAVOLO" />
+    <meta property="og:locale" content="pt_BR" />
+    <meta property="og:url" content="https://www.tavolo.com.br/" />
+    <meta property="og:title" content="TAVOLO - Sistema de Gestão Completo para Restaurantes" />
+    <meta property="og:description" content="Revolucione seu restaurante com gestão completa, pedidos por voz com IA, emissão fiscal NFC-e, mesas e comandas, suporte inteligente. Tudo em uma plataforma." />
+    <meta property="og:image" content="https://www.tavolo.com.br/images/tavolo-og-image.png" />
+    <meta property="og:image:alt" content="TAVOLO - Sistema de Gestão para Restaurantes" />
+    
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content="https://www.tavolo.com.br/" />
+    <meta name="twitter:title" content="TAVOLO - Sistema de Gestão Completo para Restaurantes" />
+    <meta name="twitter:description" content="Revolucione seu restaurante com gestão completa, pedidos por voz com IA, emissão fiscal NFC-e, mesas e comandas, suporte inteligente. Tudo em uma plataforma." />
+    <meta name="twitter:image" content="https://www.tavolo.com.br/images/tavolo-twitter-image.png" />
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=20260301b" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png?v=20260301b" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico?v=20260301b" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=20260301b" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.bunny.net" />
+    <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700,800&display=swap" rel="stylesheet" />
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    
+    <!-- TailwindCSS -->
+    
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "Organization",
+          "name": "TAVOLO",
+          "url": "https://www.tavolo.com.br/",
+          "logo": "https://www.tavolo.com.br/favicon.svg"
+        },
+        {
+          "@type": "WebSite",
+          "name": "TAVOLO",
+          "url": "https://www.tavolo.com.br/",
+          "inLanguage": "pt-BR"
+        },
+        {
+          "@type": "SoftwareApplication",
+          "name": "TAVOLO",
+          "applicationCategory": "Restaurant Management Software",
+          "description": "Sistema completo de gestão para restaurantes com pedidos por voz com IA, emissão fiscal NFC-e/NF-e, mesas e comandas, estoque, cardápio e financeiro",
+          "operatingSystem": "Web Browser",
+          "url": "https://www.tavolo.com.br/",
+          "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "BRL"
+          },
+          "provider": {
+            "@type": "Organization",
+            "name": "TAVOLO",
+            "url": "https://www.tavolo.com.br/"
+          }
+        }
+      ]
+    }
+    </script>
+    
+    @vite(['resources/css/app.css'])
+</head>
+
+  <body class="h-full font-sans text-industrial-900">
+    <!-- Header -->
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+      <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between items-start lg:items-center h-auto lg:h-16 gap-4 py-3 lg:py-0">
+          <div class="flex items-start lg:items-center">
+            <div class="flex-shrink-0">
+              <div class="hidden lg:block">
+                <h1 class="text-2xl font-bold text-industrial-900">Tavolo</h1>
+                <div class="mt-1 h-1 w-12 bg-accent-500"></div>
+              </div>
+              <div class="lg:hidden">
+                <h1 class="text-2xl font-bold text-industrial-900">Tavolo</h1>
+                <div class="mt-1 h-1 w-12 bg-accent-500"></div>
+              </div>
+            </div>
+          </div>
+          <div class="hidden md:flex md:items-start lg:items-center lg:flex-1 lg:justify-center">
+            <div class="flex items-baseline space-x-4">
+              <a href="#funcionalidades" class="app-muted hover:text-brand-600 px-3 py-2 rounded-md text-sm font-medium transition">Funcionalidades</a>
+              <a href="#beneficios" class="app-muted hover:text-brand-600 px-3 py-2 rounded-md text-sm font-medium transition">Benefícios</a>
+              <a href="#precos" class="app-muted hover:text-brand-600 px-3 py-2 rounded-md text-sm font-medium transition">Preços</a>
+              <a href="#contato" class="app-muted hover:text-brand-600 px-3 py-2 rounded-md text-sm font-medium transition">Contato</a>
+            </div>
+          </div>
+          <div class="flex items-center gap-4">            
+            @if(user) 
+              <a href="#" class="text-brand-600 hover:text-brand-700 px-3 py-2 rounded-md text-sm font-medium transition">{{ user.fullName || 'Usuário' }}</a>
+              <a href="/dashboard" class="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">Dashboard</a>            
+            @else
+              <a href="/login" class="text-brand-600 hover:text-brand-700 px-3 py-2 rounded-md text-sm font-medium transition">Entrar</a>
+              <a href="/register" class="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">Teste Grátis</a>            
+            @end
+          </div>
+        </div>
+      </nav>
+    </header>
+
+    @if(flashMessages.has('success'))
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
+        <div class="rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800" role="status" aria-live="polite">
+          {{ flashMessages.get('success') }}
+        </div>
+      </div>
+    @end
+
+    @if(flashMessages.has('error'))
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
+        <div class="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800" role="alert" aria-live="assertive">
+          {{ flashMessages.get('error') }}
+        </div>
+      </div>
+    @end
+
+    <!-- Hero Section -->
+    <section class="relative bg-gradient-to-br from-brand-50 to-white py-20 overflow-hidden">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="lg:grid lg:grid-cols-12 lg:gap-8">
+          <div class="sm:text-center md:max-w-2xl md:mx-auto lg:col-span-6 lg:text-left lg:mx-0">
+            <h1 class="text-4xl font-bold text-industrial-900 tracking-tight sm:text-5xl md:text-6xl">
+              Revolucione a 
+              <span class="text-brand-600">gestão</span> 
+              do seu restaurante
+            </h1>
+            <p class="mt-6 text-xl app-muted">
+              Sistema completo de gestão que integra estoque, operação, emissão fiscal NFC-e/NF-e, <strong>pedidos por voz com IA</strong>, mesas e comandas, suporte inteligente e financeiro.
+              Aumente sua produtividade e lucros com o TAVOLO.
+            </p>
+            <div class="mt-8 flex flex-col sm:flex-row gap-4">
+              <a href="/register" class="bg-brand-600 hover:bg-brand-700 text-white px-8 py-3 rounded-lg font-semibold text-lg transition transform hover:scale-105">
+                Começar Agora - Grátis
+              </a>
+              <!-- a href="#demo" class="border-2 border-brand-600 text-brand-600 hover:bg-brand-600 hover:text-white px-8 py-3 rounded-lg font-semibold text-lg transition">
+                Ver Demonstração
+              </a -->
+            </div>
+            <p class="mt-4 text-sm text-industrial-500"><i class="fas fa-check text-green-500"></i> Sem cartão de crédito • <i class="fas fa-check text-green-500"></i> Configuração em 5 minutos</p>
+          </div>
+          <div class="mt-12 relative sm:max-w-lg sm:mx-auto lg:mt-0 lg:max-w-none lg:mx-0 lg:col-span-6 lg:flex lg:items-center">
+            <div class="relative mx-auto w-full rounded-lg ring-1 ring-industrial-100 lg:max-w-md">
+              <div class="bg-white rounded-lg p-8">
+                <div class="bg-gradient-to-br from-brand-50 to-accent-50 rounded-lg p-8 text-center">
+                  <!-- Ilustração SVG Artística -->
+                  <svg viewBox="0 0 200 150" class="w-full h-32 mx-auto mb-4" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Fundo com círculos decorativos -->
+                    <circle cx="180" cy="20" r="15" fill="#E0F2FE" opacity="0.5"/>
+                    <circle cx="20" cy="130" r="20" fill="#DDD6FE" opacity="0.5"/>
+                    
+                    <!-- Dashboard principal -->
+                    <rect x="20" y="30" width="160" height="100" rx="8" fill="white" stroke="#0EA5E9" stroke-width="2"/>
+                    
+                    <!-- Gráfico de barras -->
+                    <rect x="35" y="90" width="15" height="30" rx="2" fill="#0EA5E9" opacity="0.8">
+                      <animate attributeName="height" values="30;40;30" dur="2s" repeatCount="indefinite"/>
+                      <animate attributeName="y" values="90;80;90" dur="2s" repeatCount="indefinite"/>
+                    </rect>
+                    <rect x="55" y="75" width="15" height="45" rx="2" fill="#8B5CF6" opacity="0.8">
+                      <animate attributeName="height" values="45;55;45" dur="2.5s" repeatCount="indefinite"/>
+                      <animate attributeName="y" values="75;65;75" dur="2.5s" repeatCount="indefinite"/>
+                    </rect>
+                    <rect x="75" y="85" width="15" height="35" rx="2" fill="#0EA5E9" opacity="0.8">
+                      <animate attributeName="height" values="35;45;35" dur="1.8s" repeatCount="indefinite"/>
+                      <animate attributeName="y" values="85;75;85" dur="1.8s" repeatCount="indefinite"/>
+                    </rect>
+                    
+                    <!-- Gráfico de pizza -->
+                    <circle cx="140" cy="70" r="25" fill="none" stroke="#E0F2FE" stroke-width="8"/>
+                    <circle cx="140" cy="70" r="25" fill="none" stroke="#0EA5E9" stroke-width="8" 
+                            stroke-dasharray="78.5 157" transform="rotate(-90 140 70)">
+                      <animateTransform attributeName="transform" type="rotate" 
+                                      from="-90 140 70" to="270 140 70" dur="3s" repeatCount="indefinite"/>
+                    </circle>
+                    
+                    <!-- Linha de tendência -->
+                    <polyline points="30,55 50,45 70,50 90,40 110,45" 
+                              fill="none" stroke="#8B5CF6" stroke-width="2" opacity="0.6"/>
+                    <circle cx="30" cy="55" r="3" fill="#8B5CF6"/>
+                    <circle cx="50" cy="45" r="3" fill="#8B5CF6"/>
+                    <circle cx="70" cy="50" r="3" fill="#8B5CF6"/>
+                    <circle cx="90" cy="40" r="3" fill="#8B5CF6"/>
+                    <circle cx="110" cy="45" r="3" fill="#8B5CF6">
+                      <animate attributeName="r" values="3;5;3" dur="1.5s" repeatCount="indefinite"/>
+                    </circle>
+                    
+                    <!-- Ícones de funcionalidades -->
+                    <g opacity="0.8">
+                      <!-- Ícone de dinheiro -->
+                      <circle cx="145" cy="105" r="8" fill="#10B981" opacity="0.2"/>
+                      <text x="145" y="110" text-anchor="middle" font-size="10" fill="#10B981">$</text>
+                      
+                      <!-- Ícone de notificação -->
+                      <circle cx="165" cy="105" r="8" fill="#F59E0B" opacity="0.2"/>
+                      <circle cx="168" cy="102" r="2" fill="#F59E0B">
+                        <animate attributeName="opacity" values="1;0;1" dur="2s" repeatCount="indefinite"/>
+                      </circle>
+                    </g>
+                    
+                    <!-- Partículas flutuantes -->
+                    <circle cx="160" cy="50" r="2" fill="#0EA5E9" opacity="0.6">
+                      <animate attributeName="cy" values="50;45;50" dur="2s" repeatCount="indefinite"/>
+                    </circle>
+                    <circle cx="170" cy="80" r="2" fill="#8B5CF6" opacity="0.6">
+                      <animate attributeName="cy" values="80;75;80" dur="2.5s" repeatCount="indefinite"/>
+                    </circle>
+                  </svg>
+                  
+                  <h3 class="font-semibold text-industrial-900 mb-2">Dashboard Completo</h3>
+                  <p class="app-muted text-sm">Acompanhe vendas, estoque e performance em tempo real</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Funcionalidades -->
+    <section id="funcionalidades" class="py-20 bg-white">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center">
+          <h2 class="text-3xl font-bold text-industrial-900 sm:text-4xl">
+            Tudo que seu restaurante precisa
+          </h2>
+          <p class="mt-4 text-xl app-muted">
+            Sistema completo com módulos integrados para gestão total do seu negócio
+          </p>
+        </div>
+        
+        <div class="mt-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <!-- Gestão de Estoque -->
+          <div class="bg-industrial-50 rounded-xl p-6 hover:ring-1 ring-industrial-100lg transition">
+            <div class="w-12 h-12 bg-brand-100 rounded-lg flex items-center justify-center mb-4">
+              <i class="fas fa-boxes text-2xl text-brand-600"></i>
+            </div>
+            <h3 class="text-xl font-semibold text-industrial-900 mb-3">Gestão de Estoque</h3>
+            <p class="app-muted mb-4">Controle completo de fornecedores, insumos e entrada de mercadorias com reserva automática e auditoria.</p>
+            <ul class="text-sm text-industrial-500 space-y-1">
+              <li>• Cadastro de fornecedores</li>
+              <li>• Reserva automática de insumos</li>
+              <li>• Importação de NFe</li>
+              <li>• Controle de disponibilidade</li>
+            </ul>
+          </div>
+
+          <!-- Cardápio Digital -->
+          <div class="bg-industrial-50 rounded-xl p-6 hover:ring-1 ring-industrial-100lg transition">
+            <div class="w-12 h-12 bg-brand-100 rounded-lg flex items-center justify-center mb-4">
+              <i class="fas fa-utensils text-2xl text-brand-600"></i>
+            </div>
+            <h3 class="text-xl font-semibold text-industrial-900 mb-3">Cardápio Digital</h3>
+            <p class="app-muted mb-4">Crie e gerencie seu cardápio com cálculo automático de custos e margem de lucro.</p>
+            <ul class="text-sm text-industrial-500 space-y-1">
+              <li>• Categorias organizadas</li>
+              <li>• Receitas e ingredientes</li>
+              <li>• Cálculo de custos automático</li>
+              <li>• Controle de disponibilidade</li>
+            </ul>
+          </div>
+
+          <!-- Mesas e Comandas -->
+          <div class="bg-industrial-50 rounded-xl p-6 hover:ring-1 ring-industrial-100lg transition">
+            <div class="w-12 h-12 bg-brand-100 rounded-lg flex items-center justify-center mb-4">
+              <i class="fas fa-chair text-2xl text-brand-600"></i>
+            </div>
+            <h3 class="text-xl font-semibold text-industrial-900 mb-3">Mesas e Comandas</h3>
+            <p class="app-muted mb-4">Gerencie mesas com status em tempo real e vincule comandas com acompanhamento da cozinha ao cliente.</p>
+            <ul class="text-sm text-industrial-500 space-y-1">
+              <li>• Mapa de mesas em tempo real</li>
+              <li>• Vinculação mesa ↔ comanda</li>
+              <li>• Dashboard da cozinha</li>
+              <li>• Descontos por comanda</li>
+            </ul>
+          </div>
+
+          <!-- Controle Financeiro -->
+          <div class="bg-industrial-50 rounded-xl p-6 hover:ring-1 ring-industrial-100lg transition">
+            <div class="w-12 h-12 bg-brand-100 rounded-lg flex items-center justify-center mb-4">
+              <i class="fas fa-money-bill-wave text-2xl text-brand-600"></i>
+            </div>
+            <h3 class="text-xl font-semibold text-industrial-900 mb-3">Controle Financeiro</h3>
+            <p class="app-muted mb-4">Registro de vendas, descontos, controle de caixa e relatórios financeiros detalhados.</p>
+            <ul class="text-sm text-industrial-500 space-y-1">
+              <li>• Registro de vendas</li>
+              <li>• Descontos percentuais por comanda</li>
+              <li>• Controle de caixa diário</li>
+              <li>• Análise de lucratividade</li>
+            </ul>
+          </div>
+
+          <!-- Relatórios -->
+          <div class="bg-industrial-50 rounded-xl p-6 hover:ring-1 ring-industrial-100lg transition">
+            <div class="w-12 h-12 bg-brand-100 rounded-lg flex items-center justify-center mb-4">
+              <i class="fas fa-chart-line text-2xl text-brand-600"></i>
+            </div>
+            <h3 class="text-xl font-semibold text-industrial-900 mb-3">Relatórios Inteligentes</h3>
+            <p class="app-muted mb-4">Dashboard com KPIs, gráficos e relatórios para tomada de decisões estratégicas.</p>
+            <ul class="text-sm text-industrial-500 space-y-1">
+              <li>• Dashboard em tempo real</li>
+              <li>• Itens mais vendidos</li>
+              <li>• Margem de lucro</li>
+              <li>• Performance mensal</li>
+            </ul>
+          </div>
+
+          <!-- Emissão Fiscal NFC-e -->
+          <div class="bg-industrial-50 rounded-xl p-6 hover:ring-1 ring-industrial-100lg transition">
+            <div class="w-12 h-12 bg-brand-100 rounded-lg flex items-center justify-center mb-4">
+              <i class="fas fa-file-invoice text-2xl text-brand-600"></i>
+            </div>
+            <h3 class="text-xl font-semibold text-industrial-900 mb-3">Emissão Fiscal NFC-e</h3>
+            <p class="app-muted mb-4">Emissão automática de NFC-e e NF-e integrada ao checkout com contingência offline e retry inteligente.</p>
+            <ul class="text-sm text-industrial-500 space-y-1">
+              <li>• NFC-e e NF-e automáticas</li>
+              <li>• Contingência offline</li>
+              <li>• Reprocessamento inteligente</li>
+              <li>• Exportação contábil</li>
+            </ul>
+          </div>
+
+          <!-- Pedidos por Voz -->
+          <div class="bg-industrial-50 rounded-xl p-6 hover:ring-1 ring-industrial-100lg transition relative overflow-visible">
+            <span class="absolute -top-3 right-4 bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-sm">NOVO</span>
+            <div class="w-12 h-12 bg-brand-100 rounded-lg flex items-center justify-center mb-4">
+              <i class="fas fa-microphone text-2xl text-brand-600"></i>
+            </div>
+            <h3 class="text-xl font-semibold text-industrial-900 mb-3">Pedidos por Voz</h3>
+            <p class="app-muted mb-4">Faça pedidos falando! IA converte sua voz em pedidos com confirmação visual antes de enviar.</p>
+            <ul class="text-sm text-industrial-500 space-y-1">
+              <li>• Reconhecimento de voz com IA</li>
+              <li>• Preview antes de confirmar</li>
+              <li>• 8 tipos de comando por voz</li>
+              <li>• Chave própria (BYOK)</li>
+            </ul>
+          </div>
+
+          <!-- Suporte Inteligente -->
+          <div class="bg-industrial-50 rounded-xl p-6 hover:ring-1 ring-industrial-100lg transition">
+            <div class="w-12 h-12 bg-brand-100 rounded-lg flex items-center justify-center mb-4">
+              <i class="fas fa-headset text-2xl text-brand-600"></i>
+            </div>
+            <h3 class="text-xl font-semibold text-industrial-900 mb-3">Suporte Inteligente</h3>
+            <p class="app-muted mb-4">Tickets conversacionais com sugestão de solução, auto-resolução e histórico completo.</p>
+            <ul class="text-sm text-industrial-500 space-y-1">
+              <li>• Tickets conversacionais</li>
+              <li>• Sugestão automática de solução</li>
+              <li>• Auto-resolução por inatividade</li>
+              <li>• Histórico de atendimento</li>
+            </ul>
+          </div>
+
+          <!-- Acessibilidade -->
+          <div class="bg-industrial-50 rounded-xl p-6 hover:ring-1 ring-industrial-100lg transition">
+            <div class="w-12 h-12 bg-brand-100 rounded-lg flex items-center justify-center mb-4">
+              <i class="fas fa-universal-access text-2xl text-brand-600"></i>
+            </div>
+            <h3 class="text-xl font-semibold text-industrial-900 mb-3">Acessibilidade e Inclusão</h3>
+            <p class="app-muted mb-4">Interface acessível seguindo padrões WCAG, para que todos possam utilizar o sistema.</p>
+            <ul class="text-sm text-industrial-500 space-y-1">
+              <li>• Navegação por teclado</li>
+              <li>• Compatível com leitores de tela</li>
+              <li>• Contraste e cores adaptáveis</li>
+              <li>• Foco visível e skip links</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Benefícios -->
+    <section id="beneficios" class="py-20 bg-brand-50">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-16">
+          <h2 class="text-3xl font-bold text-industrial-900 sm:text-4xl">
+            Por que escolher o TAVOLO?
+          </h2>
+          <p class="mt-4 text-xl app-muted">
+            Mais que um sistema, uma solução completa para o crescimento do seu negócio
+          </p>
+        </div>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-16">
+          <div>
+            <div class="space-y-8">
+              <div class="flex items-start">
+                <div class="flex-shrink-0">
+                  <div class="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+                    <i class="fas fa-check text-white text-sm"></i>
+                  </div>
+                </div>
+                <div class="ml-4">
+                  <h3 class="text-lg font-semibold text-industrial-900">Aumento de Produtividade</h3>
+                  <p class="app-muted">Automatize processos manuais e ganhe até 40% mais eficiência operacional.</p>
+                </div>
+              </div>
+              
+              <div class="flex items-start">
+                <div class="flex-shrink-0">
+                  <div class="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+                    <i class="fas fa-check text-white text-sm"></i>
+                  </div>
+                </div>
+                <div class="ml-4">
+                  <h3 class="text-lg font-semibold text-industrial-900">Redução de Custos</h3>
+                  <p class="app-muted">Controle preciso de estoque e custos para reduzir desperdícios e aumentar a margem.</p>
+                </div>
+              </div>
+              
+              <div class="flex items-start">
+                <div class="flex-shrink-0">
+                  <div class="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+                    <i class="fas fa-check text-white text-sm"></i>
+                  </div>
+                </div>
+                <div class="ml-4">
+                  <h3 class="text-lg font-semibold text-industrial-900">Decisões Baseadas em Dados</h3>
+                  <p class="app-muted">Relatórios detalhados e KPIs em tempo real para decisões estratégicas assertivas.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="bg-white rounded-xl p-8 ring-1 ring-industrial-100">
+            <div class="text-center mb-6">
+              <div class="text-4xl mb-4"><i class="fas fa-rocket text-brand-600"></i></div>
+              <h3 class="text-2xl font-bold text-industrial-900 mb-2">Resultados Comprovados</h3>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-center">
+              <div>
+                <div class="text-3xl font-bold text-brand-600">+40%</div>
+                <div class="text-sm app-muted">Produtividade</div>
+              </div>
+              <div>
+                <div class="text-3xl font-bold text-brand-600">-25%</div>
+                <div class="text-sm app-muted">Desperdícios</div>
+              </div>
+              <div>
+                <div class="text-3xl font-bold text-brand-600">+60%</div>
+                <div class="text-sm app-muted">Controle</div>
+              </div>
+              <div>
+                <div class="text-3xl font-bold text-brand-600">100%</div>
+                <div class="text-sm app-muted">Integrado</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Preços -->
+    <section id="precos" class="py-20 bg-white">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-16">
+          <h2 class="text-3xl font-bold text-industrial-900 sm:text-4xl">
+            Planos que cabem no seu bolso
+          </h2>
+          <p class="mt-4 text-xl app-muted">
+            Experimente por 15 dias grátis e escale conforme seu negócio cresce
+          </p>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">          
+
+          <!-- Plano Padrão -->
+          <div class="bg-brand-600 rounded-xl p-8 relative transform scale-105 ring-1 ring-industrial-100xl">
+            <div class="absolute -top-4 left-1/2 transform -translate-x-1/2">
+              <span class="bg-yellow-400 text-black px-4 py-1 rounded-full text-sm font-semibold">Mais Popular</span>
+            </div>
+            <div class="text-center">
+              <h3 class="text-2xl font-bold text-white mb-2">Padrão</h3>
+              <div class="text-4xl font-bold text-white mb-4">R$ 147<span class="text-base font-normal text-brand-100">/mês</span></div>
+              <p class="text-brand-100 mb-6">Para restaurantes em crescimento</p>
+              <a href="/register" class="block w-full bg-white text-brand-600 py-3 rounded-lg font-semibold hover:bg-industrial-50 transition">
+                Teste Grátis por 15 Dias
+              </a>
+            </div>
+            <ul class="mt-8 space-y-3">
+              <li class="flex items-center text-white">
+                <i class="fas fa-check text-yellow-400 mr-3"></i>
+                Produtos ilimitados
+              </li>
+              <li class="flex items-center text-white">
+                <i class="fas fa-check text-yellow-400 mr-3"></i>
+                Emissão fiscal NFC-e/NF-e
+              </li>
+              <li class="flex items-center text-white">
+                <i class="fas fa-check text-yellow-400 mr-3"></i>
+                Mesas e comandas
+              </li>
+              <li class="flex items-center text-white">
+                <i class="fas fa-check text-yellow-400 mr-3"></i>
+                Pedidos por voz com IA
+              </li>
+              <li class="flex items-center text-white">
+                <i class="fas fa-check text-yellow-400 mr-3"></i>
+                Todos os relatórios
+              </li>
+              <li class="flex items-center text-white">
+                <i class="fas fa-check text-yellow-400 mr-3"></i>
+                Suporte prioritário
+              </li>
+              <li class="flex items-center text-white">
+                <i class="fas fa-check text-yellow-400 mr-3"></i>
+                API completa
+              </li>
+            </ul>
+          </div>
+
+          <!-- Plano Personalizado -->
+          <div class="bg-industrial-50 rounded-xl p-8 relative">
+            <div class="text-center">
+              <h3 class="text-2xl font-bold text-industrial-900 mb-2">Personalizado</h3>
+              <div class="text-4xl font-bold text-industrial-900 mb-4">Sob consulta</div>
+              <p class="app-muted mb-6">Para operações personalizadas</p>
+              <a href="#contato" class="block w-full bg-industrial-900 text-white py-3 rounded-lg font-semibold hover:bg-industrial-800 transition">
+                Falar com Vendas
+              </a>
+            </div>
+            <ul class="mt-8 space-y-3">
+              <li class="flex items-center app-muted">
+                <i class="fas fa-check text-green-500 mr-3"></i>
+                Tudo do Plano Padrão e mais...
+              </li>
+              <li class="flex items-center app-muted">
+                <i class="fas fa-check text-green-500 mr-3"></i>
+                Multi-usuários
+              </li>
+              <li class="flex items-center app-muted">
+                <i class="fas fa-check text-green-500 mr-3"></i>
+                Integrações personalizadas
+              </li>
+              <li class="flex items-center app-muted">
+                <i class="fas fa-check text-green-500 mr-3"></i>
+                Multi-estabelecimentos
+              </li>
+              <li class="flex items-center app-muted">
+                <i class="fas fa-check text-green-500 mr-3"></i>
+                Relatórios personalizados
+              </li>
+              <li class="flex items-center app-muted">
+                <i class="fas fa-check text-green-500 mr-3"></i>
+                Suporte 24/7
+              </li>
+              <li class="flex items-center app-muted">
+                <i class="fas fa-check text-green-500 mr-3"></i>
+                Treinamento incluído
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="py-20 bg-brand-600">
+      <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <h2 class="text-3xl font-bold text-white sm:text-4xl">
+          Pronto para revolucionar seu restaurante?
+        </h2>
+        <p class="mt-4 text-xl text-brand-100">
+          Junte-se a centenas de restaurantes que já transformaram sua gestão com o TAVOLO
+        </p>
+        <div class="mt-8">
+          <a href="/register" class="bg-white text-brand-600 px-8 py-4 rounded-lg font-bold text-lg hover:bg-industrial-50 transition transform hover:scale-105 inline-block">
+            Começar Teste Gratuito Agora
+          </a>
+        </div>
+        <p class="mt-4 text-brand-100">Configuração em 5 minutos • Sem cartão de crédito • Suporte completo</p>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer id="contato" class="bg-industrial-900 text-white py-16">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+          <div>
+            <div class="mb-4">
+              <h1 class="text-2xl font-bold text-white">Tavolo</h1>
+              <div class="mt-1 h-1 w-12 bg-accent-500"></div>
+            </div>
+            <p class="text-industrial-300 mb-4">Sistema completo de gestão para restaurantes que revoluciona sua operação.</p>
+            <div class="flex space-x-4">
+              <a href="#" class="text-industrial-300 hover:text-white transition">Facebook</a>
+              <a href="#" class="text-industrial-300 hover:text-white transition">Instagram</a>
+              <a href="#" class="text-industrial-300 hover:text-white transition">LinkedIn</a>
+            </div>
+          </div>
+          
+          <div>
+            <h4 class="font-semibold mb-4">Produto</h4>
+            <ul class="space-y-2">
+              <li><a href="#funcionalidades" class="text-industrial-300 hover:text-white transition">Funcionalidades</a></li>
+              <li><a href="#precos" class="text-industrial-300 hover:text-white transition">Preços</a></li>
+              <li><a href="/login" class="text-industrial-300 hover:text-white transition">Entrar</a></li>
+              <li><a href="/register" class="text-industrial-300 hover:text-white transition">Teste Grátis</a></li>
+            </ul>
+          </div>
+          
+          <div>
+            <h4 class="font-semibold mb-4">Suporte</h4>
+            <ul class="space-y-2">
+              <li><a href="#" class="text-industrial-300 hover:text-white transition">Central de Ajuda</a></li>
+              <li><a href="#" class="text-industrial-300 hover:text-white transition">Documentação</a></li>
+              <li><a href="#" class="text-industrial-300 hover:text-white transition">Status do Sistema</a></li>
+              <li><a href="#" class="text-industrial-300 hover:text-white transition">Contato</a></li>
+            </ul>
+          </div>
+          
+          <div>
+            <h4 class="font-semibold mb-4">Contato</h4>
+            <form action="{{ route('home.contact') }}" method="POST" class="space-y-3">
+              {{ csrfField() }}
+              <input
+                type="text"
+                name="nome_contato"
+                class="w-full rounded-md border border-industrial-700 bg-industrial-800 px-3 py-2 text-sm text-white placeholder-industrial-400 focus:border-brand-500 focus:outline-none"
+                placeholder="Seu nome"
+                required
+              />
+              <input
+                type="email"
+                name="email_contato"
+                class="w-full rounded-md border border-industrial-700 bg-industrial-800 px-3 py-2 text-sm text-white placeholder-industrial-400 focus:border-brand-500 focus:outline-none"
+                placeholder="Seu e-mail"
+                required
+              />
+              <input
+                type="text"
+                name="assunto"
+                class="w-full rounded-md border border-industrial-700 bg-industrial-800 px-3 py-2 text-sm text-white placeholder-industrial-400 focus:border-brand-500 focus:outline-none"
+                placeholder="Assunto"
+                required
+              />
+              <textarea
+                name="mensagem"
+                rows="3"
+                class="w-full rounded-md border border-industrial-700 bg-industrial-800 px-3 py-2 text-sm text-white placeholder-industrial-400 focus:border-brand-500 focus:outline-none"
+                placeholder="Conte um pouco sobre sua operação"
+                required
+              ></textarea>
+              <button
+                type="submit"
+                class="w-full rounded-md bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-700"
+              >
+                Enviar para o time comercial
+              </button>
+            </form>
+            <ul class="mt-4 space-y-2 text-industrial-300 text-sm">
+              <li><i class="fas fa-envelope mr-2"></i> bernardo@invector.com.br</li>
+              <li><i class="fas fa-phone mr-2"></i> (21) 979-022-806</li>
+            </ul>
+          </div>
+        </div>
+        
+        <div class="border-t border-industrial-800 mt-12 pt-8 text-center text-industrial-300">
+          <p>&copy; 2026 TAVOLO. Todos os direitos reservados.</p>
+        </div>
+      </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script>
+      // Smooth scrolling para links internos
+      document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+          e.preventDefault();
+          const target = document.querySelector(this.getAttribute('href'));
+          if (target) {
+            target.scrollIntoView({
+              behavior: 'smooth',
+              block: 'start'
+            });
+          }
+        });
+      });
+
+      // Analytics (se necessário)
+      // gtag('config', 'GA_MEASUREMENT_ID');
+    </script>
+  </body>
+</html>

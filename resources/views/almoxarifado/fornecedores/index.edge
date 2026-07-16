@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="{{ theme }}" class="h-full bg-industrial-50">
+<head>
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrfToken }}">
+    <title>Fornecedores - Almoxarifado - Tavolo</title>
+    @vite(['resources/css/app.css'])
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    </head>
+<body class="bg-industrial-50 min-h-screen font-sans text-industrial-900">
+    <!-- Cabeçalho -->
+    <header class="app-card shadow-sm">
+        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div class="flex h-16 items-center gap-3">
+                <div class="flex items-center gap-3">
+                    <div class="h-10 w-10 rounded-full bg-accent-500/10 text-accent-600 flex items-center justify-center">
+                        <i class="fas fa-truck"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-lg font-semibold app-strong app-strong">Fornecedores</h1>
+                        <p class="text-sm app-muted">Gestão de fornecedores</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3 ml-auto">
+                    <a href="{{ route('fornecedores.create') }}" class="inline-flex items-center gap-2 rounded-lg bg-accent-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-accent-500">
+                        <i class="fas fa-plus"></i>
+                        Novo Fornecedor
+                    </a>
+                    <a href="{{ route('dashboard.index') }}"
+                        class="inline-flex items-center gap-2 rounded-lg bg-industrial-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-industrial-400">
+                        <i class="fas fa-home mr-2"></i> Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>    
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        <!-- Search -->
+        <div class="mb-6">
+            <form method="GET" class="max-w-md">
+                <div class="relative">
+                    <input 
+                        type="text" 
+                        name="search" 
+                        value="{{ search }}" 
+                        placeholder="Buscar fornecedores..." 
+                        class="w-full px-4 py-2 app-border shadow-sm rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-accent-500"
+                    >
+                    <button type="submit" class="absolute right-0 top-0 h-full px-4 text-industrial-400 hover:app-muted">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Suppliers List -->
+        <div class="app-card shadow-sm rounded-xl app-border overflow-hidden">
+            <div class="px-6 py-4 app-border">
+                <h3 class="text-lg font-semibold app-strong app-strong">
+                    Lista de Fornecedores
+                </h3>
+            </div>
+            
+            @if(fornecedores.data.length > 0)
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y app-border">
+                    <thead class="app-card">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-semibold app-muted uppercase tracking-wider">
+                                Nome
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold app-muted uppercase tracking-wider">
+                                Contato
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold app-muted uppercase tracking-wider">
+                                Documento
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold app-muted uppercase tracking-wider">
+                                Status
+                            </th>
+                            <th class="px-6 py-3 text-right text-xs font-semibold app-muted uppercase tracking-wider">
+                                Ações
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="app-card divide-y app-border">
+                        @each(fornecedor in fornecedores.data)
+                        <tr class="hover:bg-industrial-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm font-semibold app-strong">{{ fornecedor.name }}</div>
+                                @if(fornecedor.trade_name)
+                                <div class="text-sm app-muted">{{ fornecedor.trade_name }}</div>
+                                @endif
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                @if(fornecedor.contact_person)
+                                <div class="text-sm app-text">{{ fornecedor.contact_person }}</div>
+                                @endif
+                                @if(fornecedor.phone)
+                                <div class="text-sm app-muted">{{ fornecedor.phone }}</div>
+                                @endif
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                @if(fornecedor.document)
+                                <div class="text-sm app-text">{{ fornecedor.document }}</div>
+                                @endif
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                @if(fornecedor.active)
+                                <span class="inline-flex px-2.5 py-0.5 text-xs font-semibold bg-green-50 text-green-700 rounded-full">
+                                    Ativo
+                                </span>
+                                @else
+                                <span class="inline-flex px-2.5 py-0.5 text-xs font-semibold bg-red-50 text-red-700 rounded-full">
+                                    Inativo
+                                </span>
+                                @endif
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <div class="inline-flex gap-3">
+                                    <a href="/almoxarifado/fornecedores/{{ fornecedor.id }}" class="text-accent-600 hover:text-accent-500">
+                                        Ver
+                                    </a>
+                                    <a href="/almoxarifado/fornecedores/{{ fornecedor.id }}/editar" class="app-muted hover:text-industrial-500">
+                                        Editar
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        @endeach
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination -->
+            @if(fornecedores.meta.total > fornecedores.meta.per_page)
+            <div class="px-6 py-4 app-border">
+                <div class="flex items-center justify-between">
+                    <div class="text-sm app-text">
+                        Mostrando {{ fornecedores.meta.from }} a {{ fornecedores.meta.to }} de {{ fornecedores.meta.total }} fornecedores
+                    </div>
+                    <div class="flex gap-2">
+                        @if(fornecedores.meta.current_page > 1)
+                        <a href="?page={{ fornecedores.meta.current_page - 1 }}&search={{ search }}" class="px-3 py-1.5 text-sm app-border rounded-lg hover:bg-industrial-50 font-semibold">
+                            Anterior
+                        </a>
+                        @endif
+                        @if(fornecedores.meta.current_page < fornecedores.meta.last_page)
+                        <a href="?page={{ fornecedores.meta.current_page + 1 }}&search={{ search }}" class="px-3 py-1.5 text-sm app-border rounded-lg hover:bg-industrial-50 font-semibold">
+                            Próxima
+                        </a>
+                        @endif
+                    </div>
+                </div>
+            </div>
+            @endif
+            
+            @else
+            <div class="px-6 py-12 text-center">
+                <i class="fas fa-truck text-6xl text-industrial-200 mb-4"></i>
+                <h3 class="mt-4 text-sm font-semibold app-strong">Nenhum fornecedor encontrado</h3>
+                <p class="mt-2 text-sm app-muted">
+                    @if(search)
+                    Tente buscar com outros termos ou 
+                    <a href="/almoxarifado/fornecedores" class="app-accent-text hover:text-accent-500">limpe o filtro</a>.
+                    @else
+                    Comece adicionando um novo fornecedor.
+                    @endif
+                </p>
+                @if(!search)
+                <div class="mt-6">
+                    <a href="/almoxarifado/fornecedores/novo" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg text-white bg-accent-600 shadow-sm hover:bg-accent-500">
+                        <i class="fas fa-plus"></i>
+                        Novo Fornecedor
+                    </a>
+                </div>
+                @endif
+            </div>
+            @endif
+        </div>
+    </main>
+  @include('components/quick_actions')
+</body>
+</html>

@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="{{ theme }}" class="h-full bg-industrial-50">
+<head>
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dashboard Financeiro - Tavolo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .fade-in {
+      animation: fadeIn 0.5s ease-in-out;
+    }
+    .stat-card {
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .stat-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+    }
+  </style>
+  @vite(['resources/css/app.css', 'resources/js/app.js'])
+</head>
+<body class="h-full font-sans text-industrial-900">
+  <div class="min-h-full">
+    <header class="bg-white shadow-sm">
+      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div class="flex h-16 items-center gap-3">
+          <div class="flex items-center gap-3">
+            <div class="h-10 w-10 rounded-full bg-accent-500/10 text-accent-600 flex items-center justify-center">
+              <i class="fas fa-chart-line"></i>
+            </div>
+            <h1 class="text-lg font-semibold text-industrial-900">Dashboard Financeiro</h1>
+          </div>
+          <div class="flex items-center space-x-4 ml-auto">
+            <!-- Filtro de período -->
+            <form method="GET" class="flex items-center space-x-2">
+              <label class="text-sm font-semibold app-muted">Período:</label>
+              <select name="period" onchange="this.form.submit()"
+                class="rounded-lg border-industrial-200  focus:border-accent-500 focus:ring-accent-500 text-sm">
+                <option value="today" {{ period==='today' ? 'selected' : '' }}>📅 Hoje</option>
+                <option value="week" {{ period==='week' ? 'selected' : '' }}>📆 Esta Semana</option>
+                <option value="month" {{ period==='month' ? 'selected' : '' }}>📊 Este Mês</option>
+                <option value="year" {{ period==='year' ? 'selected' : '' }}>📈 Este Ano</option>
+              </select>
+            </form>
+            <button onclick="window.print()"
+              class="inline-flex items-center rounded-lg bg-white px-3 py-2 text-sm font-semibold app-muted  ring-1 ring-inset ring-industrial-200 hover:bg-industrial-50">
+              <i class="fas fa-print mr-2"></i> Imprimir
+            </button>
+            <a href="{{ route('vendas.index') }}"
+              class="inline-flex items-center rounded-lg bg-accent-600 px-3 py-2 text-sm font-semibold text-white  hover:bg-accent-500">
+              <i class="fas fa-list mr-2"></i> Ver Vendas
+            </a>
+            <a href="{{ route('dashboard.index') }}"
+              class="inline-flex items-center rounded-lg bg-industrial-800 px-3 py-2 text-sm font-semibold text-white  hover:bg-industrial-700">
+              <i class="fas fa-arrow-left mr-2"></i> Dashboard
+            </a>
+          </div>
+        </div>
+      </div>
+    </header>
+    <main class="flex-1 py-6">
+      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+
+        <!-- Cards de Estatísticas Principais -->
+        <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-6">
+          <!-- Total de Vendas -->
+          <div class="stat-card fade-in overflow-hidden rounded-xl bg-gradient-to-br from-accent-500 to-indigo-600 ring-1 ring-industrial-100">
+            <div class="p-6">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-accent-100 text-sm font-medium">Total de Vendas</p>
+                  <p class="mt-2 text-3xl font-bold text-white">
+                    {{ formatCurrency(stats.totalSales) }}
+                  </p>
+                </div>
+                <div class="rounded-full bg-white/20 p-4">
+                  <i class="fas fa-dollar-sign text-white text-2xl"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Lucro Total -->
+          <div class="stat-card fade-in overflow-hidden rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 ring-1 ring-industrial-100" style="animation-delay: 0.1s;">
+            <div class="p-6">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-emerald-100 text-sm font-medium">Lucro Total</p>
+                  <p class="mt-2 text-3xl font-bold text-white">
+                    {{ formatCurrency(stats.totalProfit) }}
+                  </p>
+                  <p class="mt-1 text-xs text-emerald-100">
+                    Margem: {{ stats.totalSales > 0 ? ((stats.totalProfit / stats.totalSales) * 100).toFixed(1) : 0 }}%
+                  </p>
+                </div>
+                <div class="rounded-full bg-white/20 p-4">
+                  <i class="fas fa-chart-line text-white text-2xl"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Total de Transações -->
+          <div class="stat-card fade-in overflow-hidden rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 ring-1 ring-industrial-100" style="animation-delay: 0.2s;">
+            <div class="p-6">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-blue-100 text-sm font-medium">Transações</p>
+                  <p class="mt-2 text-3xl font-bold text-white">
+                    {{ stats.totalTransactions }}
+                  </p>
+                  <p class="mt-1 text-xs text-blue-100">
+                    vendas realizadas
+                  </p>
+                </div>
+                <div class="rounded-full bg-white/20 p-4">
+                  <i class="fas fa-receipt text-white text-2xl"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Ticket Médio -->
+          <div class="stat-card fade-in overflow-hidden rounded-xl bg-gradient-to-br from-accent-500 to-accent-700 ring-1 ring-industrial-100" style="animation-delay: 0.3s;">
+            <div class="p-6">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-purple-100 text-sm font-medium">Ticket Médio</p>
+                  <p class="mt-2 text-3xl font-bold text-white">
+                    {{ formatCurrency(stats.averageTicket) }}
+                  </p>
+                  <p class="mt-1 text-xs text-purple-100">
+                    por transação
+                  </p>
+                </div>
+                <div class="rounded-full bg-white/20 p-4">
+                  <i class="fas fa-calculator text-white text-2xl"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Métricas Secundárias -->
+        <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-6">
+          <!-- Custo Total -->
+          <div class="bg-white rounded-xl  ring-1 ring-industrial-100 p-5">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-sm font-semibold app-muted">Custo Total</p>
+                <p class="mt-2 text-2xl font-bold text-orange-600">
+                  {{ formatCurrency(stats.totalSales - stats.totalProfit) }}
+                </p>
+              </div>
+              <div class="rounded-full bg-orange-100 p-3">
+                <i class="fas fa-coins text-orange-600 text-xl"></i>
+              </div>
+            </div>
+          </div>
+
+          <!-- Desconto Aplicado -->
+          <div class="bg-white rounded-xl  ring-1 ring-industrial-100 p-5">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-sm font-semibold app-muted">Descontos</p>
+                <p class="mt-2 text-2xl font-bold text-red-600">
+                  {{ formatCurrency(stats.totalDiscount || 0) }}
+                </p>
+              </div>
+              <div class="rounded-full bg-red-100 p-3">
+                <i class="fas fa-tags text-red-600 text-xl"></i>
+              </div>
+            </div>
+          </div>
+
+          <!-- Taxa Adicional -->
+          <div class="bg-white rounded-xl  ring-1 ring-industrial-100 p-5">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-sm font-semibold app-muted">Taxas Adicionais</p>
+                <p class="mt-2 text-2xl font-bold text-industrial-900">
+                  {{ formatCurrency(stats.totalTax || 0) }}
+                </p>
+              </div>
+              <div class="rounded-full bg-industrial-100 p-3">
+                <i class="fas fa-percent app-muted text-xl"></i>
+              </div>
+            </div>
+          </div>
+
+          <!-- Margem de Lucro Média -->
+          <div class="bg-white rounded-xl  ring-1 ring-industrial-100 p-5">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-sm font-semibold app-muted">Margem Média</p>
+                <p class="mt-2 text-2xl font-bold" 
+                  style="color: {{ stats.totalSales > 0 && ((stats.totalProfit / stats.totalSales) * 100) >= 30 ? 'rgb(34, 197, 94)' : ((stats.totalProfit / stats.totalSales) * 100) >= 20 ? 'rgb(59, 130, 246)' : ((stats.totalProfit / stats.totalSales) * 100) >= 10 ? 'rgb(234, 179, 8)' : 'rgb(239, 68, 68)' }}">
+                  {{ stats.totalSales > 0 ? ((stats.totalProfit / stats.totalSales) * 100).toFixed(1) : 0 }}%
+                </p>
+              </div>
+              <div class="rounded-full bg-green-100 p-3">
+                <i class="fas fa-percentage text-green-600 text-xl"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Gráficos e Análises -->
+        <div class="grid grid-cols-1 gap-6 lg:grid-cols-2 mb-6">
+          <!-- Vendas por Método de Pagamento -->
+          <div class="bg-white  rounded-xl overflow-hidden ring-1 ring-industrial-100">
+            <div class="px-6 py-4 border-b border-industrial-100 bg-industrial-50">
+              <h2 class="text-lg font-semibold text-industrial-900 flex items-center">
+                <i class="fas fa-credit-card text-accent-600 mr-2"></i>
+                Métodos de Pagamento
+              </h2>
+            </div>
+            <div class="p-6">
+              <div class="mb-4">
+                <canvas id="paymentMethodChart" style="max-height: 300px;"></canvas>
+              </div>
+              <!-- Lista detalhada -->
+              <div class="mt-6 space-y-3">
+                @each(payment in paymentMethodSales)
+                <div class="flex items-center justify-between p-3 bg-industrial-50 rounded-lg">
+                  <div class="flex items-center">
+                    <div class="rounded-full p-2 mr-3" 
+                      style="background-color: {{ payment.payment_method === 'cash' ? 'rgb(99, 102, 241)' : payment.payment_method === 'card' ? 'rgb(34, 197, 94)' : payment.payment_method === 'pix' ? 'rgb(234, 179, 8)' : 'rgb(239, 68, 68)' }}20;">
+                      <i class="fas {{ payment.payment_method === 'cash' ? 'fa-money-bill-wave' : payment.payment_method === 'card' ? 'fa-credit-card' : payment.payment_method === 'pix' ? 'fa-qrcode' : 'fa-exchange-alt' }}" 
+                        style="color: {{ payment.payment_method === 'cash' ? 'rgb(99, 102, 241)' : payment.payment_method === 'card' ? 'rgb(34, 197, 94)' : payment.payment_method === 'pix' ? 'rgb(234, 179, 8)' : 'rgb(239, 68, 68)' }}"></i>
+                    </div>
+                    <div>
+                      <p class="font-semibold text-industrial-900">
+                        {{ payment.payment_method === 'cash' ? 'Dinheiro' : payment.payment_method === 'card' ? 'Cartão' : payment.payment_method === 'pix' ? 'PIX' : 'Misto' }}
+                      </p>
+                      <p class="text-xs app-muted">{{ payment.$extras.count }} transações</p>
+                    </div>
+                  </div>
+                  <div class="text-right">
+                    <p class="font-bold text-industrial-900">{{ formatCurrency(parseFloat(payment.$extras.total)) }}</p>
+                    <p class="text-xs app-muted">
+                      {{ stats.totalSales > 0 ? ((parseFloat(payment.$extras.total) / stats.totalSales) * 100).toFixed(1) : 0 }}%
+                    </p>
+                  </div>
+                </div>
+                @end
+              </div>
+            </div>
+          </div>
+
+          <!-- Análise de Lucratividade -->
+          <div class="bg-white  rounded-xl overflow-hidden ring-1 ring-industrial-100 mt-6 lg:mt-0">
+            <div class="px-6 py-4 border-b border-industrial-100 bg-industrial-50">
+              <h2 class="text-lg font-semibold text-industrial-900 flex items-center">
+                <i class="fas fa-chart-pie text-green-600 mr-2"></i>
+                Análise de Lucratividade
+              </h2>
+            </div>
+            <div class="p-6">
+              <canvas id="profitChart" style="max-height: 300px;"></canvas>
+              
+              <!-- Resumo -->
+              <div class="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div class="text-center p-4 bg-orange-50 rounded-lg">
+                  <p class="text-xs app-muted mb-1">Custo</p>
+                  <p class="text-xl font-bold text-orange-600">
+                    {{ stats.totalSales > 0 ? (((stats.totalSales - stats.totalProfit) / stats.totalSales) * 100).toFixed(1) : 0 }}%
+                  </p>
+                  <p class="text-xs app-muted mt-1">{{ formatCurrency(stats.totalSales - stats.totalProfit) }}</p>
+                </div>
+                <div class="text-center p-4 bg-green-50 rounded-lg">
+                  <p class="text-xs app-muted mb-1">Lucro</p>
+                  <p class="text-xl font-bold text-green-600">
+                    {{ stats.totalSales > 0 ? ((stats.totalProfit / stats.totalSales) * 100).toFixed(1) : 0 }}%
+                  </p>
+                  <p class="text-xs app-muted mt-1">{{ formatCurrency(stats.totalProfit) }}</p>
+                </div>
+                <div class="text-center p-4 bg-accent-50 rounded-lg">
+                  <p class="text-xs app-muted mb-1">Total</p>
+                  <p class="text-xl font-bold text-accent-600">100%</p>
+                  <p class="text-xs app-muted mt-1">{{ formatCurrency(stats.totalSales) }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Top 10 Itens Mais Vendidos -->
+        <!-- Top 10 Itens Mais Vendidos -->
+        <div class="bg-white  rounded-xl overflow-hidden ring-1 ring-industrial-100">
+          <div class="px-6 py-4 border-b border-industrial-100 bg-industrial-50">
+            <h2 class="text-lg font-semibold text-industrial-900 flex items-center">
+              <i class="fas fa-trophy text-accent-600 mr-2"></i>
+              Top 10 Itens Mais Vendidos
+            </h2>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-industrial-100">
+              <thead class="bg-industrial-50">
+                <tr>
+                  <th class="px-6 py-3 text-left text-xs font-semibold app-muted uppercase tracking-wider">
+                    #
+                  </th>
+                  <th class="px-6 py-3 text-left text-xs font-semibold app-muted uppercase tracking-wider">
+                    Item
+                  </th>
+                  <th class="px-6 py-3 text-right text-xs font-semibold app-muted uppercase tracking-wider">
+                    Qtd
+                  </th>
+                  <th class="px-6 py-3 text-right text-xs font-semibold app-muted uppercase tracking-wider">
+                    Receita
+                  </th>
+                  <th class="px-6 py-3 text-right text-xs font-semibold app-muted uppercase tracking-wider">
+                    Lucro
+                  </th>
+                  <th class="px-6 py-3 text-right text-xs font-semibold app-muted uppercase tracking-wider">
+                    Margem
+                  </th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-industrial-100">
+                @each((item, index) in topItems)
+                <tr class="hover:bg-industrial-50 transition">
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="flex items-center justify-center w-8 h-8 rounded-full {{ index === 0 ? 'bg-yellow-50 text-yellow-700' : index === 1 ? 'bg-industrial-50 app-muted' : index === 2 ? 'bg-orange-50 text-orange-700' : 'bg-accent-500/10 text-accent-600' }} font-bold text-sm">
+                      {{ index + 1 }}
+                    </div>
+                  </td>
+                  <td class="px-6 py-4">
+                    <div class="text-sm font-semibold text-industrial-900">{{ item.item_name }}</div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-right">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-accent-500/10 text-accent-700">
+                      {{ item.$extras.total_quantity }}
+                    </span>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-semibold text-industrial-900">
+                    {{ formatCurrency(parseFloat(item.$extras.total_revenue)) }}
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-semibold text-green-600">
+                    {{ formatCurrency(parseFloat(item.$extras.total_profit)) }}
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-right text-sm">
+                    @let(margin = (parseFloat(item.$extras.total_profit) / parseFloat(item.$extras.total_revenue)) * 100)
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ margin >= 30 ? 'bg-green-50 text-green-700' : margin >= 20 ? 'bg-accent-500/10 text-accent-700' : margin >= 10 ? 'bg-yellow-50 text-yellow-700' : 'bg-red-50 text-red-700' }}">
+                      {{ margin.toFixed(1) }}%
+                    </span>
+                  </td>
+                </tr>
+                @end
+                @if(topItems.length === 0)
+                <tr>
+                  <td colspan="6" class="px-6 py-12 text-center">
+                    <div class="flex flex-col items-center">
+                      <i class="fas fa-inbox text-industrial-300 text-4xl mb-3"></i>
+                      <p class="app-muted">Nenhum item vendido no período selecionado</p>
+                    </div>
+                  </td>
+                </tr>
+                @end
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // Dados para os gráficos
+    const paymentData = {!! JSON.stringify(paymentMethodSales)!!};
+    const stats = {!! JSON.stringify(stats)!!};
+
+    // Preparar dados para o Chart.js - Métodos de Pagamento
+    const paymentLabels = paymentData.map(p => {
+      const methods = {
+        'cash': 'Dinheiro',
+        'card': 'Cartão',
+        'pix': 'PIX',
+        'split': 'Misto'
+      };
+      return methods[p.payment_method] || p.payment_method;
+    });
+
+    const paymentTotals = paymentData.map(p => parseFloat(p.$extras.total));
+    const paymentColors = ['rgb(99, 102, 241)', 'rgb(34, 197, 94)', 'rgb(234, 179, 8)', 'rgb(239, 68, 68)'];
+
+    // Gráfico de Pizza - Métodos de Pagamento
+    const ctx1 = document.getElementById('paymentMethodChart');
+    new Chart(ctx1, {
+      type: 'doughnut',
+      data: {
+        labels: paymentLabels,
+        datasets: [{
+          data: paymentTotals,
+          backgroundColor: paymentColors,
+          borderWidth: 3,
+          borderColor: '#fff',
+          hoverOffset: 10
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              padding: 15,
+              font: {
+                size: 12,
+                weight: 'bold'
+              }
+            }
+          },
+          tooltip: {
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            padding: 12,
+            titleFont: {
+              size: 14,
+              weight: 'bold'
+            },
+            bodyFont: {
+              size: 13
+            },
+            callbacks: {
+              label: function (context) {
+                const label = context.label || '';
+                const value = context.parsed || 0;
+                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                const percentage = ((value / total) * 100).toFixed(1);
+                return label + ': R$ ' + value.toFixed(2) + ' (' + percentage + '%)';
+              }
+            }
+          }
+        }
+      }
+    });
+
+    // Gráfico de Lucro - Composição
+    const ctx2 = document.getElementById('profitChart');
+    const costTotal = stats.totalSales - stats.totalProfit;
+    
+    new Chart(ctx2, {
+      type: 'doughnut',
+      data: {
+        labels: ['Custo dos Produtos', 'Lucro Bruto'],
+        datasets: [{
+          data: [costTotal, stats.totalProfit],
+          backgroundColor: [
+            'rgb(249, 115, 22)',
+            'rgb(34, 197, 94)'
+          ],
+          borderWidth: 3,
+          borderColor: '#fff',
+          hoverOffset: 10
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              padding: 15,
+              font: {
+                size: 12,
+                weight: 'bold'
+              }
+            }
+          },
+          tooltip: {
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            padding: 12,
+            titleFont: {
+              size: 14,
+              weight: 'bold'
+            },
+            bodyFont: {
+              size: 13
+            },
+            callbacks: {
+              label: function (context) {
+                const label = context.label || '';
+                const value = context.parsed || 0;
+                const total = stats.totalSales;
+                const percentage = ((value / total) * 100).toFixed(1);
+                return label + ': R$ ' + value.toFixed(2) + ' (' + percentage + '%)';
+              }
+            }
+          }
+        }
+      }
+    });
+  </script>
+
+  <style>
+    @media print {
+      header .no-print,
+      button {
+        display: none !important;
+      }
+    }
+  </style>
+  @include('components/quick_actions')
+</body>
+</html>

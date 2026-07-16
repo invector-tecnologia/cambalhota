@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="{{ theme }}" class="h-full bg-industrial-50">
+<head>
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Editar Venda #{{ venda.saleNumber }} - Tavolo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    .menu-item-card {
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .menu-item-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+    }
+  </style>
+  @vite(['resources/css/app.css', 'resources/js/app.js'])
+</head>
+<body class="h-full font-sans text-industrial-900">
+  <div class="min-h-full">
+    <header class="bg-white shadow-sm">
+      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div class="flex h-16 items-center gap-3">
+          <div class="flex items-center gap-3 ml-auto">
+            <div class="h-10 w-10 rounded-full bg-accent-500/10 text-accent-600 flex items-center justify-center">
+              <i class="fas fa-edit"></i>
+            </div>
+            <div>
+              <h1 class="text-lg font-semibold text-industrial-900">Editar Venda #{{ venda.saleNumber }}</h1>
+              <p class="text-sm text-industrial-500">Ajuste itens e valores</p>
+            </div>
+          </div>
+          <a href="{{ route('vendas.show', [venda.id]) }}"
+            class="inline-flex items-center gap-2 rounded-lg bg-industrial-800 px-3 py-2 text-sm font-semibold text-white ml-auto hover:bg-industrial-700">
+            <i class="fas fa-arrow-left"></i> Detalhes da Venda
+          </a>
+        </div>
+      </div>
+    </header>
+    <main class="flex-1">
+      <div class="mx-auto max-w-7xl py-6 sm:px-6 lg:px-8">
+        @if(flashMessages.has('errors'))
+        <div class="bg-red-50 border-l-4 border-red-400 p-4 mb-4">
+          <div class="flex">
+            <div class="flex-shrink-0">
+              <i class="fas fa-exclamation-circle text-red-400"></i>
+            </div>
+            <div class="ml-3">
+              <p class="text-sm text-red-700">
+                @each(error in flashMessages.get('errors'))
+                {{ error.message }}<br>
+                @end
+              </p>
+            </div>
+          </div>
+        </div>
+        @end
+
+        <form action="{{ route('vendas.update', [venda.id]) }}" method="POST" id="saleForm">
+          {{ csrfField() }}
+          <input type="hidden" name="_method" value="PUT">
+          <input type="hidden" name="items" id="itemsInput" value="">
+
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Formulário Principal -->
+            <div class="lg:col-span-2 space-y-6">
+              <!-- Informações da Venda -->
+              <div class="bg-white  rounded-xl ring-1 ring-industrial-100">
+                <div class="px-4 py-4 border-b border-industrial-100 sm:px-6">
+                  <h5 class="font-semibold text-industrial-900">Informações da Venda</h5>
+                </div>
+                <div class="px-4 py-5 sm:p-6">
+                  <div class="space-y-4">
+                    <!-- Número da Venda (Readonly) -->
+                    <div>
+                      <label class="block text-sm font-semibold app-muted">Número da Venda</label>
+                      <input type="text" value="{{ venda.saleNumber }}" disabled
+                        class="mt-1 block w-full rounded-lg border-industrial-200 bg-industrial-50 shadow-sm">
+                    </div>
+
+                    <!-- Data da Venda (Readonly) -->
+                    <div>
+                      <label class="block text-sm font-semibold app-muted">Data da Venda</label>
+                      <input type="text" value="" data-timestamp-input="datetime" data-timestamp="{{ venda.saleDate.toISO() }}" disabled
+                        class="mt-1 block w-full rounded-lg border-industrial-200 bg-industrial-50 shadow-sm">
+                    </div>
+
+                    <!-- Método de Pagamento -->
+                    <div>
+                      <label class="block text-sm font-semibold app-muted">
+                        Método de Pagamento <span class="text-red-500">*</span>
+                      </label>
+                      <select name="payment_method" id="paymentMethod" required
+                        class="mt-1 block w-full rounded-lg border-industrial-200  focus:border-accent-500 focus:ring-accent-500">
+                        <option value="">Selecione...</option>
+                        <option value="cash" {{ old('payment_method', venda.paymentMethod) === 'cash' ? 'selected' : '' }}>💵 Dinheiro</option>
+                        <option value="card" {{ old('payment_method', venda.paymentMethod) === 'card' ? 'selected' : '' }}>💳 Cartão</option>
+                        <option value="pix" {{ old('payment_method', venda.paymentMethod) === 'pix' ? 'selected' : '' }}>📱 PIX</option>
+                        <option value="split" {{ old('payment_method', venda.paymentMethod) === 'split' ? 'selected' : '' }}>🔀 Misto</option>
+                      </select>
+                    </div>
+
+                    <!-- Cliente/Observações -->
+                    <div>
+                      <label class="block text-sm font-semibold app-muted">Observações</label>
+                      <textarea name="notes"
+                        class="mt-1 block w-full rounded-lg border-industrial-200  focus:border-accent-500 focus:ring-accent-500"
+                        rows="2" placeholder="Cliente, observações...">{{ old('notes', venda.notes || '') }}</textarea>
+                    </div>
+
+                    <!-- Desconto e Taxa -->
+                    <div class="md:grid md:grid-cols-2 md:gap-6">
+                      <div>
+                        <label class="block text-sm font-semibold app-muted">Desconto (R$)</label>
+                        <input type="text" name="discount" id="discountInput"
+                          value="{{ formatCurrency(old('discount', venda.discount), false) }}"
+                          data-mask="currency"
+                          class="mt-1 block w-full rounded-lg border-industrial-200  focus:border-accent-500 focus:ring-accent-500"
+                          placeholder="0,00" onchange="updateTotals()">
+                      </div>
+                      <div>
+                        <label class="block text-sm font-semibold app-muted">Taxa Adicional (R$)</label>
+                        <input type="text" name="tax" id="taxInput"
+                          value="{{ formatCurrency(old('tax', venda.tax), false) }}"
+                          data-mask="currency"
+                          class="mt-1 block w-full rounded-lg border-industrial-200  focus:border-accent-500 focus:ring-accent-500"
+                          placeholder="0,00" onchange="updateTotals()">
+                        <p class="mt-1 text-sm app-muted">Taxa de entrega, embalagem, etc.</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Adicionar Produtos -->
+              <div class="bg-white  rounded-xl ring-1 ring-industrial-100">
+                <div class="px-4 py-4 border-b border-industrial-100 sm:px-6">
+                  <h5 class="font-semibold text-industrial-900">Adicionar Mais Produtos</h5>
+                </div>
+                <div class="px-4 py-5 sm:p-6">
+                  <div class="space-y-6">
+                    @each(category in categories)
+                    <div>
+                      <h6 class="text-accent-600 font-semibold mb-3">{{ category.name }}</h6>
+                      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        @if(category.cardapioProdutos && category.cardapioProdutos.length > 0)
+                        @each(item in category.cardapioProdutos)
+                        <div class="bg-white rounded-lg ring-1 ring-industrial-100 menu-item-card"
+                          onclick="addItem({{ item.id }}, '{{ item.name }}', {{ item.salePrice }}, {{ item.costPrice || 0 }})">
+                          <div class="p-3">
+                            <div class="flex justify-between items-center">
+                              <div class="flex-1">
+                                <p class="font-semibold text-industrial-900">{{ item.name }}</p>
+                                @if(item.description)
+                                <p class="text-xs app-muted mt-1">{{ item.description }}</p>
+                                @end
+                              </div>
+                              <div class="ml-4 text-right">
+                                <p class="font-semibold text-green-600">{{ formatCurrency(item.salePrice) }}</p>
+                                @if(item.costPrice)
+                                <p class="text-xs app-muted">Custo: {{ formatCurrency(item.costPrice) }}</p>
+                                @end
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        @end
+                        @end
+                      </div>
+                    </div>
+                    @end
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Resumo da Venda -->
+            <div class="lg:col-span-1">
+              <div class="bg-white  rounded-xl ring-1 ring-industrial-100 sticky top-6">
+                <div class="px-4 py-4 border-b border-industrial-100 bg-accent-600 text-white rounded-t-xl sm:px-6">
+                  <h5 class="font-semibold">Itens da Venda</h5>
+                </div>
+                <div class="px-4 py-5 sm:p-6">
+                  <div id="saleItems" class="mb-4">
+                    <p class="app-muted text-center py-4">Carregando itens...</p>
+                  </div>
+
+                  <hr class="my-4">
+
+                  <!-- Resumo Financeiro -->
+                  <div class="financial-summary-block">
+                    <div class="financial-row">
+                      <div class="financial-row-label financial-label">
+                        <i class="fas fa-calculator mr-2 text-accent-500"></i>Subtotal
+                      </div>
+                      <div class="financial-row-value financial-subtotal" id="subtotal">R$ 0,00</div>
+                    </div>
+                    <div class="financial-row">
+                      <div class="financial-row-label financial-label">
+                        <i class="fas fa-tag mr-2 text-red-500"></i>Desconto
+                      </div>
+                      <div class="financial-row-value financial-discount" id="discountDisplay">R$ 0,00</div>
+                    </div>
+                    <div class="financial-row">
+                      <div class="financial-row-label financial-label">
+                        <i class="fas fa-percent mr-2 text-orange-500"></i>Taxa Adicional
+                      </div>
+                      <div class="financial-row-value financial-tax" id="taxDisplay">R$ 0,00</div>
+                    </div>
+                    <div class="financial-divider"></div>
+                    <div class="financial-row">
+                      <div class="financial-row-label financial-label">
+                        <i class="fas fa-coins mr-2 text-orange-500"></i>Custo Total
+                      </div>
+                      <div class="financial-row-value financial-cost" id="costTotal">R$ 0,00</div>
+                    </div>
+                  </div>
+
+                  <!-- Total e Lucro -->
+                  <div class="financial-summary-block mt-4 mb-4">
+                    <div class="financial-row">
+                      <div class="financial-row-label" style="font-weight: 700; font-size: 1rem;">
+                        <i class="fas fa-money-bill mr-2 text-accent-600"></i>TOTAL
+                      </div>
+                      <div class="financial-row-value financial-total" id="total">R$ 0,00</div>
+                    </div>
+                    <div class="financial-divider"></div>
+                    <div class="financial-row">
+                      <div class="financial-row-label" style="font-weight: 700; font-size: 0.95rem;">
+                        <i class="fas fa-arrow-trend-up mr-2 text-emerald-600"></i>Lucro Bruto
+                      </div>
+                      <div class="financial-row-value financial-profit" id="profit">R$ 0,00</div>
+                    </div>
+                    <div class="financial-row">
+                      <div class="financial-row-label financial-label">
+                        <i class="fas fa-percentage mr-2 text-accent-500"></i>Margem
+                      </div>
+                      <div class="financial-row-value financial-margin" id="profitMargin">0%</div>
+                    </div>
+                  </div>
+
+                  <div class="space-y-2">
+                    <button type="submit"
+                      class="w-full inline-flex justify-center items-center px-4 py-2 bg-accent-600 text-white text-sm font-medium rounded-md hover:bg-accent-500"
+                      id="submitBtn">
+                      <i class="fas fa-save mr-2"></i> Salvar Alterações
+                    </button>
+                    <a href="{{ route('vendas.show', [venda.id]) }}"
+                      class="block w-full text-center px-4 py-2 app-border text-sm font-medium rounded-md app-muted bg-white hover:bg-industrial-50">
+                      <i class="fas fa-times mr-2"></i> Cancelar
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    let saleItems = @json(venda.items || []).map(item => ({
+      menuItemId: item.menuItemId,
+      itemName: item.itemName,
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+      unitCost: item.unitCost || 0
+    }));
+
+    // Inicializar display ao carregar a página
+    document.addEventListener('DOMContentLoaded', () => {
+      updateSaleDisplay();
+    });
+
+    function addItem(id, name, price, cost) {
+      const existing = saleItems.find(item => item.menuItemId === id);
+      if (existing) {
+        existing.quantity++;
+      } else {
+        saleItems.push({
+          menuItemId: id,
+          itemName: name,
+          quantity: 1,
+          unitPrice: price,
+          unitCost: cost
+        });
+      }
+      updateSaleDisplay();
+    }
+
+    function removeItem(id) {
+      if (confirm('Tem certeza que deseja remover este item?')) {
+        saleItems = saleItems.filter(item => item.menuItemId !== id);
+        updateSaleDisplay();
+      }
+    }
+
+    function updateQuantity(id, delta) {
+      const item = saleItems.find(item => item.menuItemId === id);
+      if (item) {
+        item.quantity += delta;
+        if (item.quantity <= 0) {
+          removeItem(id);
+        } else {
+          updateSaleDisplay();
+        }
+      }
+    }
+
+    function updateSaleDisplay() {
+      const container = document.getElementById('saleItems');
+      const submitBtn = document.getElementById('submitBtn');
+
+      if (saleItems.length === 0) {
+        container.innerHTML = '<p class="text-industrial-500 text-center py-4">Nenhum item adicionado</p>';
+        submitBtn.disabled = true;
+      } else {
+        let html = '<div class="space-y-3">';
+        saleItems.forEach(item => {
+          const subtotal = item.quantity * item.unitPrice;
+          html += `
+          <div class="border-b border-industrial-200 pb-3">
+            <div class="flex justify-between items-start mb-2">
+              <strong class="text-sm">${item.itemName}</strong>
+              <button type="button" class="text-red-600 hover:text-red-800" onclick="removeItem(${item.menuItemId})">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+            <div class="flex justify-between items-center">
+              <div class="inline-flex rounded-md shadow-sm">
+                <button type="button" class="px-2 py-1 text-xs app-border rounded-l-md bg-white hover:bg-industrial-50" onclick="updateQuantity(${item.menuItemId}, -1)">-</button>
+                <span class="px-3 py-1 text-xs border-t border-b border-industrial-300 bg-industrial-50">${item.quantity}</span>
+                <button type="button" class="px-2 py-1 text-xs app-border rounded-r-md bg-white hover:bg-industrial-50" onclick="updateQuantity(${item.menuItemId}, 1)">+</button>
+              </div>
+              <span class="text-sm font-semibold">R$ ${subtotal.toFixed(2)}</span>
+            </div>
+          </div>
+        `;
+        });
+        html += '</div>';
+        container.innerHTML = html;
+        submitBtn.disabled = false;
+      }
+
+      updateTotals();
+    }
+
+    function updateTotals() {
+      const subtotal = saleItems.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
+      const costTotal = saleItems.reduce((sum, item) => sum + (item.quantity * item.unitCost), 0);
+      const discount = parseFloat(document.getElementById('discountInput').value) || 0;
+      const tax = parseFloat(document.getElementById('taxInput').value) || 0;
+      const total = subtotal - discount + tax;
+      // Lucro bruto = receita - custo (antes de desconto/taxa)
+      const profit = subtotal - costTotal;
+      // Margem sobre o subtotal (receita bruta)
+      const profitMargin = subtotal > 0 ? (profit / subtotal) * 100 : 0;
+
+      document.getElementById('subtotal').textContent = `R$ ${subtotal.toFixed(2)}`;
+      document.getElementById('discountDisplay').textContent = `R$ ${discount.toFixed(2)}`;
+      document.getElementById('taxDisplay').textContent = `R$ ${tax.toFixed(2)}`;
+      document.getElementById('costTotal').textContent = `R$ ${costTotal.toFixed(2)}`;
+      document.getElementById('total').textContent = `R$ ${total.toFixed(2)}`;
+      document.getElementById('profit').textContent = `R$ ${profit.toFixed(2)}`;
+      document.getElementById('profitMargin').textContent = `${profitMargin.toFixed(1)}%`;
+
+      // Colorir margem
+      const marginEl = document.getElementById('profitMargin');
+      if (profitMargin >= 30) {
+        marginEl.className = 'text-green-600 font-bold';
+      } else if (profitMargin >= 20) {
+        marginEl.className = 'text-blue-600 font-bold';
+      } else if (profitMargin >= 10) {
+        marginEl.className = 'text-yellow-600 font-bold';
+      } else {
+        marginEl.className = 'text-red-600 font-bold';
+      }
+    }
+
+    // Atualizar o input hidden antes de enviar o formulário
+    document.getElementById('saleForm').addEventListener('submit', function (e) {
+      if (saleItems.length === 0) {
+        e.preventDefault();
+        alert('Adicione pelo menos um item à venda');
+        return;
+      }
+
+      const paymentMethod = document.getElementById('paymentMethod').value;
+      if (!paymentMethod) {
+        e.preventDefault();
+        alert('Selecione o método de pagamento');
+        return;
+      }
+
+      document.getElementById('itemsInput').value = JSON.stringify(saleItems);
+    });
+  </script>
+  @include('components/quick_actions')
+</body>
+</html>

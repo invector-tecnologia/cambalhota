@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="{{ theme }}" class="h-full bg-industrial-50">
+<head>
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf-token" content="{{ csrfToken }}">
+  <title>Novo Usuário - Tavolo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  @vite(['resources/css/app.css', 'resources/js/app.js'])
+</head>
+<body class="min-h-screen bg-industrial-50 font-sans text-industrial-900">
+  <div class="min-h-screen">
+    <header class="bg-white ">
+      <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+        <div class="flex h-16 items-center gap-3">
+          <div class="flex items-center space-x-3 ml-auto">
+            <div class="h-10 w-10 rounded-full bg-accent-500/10 text-accent-600 flex items-center justify-center">
+              <i class="fas fa-user"></i>
+            </div>
+            <div>
+              <h1 class="text-lg font-semibold">Novo Usuário</h1>
+              <p class="text-sm text-industrial-500">Crie acesso com função adequada</p>
+            </div>
+          </div>
+          <a href="{{ route('users.index') }}"
+            class="inline-flex items-center rounded-md bg-industrial-800 px-3 py-2 text-sm font-semibold text-white ml-auto hover:bg-industrial-700">
+            <i class="fas fa-arrow-left mr-2"></i> Usuários
+          </a>
+        </div>
+      </div>
+    </header>
+    <main class="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+      <div class="overflow-hidden rounded-xl bg-white  ring-1 ring-industrial-100">
+        <div class="border-b border-industrial-100 bg-gradient-to-r from-white via-white to-industrial-50 px-6 py-5">
+          <h2 class="text-lg font-semibold text-industrial-900">Dados do usuário</h2>
+          <p class="text-sm text-industrial-500">Defina nome, email, senha e função.</p>
+        </div>
+        <div class="p-6">
+          <form action="{{ route('users.store') }}" method="POST" class="space-y-6">
+            {{ csrfField() }}
+            <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+              <div>
+                <label class="block text-sm font-medium app-muted">Nome *</label>
+                <input type="text" name="name"
+                  class="mt-1 block w-full rounded-md app-border px-3 py-2 text-sm  focus:border-accent-500 focus:ring-accent-500"
+                  required placeholder="Nome completo">
+              </div>
+              <div>
+                <label class="block text-sm font-medium app-muted">Email *</label>
+                <input type="email" name="email"
+                  class="mt-1 block w-full rounded-md app-border px-3 py-2 text-sm  focus:border-accent-500 focus:ring-accent-500"
+                  required placeholder="email@exemplo.com">
+              </div>
+              <div>
+                <label class="block text-sm font-medium app-muted">Senha *</label>
+                <input type="password" name="password"
+                  class="mt-1 block w-full rounded-md app-border px-3 py-2 text-sm  focus:border-accent-500 focus:ring-accent-500"
+                  required placeholder="Mínimo 6 caracteres">
+              </div>
+              <div>
+                <label class="block text-sm font-medium app-muted">Função</label>
+                <select name="role"
+                  class="mt-1 block w-full rounded-md app-border px-3 py-2 text-sm  focus:border-accent-500 focus:ring-accent-500">
+                  <option value="waiter">Garçom</option>
+                  <option value="manager">Gerente</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+            </div>
+            <div class="flex justify-end space-x-3 border-t border-industrial-100 pt-4">
+              <a href="{{ route('users.index') }}"
+                class="inline-flex items-center rounded-md bg-white px-3 py-2 text-sm font-semibold app-muted  ring-1 ring-inset ring-industrial-200 hover:bg-industrial-100">
+                <i class="fas fa-arrow-left mr-2"></i> Usuários
+              </a>
+              <button type="submit"
+                class="inline-flex items-center rounded-md bg-accent-600 px-3 py-2 text-sm font-semibold text-white  hover:bg-accent-500">Salvar</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const validators = {
+      email: (value) => {
+        if (!value) return { valid: false, message: 'Email é obrigatório' };
+        const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!regex.test(value)) return { valid: false, message: 'Email inválido' };
+        return { valid: true, message: 'Email válido' };
+      },
+      password: (value) => {
+        if (!value) return { valid: false, message: 'Senha é obrigatória' };
+        if (value.length < 6) return { valid: false, message: 'Senha deve ter no mínimo 6 caracteres' };
+        return { valid: true, message: 'Senha válida' };
+      },
+      required: (value) => {
+        if (!value || value.trim() === '') {
+          return { valid: false, message: 'Campo obrigatório' };
+        }
+        return { valid: true, message: '' };
+      }
+    };
+
+    function showFeedback(input, validation) {
+      const existingFeedback = input.parentElement.querySelector('.field-feedback');
+      if (existingFeedback) existingFeedback.remove();
+
+      input.classList.remove('border-red-500', 'border-green-500', 'focus:ring-red-500', 'focus:ring-green-500');
+      
+      if (validation.valid && validation.message) {
+        input.classList.add('border-green-500', 'focus:ring-green-500');
+      } else if (!validation.valid) {
+        input.classList.add('border-red-500', 'focus:ring-red-500');
+      }
+
+      if (validation.message) {
+        const feedback = document.createElement('div');
+        feedback.className = `field-feedback text-xs mt-1 ${validation.valid ? 'text-green-600' : 'text-red-600'}`;
+        feedback.textContent = validation.message;
+        input.parentElement.appendChild(feedback);
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      const emailInput = document.querySelector('[name="email"]');
+      if (emailInput) {
+        emailInput.addEventListener('blur', function() {
+          const validation = validators.email(this.value);
+          showFeedback(this, validation);
+        });
+      }
+
+      const passwordInput = document.querySelector('[name="password"]');
+      if (passwordInput) {
+        passwordInput.addEventListener('blur', function() {
+          const validation = validators.password(this.value);
+          showFeedback(this, validation);
+        });
+      }
+
+      const nameInput = document.querySelector('[name="name"]');
+      if (nameInput) {
+        nameInput.addEventListener('blur', function() {
+          const validation = validators.required(this.value);
+          showFeedback(this, validation);
+        });
+      }
+    });
+  </script>
+  @include('components/quick_actions')
+</body>
+</html>

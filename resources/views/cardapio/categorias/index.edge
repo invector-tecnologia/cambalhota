@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="{{ theme }}" class="h-full bg-industrial-50">
+<head>
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf-token" content="{{ csrfToken }}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <title>Categorias do Cardápio - Tavolo</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- TailwindCSS -->
+  <!-- Custom CSS -->
+  <style>
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+  </style>
+  
+  @vite(['resources/css/app.css', 'resources/js/app.js'])
+</head>
+<body class="h-full font-sans text-industrial-900">
+  <div class="min-h-full">
+    <!-- Cabeçalho -->
+    <header class="bg-white shadow-sm">
+      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div class="flex h-16 items-center gap-3">
+          <div class="h-10 w-10 rounded-full bg-accent-500/10 text-accent-600 flex items-center justify-center">
+            <i class="fas fa-folder"></i>
+          </div>
+          <div>
+            <h1 class="text-lg font-semibold text-industrial-900">Categorias do Cardápio</h1>
+            <p class="text-sm text-industrial-500">Organizar produtos por categorias</p>
+          </div>
+          <div class="flex items-center gap-2 ml-auto">
+            <a href="{{ route('cardapio_categorias.create') }}" class="inline-flex items-center gap-2 rounded-lg bg-accent-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-accent-500">
+              <i class="fas fa-plus"></i>
+              Nova Categoria
+            </a>
+            <a href="{{ route('cardapios_virtuais.index') }}" class="inline-flex items-center gap-2 rounded-lg bg-purple-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-purple-500">
+              <i class="fas fa-qrcode"></i> Cardápios Virtuais
+            </a>
+            <a href="{{ route('dashboard.index') }}"
+              class="inline-flex items-center gap-2 rounded-lg bg-industrial-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-industrial-400">
+              <i class="fas fa-home mr-2"></i> Dashboard
+            </a>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Conteúdo principal -->
+    <main class="flex-1">
+      <div class="mx-auto max-w-7xl py-6 sm:px-6 lg:px-8">
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+          <div class="bg-white overflow-hidden shadow-sm rounded-xl ring-1 ring-industrial-100">
+            <div class="p-6">
+              <div class="flex items-center">
+                <div class="flex-shrink-0">
+                  <div class="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-check-circle text-green-600 text-lg"></i>
+                  </div>
+                </div>
+                <div class="ml-5">
+                  <dt class="text-sm font-semibold app-muted">Categorias Ativas</dt>
+                  <dd class="text-2xl font-semibold text-industrial-900">{{ categorias.filter(c => c.active).length }}</dd>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-white overflow-hidden shadow-sm rounded-xl ring-1 ring-industrial-100">
+            <div class="p-6">
+              <div class="flex items-center">
+                <div class="flex-shrink-0">
+                  <div class="w-10 h-10 bg-accent-50 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-folder text-accent-600 text-lg"></i>
+                  </div>
+                </div>
+                <div class="ml-5">
+                  <dt class="text-sm font-semibold app-muted">Total de Categorias</dt>
+                  <dd class="text-2xl font-semibold text-industrial-900">{{ categorias.length }}</dd>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-white overflow-hidden shadow-sm rounded-xl ring-1 ring-industrial-100">
+            <div class="p-6">
+              <div class="flex items-center">
+                <div class="flex-shrink-0">
+                  <div class="w-10 h-10 bg-red-50 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-times-circle text-red-600 text-lg"></i>
+                  </div>
+                </div>
+                <div class="ml-5">
+                  <dt class="text-sm font-semibold app-muted">Categorias Inativas</dt>
+                  <dd class="text-2xl font-semibold text-industrial-900">{{ categorias.filter(c => !c.active).length }}</dd>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Lista de Categorias -->
+        <div class="bg-white shadow-sm rounded-xl ring-1 ring-industrial-100">
+          <div class="px-6 py-4 border-b border-industrial-100">
+            <h2 class="text-lg font-semibold text-industrial-900">Lista de Categorias</h2>
+          </div>
+          
+          @if(categorias.length === 0)
+            <div class="text-center py-12">
+              <i class="fas fa-folder-open text-6xl text-industrial-200 mb-4"></i>
+              <h3 class="mt-2 text-sm font-semibold text-industrial-900">Nenhuma categoria cadastrada</h3>
+              <p class="mt-1 text-sm text-industrial-500">Comece criando uma nova categoria para o seu cardápio.</p>
+              <div class="mt-6">
+                <a href="{{ route('cardapio_categorias.create') }}" class="inline-flex items-center gap-2 rounded-lg bg-accent-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-accent-500">
+                  <i class="fas fa-plus"></i>
+                  Nova Categoria
+                </a>
+              </div>
+            </div>
+          @else
+            <div class="overflow-x-auto">
+              <table class="min-w-full divide-y divide-industrial-100">
+                <thead class="bg-industrial-50">
+                  <tr>
+                    <th class="px-6 py-3 text-left text-xs font-semibold app-muted uppercase tracking-wider">Ordem</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold app-muted uppercase tracking-wider">Categoria</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold app-muted uppercase tracking-wider">Disponibilidade</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold app-muted uppercase tracking-wider">Status</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold app-muted uppercase tracking-wider">Criado em</th>
+                    <th class="relative px-6 py-3"><span class="sr-only">Ções</span></th>
+                  </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-industrial-100">
+                  @each(categoria in categorias)
+                    <tr class="hover:bg-industrial-50">
+                      <td class="px-6 py-4 text-sm font-semibold text-industrial-900">
+                        {{ categoria.sortOrder || 0 }}
+                      </td>
+                      <td class="px-6 py-4">
+                        <div>
+                          <div class="text-sm font-semibold text-industrial-900">{{ categoria.name }}</div>
+                          @if(categoria.description)
+                            <div class="text-sm app-muted">{{ categoria.description }}</div>
+                          @end
+                        </div>
+                      </td>
+                      <td class="px-6 py-4 text-sm app-muted">
+                        @if(categoria.availableFrom && categoria.availableUntil)
+                          {{ categoria.availableFrom }} - {{ categoria.availableUntil }}
+                        @else
+                          Sempre disponível
+                        @end
+                      </td>
+                      <td class="px-6 py-4">
+                        <span class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold
+                          {{ categoria.active ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700' }}">
+                          {{ categoria.active ? 'Ativo' : 'Inativo' }}
+                        </span>
+                      </td>
+                      <td class="px-6 py-4 text-sm app-muted">
+                        {{ categoria.createdAt.toFormat('dd/MM/yyyy HH:mm') }}
+                      </td>
+                      <td class="px-6 py-4 text-right text-sm font-medium">
+                        <div class="inline-flex gap-3">
+                          <a href="{{ route('cardapio_categorias.show', [categoria.id]) }}" class="text-accent-600 hover:text-accent-500">Ver</a>
+                          <a href="{{ route('cardapio_categorias.edit', [categoria.id]) }}" class="app-muted hover:text-industrial-500">Editar</a>
+                          <form action="{{ route('cardapio_categorias.toggleActive', [categoria.id]) }}" method="POST" class="inline">
+                            {{ csrfField() }}
+                            <button type="submit" class="text-yellow-600 hover:text-yellow-500">
+                              {{ categoria.active ? 'Desativar' : 'Ativar' }}
+                            </button>
+                          </form>
+                          <form action="{{ route('cardapio_categorias.destroy', [categoria.id]) }}" method="POST" class="inline" 
+                                onsubmit="return confirm('Tem certeza que deseja excluir esta categoria?')">
+                            {{ csrfField() }}
+                            <input type="hidden" name="_method" value="DELETE">
+                            <button type="submit" class="text-red-600 hover:text-red-500">Excluir</button>
+                          </form>
+                        </div>
+                      </td>
+                    </tr>
+                  @endeach
+                </tbody>
+              </table>
+            </div>
+          @end
+        </div>
+      </div>
+    </main>
+  </div>
+  @include('components/quick_actions')
+</body>
+</html>

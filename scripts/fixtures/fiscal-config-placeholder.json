@@ -1,0 +1,7 @@
+{
+  "certificate_path": "/path/para/certificado.pfx",
+  "certificate_password": "SENHA_DO_CERTIFICADO",
+  "csc_token": "CSC_TOKEN_AQUI",
+  "csc_id": "000001",
+  "is_homologation": true
+}

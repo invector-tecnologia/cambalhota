@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="{{ theme }}" class="h-full bg-industrial-50">
+<head>
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Funcionários - Tavolo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  @vite(['resources/css/app.css'])
+</head>
+<body class="h-full font-sans text-industrial-900">
+  @include('components/quick_actions')
+  <div class="min-h-full">
+    <header class="bg-white ">
+      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div class="flex h-16 items-center gap-3">
+          <div class="h-10 w-10 rounded-full bg-accent-500/10 text-accent-600 flex items-center justify-center">
+            <i class="fas fa-users"></i>
+          </div>
+          <div>
+            <h1 class="text-lg font-semibold text-industrial-900">Funcionários</h1>
+            <p class="text-sm text-industrial-500">Gerenciar equipe</p>
+          </div>
+          <div class="flex gap-2 ml-auto">
+            <a href="{{ route('funcionarios.create') }}" class="inline-flex items-center gap-2 rounded-lg bg-accent-600 px-4 py-2 text-sm font-semibold text-white hover:bg-accent-700 transition">
+              <i class="fas fa-plus"></i>Novo Funcionário
+            </a>
+            <a href="{{ route('dashboard.index') }}"
+              class="inline-flex items-center gap-2 rounded-lg bg-industrial-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-industrial-400">
+              <i class="fas fa-home mr-2"></i> Dashboard
+            </a>
+          </div>
+        </div>
+      </div>
+    </header>
+    <main class="flex-1">
+      <div class="mx-auto max-w-7xl py-6 sm:px-6 lg:px-8">
+        @if(flashMessages.has('success'))
+        <div class="mb-6 rounded-lg bg-green-50 ring-1 ring-green-200 p-4">
+          <div class="flex">
+            <i class="fas fa-check-circle text-green-600 text-lg mr-3 mt-1"></i>
+            <p class="text-sm font-medium text-green-800">{{ flashMessages.get('success') }}</p>
+          </div>
+        </div>
+        @end
+
+        <div class="bg-white ring-1 ring-industrial-100 rounded-xl overflow-hidden">
+          <div class="px-6 py-4 border-b border-industrial-100 bg-industrial-50">
+            <h2 class="text-lg font-semibold text-industrial-900">Lista de Funcionários</h2>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-industrial-100">
+              <thead class="bg-industrial-50">
+                <tr>
+                  <th class="px-6 py-3 text-left text-xs font-semibold app-muted uppercase">Nome</th>
+                  <th class="px-6 py-3 text-left text-xs font-semibold app-muted uppercase">Funções</th>
+                  <th class="px-6 py-3 text-left text-xs font-semibold app-muted uppercase">Telefone</th>
+                  <th class="px-6 py-3 text-left text-xs font-semibold app-muted uppercase">Status</th>
+                  <th class="px-6 py-3 text-left text-xs font-semibold app-muted uppercase">Ações</th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-industrial-100">
+                @each(funcionario in funcionarios.data)
+                <tr class="hover:bg-industrial-50 transition">
+                  <td class="px-6 py-4 text-sm font-medium text-industrial-900">{{ funcionario.name }}</td>
+                  <td class="px-6 py-4 text-sm">
+                    @each(funcao in funcionario.funcoes)
+                      <span class="inline-block bg-accent-100 text-accent-800 text-xs px-2.5 py-1 rounded-full mr-1 mb-1">{{ funcao.name }}</span>
+                    @end
+                  </td>
+                  <td class="px-6 py-4 text-sm app-muted">{{ funcionario.phone || '-' }}</td>
+                  <td class="px-6 py-4">
+                    @if(funcionario.active)
+                      <span class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold bg-green-50 text-green-700">Ativo</span>
+                    @else
+                      <span class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold bg-industrial-100 app-muted">Inativo</span>
+                    @end
+                  </td>
+                  <td class="px-6 py-4 text-sm">
+                    <a href="{{ route('funcionarios.edit', [funcionario.id]) }}" class="text-accent-600 hover:text-accent-700 font-medium">
+                      <i class="fas fa-edit"></i>
+                    </a>
+                  </td>
+                </tr>
+                @end
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

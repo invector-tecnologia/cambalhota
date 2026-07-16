@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Guias - Tavolo</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  </head>
+<body class="bg-gradient-to-br from-slate-50 via-white to-slate-50">
+  <!-- Header -->
+  <header class="bg-white shadow-sm border-b border-slate-200 sticky top-0 z-20">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-4">
+        <div>
+          <h1 class="text-2xl font-bold text-industrial-900">Tavolo</h1>
+          <div class="mt-1 h-0.5 w-8 bg-accent-500"></div>
+        </div>
+        <div class="hidden sm:block border-l border-slate-200 pl-4">
+          <h2 class="text-lg font-semibold text-slate-900">Guias & Documentação</h2>
+        </div>
+      </div>
+      <a href="/dashboard" class="px-4 py-2 bg-accent-500 text-white rounded-lg hover:bg-accent-600 transition font-medium">
+        <i class="fas fa-arrow-left mr-2"></i><span class="hidden sm:inline">Voltar ao Dashboard</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <!-- Welcome Section -->
+    <section class="mb-16">
+      <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl shadow-sm border border-blue-200 p-8 md:p-12">
+        <div class="max-w-3xl">
+          <h1 class="text-4xl md:text-5xl font-bold text-slate-900 mb-4">
+            Bem-vindo aos Guias do Tavolo
+          </h1>
+          <p class="text-lg text-slate-700 mb-6 leading-relaxed">
+            Documentação prática e didática desenvolvida para ajudá-lo a dominar cada funcionalidade do sistema. 
+            Cada guia foi pensado para a operação do seu restaurante no dia a dia.
+          </p>
+          
+          <!-- Stats -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-6 border-t border-blue-300">
+            <div class="flex items-center gap-3">
+              <div class="text-3xl">📖</div>
+              <div>
+                <p class="font-bold text-slate-900">{{ guides.length }} Guias</p>
+                <p class="text-sm text-slate-700">Documentação completa</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-3">
+              <div class="text-3xl">💡</div>
+              <div>
+                <p class="font-bold text-slate-900">Didático</p>
+                <p class="text-sm text-slate-700">Linguagem acessível</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-3">
+              <div class="text-3xl">⚡</div>
+              <div>
+                <p class="font-bold text-slate-900">Prático</p>
+                <p class="text-sm text-slate-700">Exemplos reais</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Categories Sections -->
+    
+    <!-- Início Rápido -->
+    <section class="mb-16">
+      <div class="flex items-center gap-3 mb-8">
+        <div class="text-4xl">🚀</div>
+        <div>
+          <h2 class="text-3xl font-bold text-slate-900">Início Rápido</h2>
+          <p class="text-slate-600">Comece a usar o Tavolo hoje mesmo</p>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        @each(guide in guides.filter(g => g.categoria === 'inicio_rapido'))
+          <a href="/guias/{{ guide.slug }}" class="group bg-white rounded-xl shadow-md hover:shadow-xl transition border border-slate-200 hover:border-accent-500 overflow-hidden">
+            <div class="p-6">
+              <h3 class="text-xl font-bold text-slate-900 mb-2 group-hover:text-accent-600 transition line-clamp-2">
+                {{ guide.titulo }}
+              </h3>
+              <p class="text-slate-600 text-sm mb-4 line-clamp-2">{{ guide.descricao }}</p>
+              @if(guide.duracao)
+                <p class="text-xs text-slate-500 mb-4">
+                  <i class="fas fa-clock mr-1"></i>Tempo: {{ guide.duracao }}
+                </p>
+              @endif
+              <div class="inline-flex items-center gap-2 text-accent-600 group-hover:translate-x-1 transition font-medium text-sm">
+                <span>Ler guia</span>
+                <i class="fas fa-arrow-right"></i>
+              </div>
+            </div>
+          </a>
+        @end
+      </div>
+    </section>
+
+    <!-- Operacional -->
+    <section class="mb-16">
+      <div class="flex items-center gap-3 mb-8">
+        <div class="text-4xl">🏪</div>
+        <div>
+          <h2 class="text-3xl font-bold text-slate-900">Operacional</h2>
+          <p class="text-slate-600">Mesas, comandas e fluxo de atendimento</p>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        @each(guide in guides.filter(g => g.categoria === 'operacional'))
+          <a href="/guias/{{ guide.slug }}" class="group bg-white rounded-xl shadow-md hover:shadow-xl transition border border-slate-200 hover:border-blue-500 overflow-hidden">
+            <div class="p-6">
+              <h3 class="text-xl font-bold text-slate-900 mb-2 group-hover:text-blue-600 transition line-clamp-2">
+                {{ guide.titulo }}
+              </h3>
+              <p class="text-slate-600 text-sm mb-4 line-clamp-2">{{ guide.descricao }}</p>
+              <div class="inline-flex items-center gap-2 text-blue-600 group-hover:translate-x-1 transition font-medium text-sm">
+                <span>Ler guia</span>
+                <i class="fas fa-arrow-right"></i>
+              </div>
+            </div>
+          </a>
+        @end
+      </div>
+    </section>
+
+    <!-- Cardápio -->
+    <section class="mb-16">
+      <div class="flex items-center gap-3 mb-8">
+        <div class="text-4xl">🍽️</div>
+        <div>
+          <h2 class="text-3xl font-bold text-slate-900">Cardápio</h2>
+          <p class="text-slate-600">Crie e organize seus produtos</p>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        @each(guide in guides.filter(g => g.categoria === 'cardapio'))
+          <a href="/guias/{{ guide.slug }}" class="group bg-white rounded-xl shadow-md hover:shadow-xl transition border border-slate-200 hover:border-orange-500 overflow-hidden">
+            <div class="p-6">
+              <h3 class="text-xl font-bold text-slate-900 mb-2 group-hover:text-orange-600 transition line-clamp-2">
+                {{ guide.titulo }}
+              </h3>
+              <p class="text-slate-600 text-sm mb-4 line-clamp-2">{{ guide.descricao }}</p>
+              <div class="inline-flex items-center gap-2 text-orange-600 group-hover:translate-x-1 transition font-medium text-sm">
+                <span>Ler guia</span>
+                <i class="fas fa-arrow-right"></i>
+              </div>
+            </div>
+          </a>
+        @end
+      </div>
+    </section>
+
+    <!-- Vendas -->
+    <section class="mb-16">
+      <div class="flex items-center gap-3 mb-8">
+        <div class="text-4xl">🛒</div>
+        <div>
+          <h2 class="text-3xl font-bold text-slate-900">Vendas & Pedidos</h2>
+          <p class="text-slate-600">Crie e acompanhe seus pedidos</p>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        @each(guide in guides.filter(g => g.categoria === 'vendas'))
+          <a href="/guias/{{ guide.slug }}" class="group bg-white rounded-xl shadow-md hover:shadow-xl transition border border-slate-200 hover:border-emerald-500 overflow-hidden">
+            <div class="p-6">
+              <h3 class="text-xl font-bold text-slate-900 mb-2 group-hover:text-emerald-600 transition line-clamp-2">
+                {{ guide.titulo }}
+              </h3>
+              <p class="text-slate-600 text-sm mb-4 line-clamp-2">{{ guide.descricao }}</p>
+              <div class="inline-flex items-center gap-2 text-emerald-600 group-hover:translate-x-1 transition font-medium text-sm">
+                <span>Ler guia</span>
+                <i class="fas fa-arrow-right"></i>
+              </div>
+            </div>
+          </a>
+        @end
+      </div>
+    </section>
+
+    <!-- Estoque -->
+    <section class="mb-16">
+      <div class="flex items-center gap-3 mb-8">
+        <div class="text-4xl">📦</div>
+        <div>
+          <h2 class="text-3xl font-bold text-slate-900">Estoque & Insumos</h2>
+          <p class="text-slate-600">Gerencie seus produtos e fornecedores</p>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        @each(guide in guides.filter(g => g.categoria === 'estoque'))
+          <a href="/guias/{{ guide.slug }}" class="group bg-white rounded-xl shadow-md hover:shadow-xl transition border border-slate-200 hover:border-amber-500 overflow-hidden">
+            <div class="p-6">
+              <h3 class="text-xl font-bold text-slate-900 mb-2 group-hover:text-amber-600 transition line-clamp-2">
+                {{ guide.titulo }}
+              </h3>
+              <p class="text-slate-600 text-sm mb-4 line-clamp-2">{{ guide.descricao }}</p>
+              <div class="inline-flex items-center gap-2 text-amber-600 group-hover:translate-x-1 transition font-medium text-sm">
+                <span>Ler guia</span>
+                <i class="fas fa-arrow-right"></i>
+              </div>
+            </div>
+          </a>
+        @end
+      </div>
+    </section>
+
+    <!-- Financeiro -->
+    <section class="mb-16">
+      <div class="flex items-center gap-3 mb-8">
+        <div class="text-4xl">💰</div>
+        <div>
+          <h2 class="text-3xl font-bold text-slate-900">Financeiro & Caixa</h2>
+          <p class="text-slate-600">Abra caixa e registre suas vendas</p>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        @each(guide in guides.filter(g => g.categoria === 'financeiro'))
+          <a href="/guias/{{ guide.slug }}" class="group bg-white rounded-xl shadow-md hover:shadow-xl transition border border-slate-200 hover:border-green-500 overflow-hidden">
+            <div class="p-6">
+              <h3 class="text-xl font-bold text-slate-900 mb-2 group-hover:text-green-600 transition line-clamp-2">
+                {{ guide.titulo }}
+              </h3>
+              <p class="text-slate-600 text-sm mb-4 line-clamp-2">{{ guide.descricao }}</p>
+              <div class="inline-flex items-center gap-2 text-green-600 group-hover:translate-x-1 transition font-medium text-sm">
+                <span>Ler guia</span>
+                <i class="fas fa-arrow-right"></i>
+              </div>
+            </div>
+          </a>
+        @end
+      </div>
+    </section>
+
+    <!-- Usuários & Configurações -->
+    <section class="mb-16">
+      <div class="flex items-center gap-3 mb-8">
+        <div class="text-4xl">👥</div>
+        <div>
+          <h2 class="text-3xl font-bold text-slate-900">Usuários & Configuração</h2>
+          <p class="text-slate-600">Gerencie usuários e personalize o sistema</p>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        @each(guide in guides.filter(g => g.categoria === 'usuarios'))
+          <a href="/guias/{{ guide.slug }}" class="group bg-white rounded-xl shadow-md hover:shadow-xl transition border border-slate-200 hover:border-indigo-500 overflow-hidden">
+            <div class="p-6">
+              <h3 class="text-xl font-bold text-slate-900 mb-2 group-hover:text-indigo-600 transition line-clamp-2">
+                {{ guide.titulo }}
+              </h3>
+              <p class="text-slate-600 text-sm mb-4 line-clamp-2">{{ guide.descricao }}</p>
+              <div class="inline-flex items-center gap-2 text-indigo-600 group-hover:translate-x-1 transition font-medium text-sm">
+                <span>Ler guia</span>
+                <i class="fas fa-arrow-right"></i>
+              </div>
+            </div>
+          </a>
+        @end
+      </div>
+    </section>
+
+    <!-- FAQ & Referência -->
+    <section class="mb-16">
+      <div class="flex items-center gap-3 mb-8">
+        <div class="text-4xl">❓</div>
+        <div>
+          <h2 class="text-3xl font-bold text-slate-900">FAQ & Referência</h2>
+          <p class="text-slate-600">Dúvidas rápidas e consultas de referência</p>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        @each(guide in guides.filter(g => g.categoria === 'referencias'))
+          <a href="/guias/{{ guide.slug }}" class="group bg-white rounded-xl shadow-md hover:shadow-xl transition border border-slate-200 hover:border-rose-500 overflow-hidden">
+            <div class="p-6">
+              <h3 class="text-xl font-bold text-slate-900 mb-2 group-hover:text-rose-600 transition line-clamp-2">
+                {{ guide.titulo }}
+              </h3>
+              <p class="text-slate-600 text-sm mb-4 line-clamp-2">{{ guide.descricao }}</p>
+              <div class="inline-flex items-center gap-2 text-rose-600 group-hover:translate-x-1 transition font-medium text-sm">
+                <span>Ler guia</span>
+                <i class="fas fa-arrow-right"></i>
+              </div>
+            </div>
+          </a>
+        @end
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-white border-t border-slate-200 mt-20">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8 pb-8 border-b border-slate-200">
+        <div>
+          <h3 class="font-bold text-slate-900 mb-4">Tavolo</h3>
+          <p class="text-sm text-slate-600">Sistema ERP completo para restaurantes e bares.</p>
+        </div>
+        <div>
+          <h3 class="font-bold text-slate-900 mb-4">Documentação</h3>
+          <ul class="space-y-2 text-sm text-slate-600">
+            <li><a href="/guias" class="hover:text-accent-600 transition">Todos os guias</a></li>
+            <li><a href="/guias/faq" class="hover:text-accent-600 transition">FAQ</a></li>
+            <li><a href="/dashboard" class="hover:text-accent-600 transition">Dashboard</a></li>
+          </ul>
+        </div>
+        <div>
+          <h3 class="font-bold text-slate-900 mb-4">Suporte</h3>
+          <p class="text-sm text-slate-600 mb-2">Precisa de ajuda? Consulte a seção de FAQ ou entre em contato com nosso time.</p>
+        </div>
+      </div>
+      <div class="text-center text-slate-600 text-sm pt-4">
+        <p class="font-medium">Tavolo v6.0.0 - © 2026 Invector Tecnologia</p>
+        <p class="mt-1">Última atualização: Fevereiro de 2026</p>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>

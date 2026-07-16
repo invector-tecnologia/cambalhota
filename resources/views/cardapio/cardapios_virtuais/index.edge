@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="{{ theme }}" class="h-full bg-industrial-50">
+<head>
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf-token" content="{{ csrfToken }}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <title>Cardápios Virtuais - Tavolo</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    ::-webkit-scrollbar { width: 6px }
+    ::-webkit-scrollbar-track { background: #f1f5f9 }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px }
+  </style>
+  @vite(['resources/css/app.css','resources/js/app.js'])
+</head>
+<body class="h-full font-sans text-industrial-900">
+  <div class="min-h-full">
+    <header class="bg-white shadow-sm">
+      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div class="flex h-16 items-center gap-3">
+          <div class="h-10 w-10 rounded-full bg-accent-500/10 text-accent-600 flex items-center justify-center">
+            <i class="fas fa-qrcode"></i>
+          </div>
+          <div>
+            <h1 class="text-lg font-semibold text-industrial-900">Cardápios Virtuais</h1>
+            <p class="text-sm text-industrial-500">Criar e gerenciar cardápios digitais</p>
+          </div>
+          <div class="flex gap-3 ml-auto">
+            <a href="{{ route('cardapio_categorias.index') }}" class="inline-flex items-center gap-2 rounded-lg bg-industrial-800 px-3 py-2 text-sm font-semibold text-white hover:bg-industrial-700">Categorias</a>
+            <a href="{{ route('cardapios_virtuais.create') }}" class="inline-flex items-center gap-2 rounded-lg bg-accent-600 px-3 py-2 text-sm font-semibold text-white hover:bg-accent-500">
+              <i class="fas fa-plus"></i> Novo Cardápio
+            </a>
+            <a href="{{ route('dashboard.index') }}"
+              class="inline-flex items-center gap-2 rounded-lg bg-industrial-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-industrial-400">
+              <i class="fas fa-home mr-2"></i> Dashboard
+            </a>
+          </div>
+        </div>
+      </div>
+    </header>
+    
+    <main class="flex-1">
+      <div class="mx-auto max-w-7xl py-6 sm:px-6 lg:px-8">
+        @if(cardapiosVirtuais.length > 0)
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            @each(cardapioVirtual in cardapiosVirtuais)
+              <div class="bg-white shadow-sm rounded-xl ring-1 ring-industrial-100 p-6">
+                <div class="flex justify-between items-start mb-4">
+                  <h3 class="text-lg font-semibold text-industrial-900">{{ cardapioVirtual.title }}</h3>
+                  @if(cardapioVirtual.status === 'published')
+                    <span class="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-green-50 text-green-700">Publicado</span>
+                  @else
+                    <span class="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-yellow-50 text-yellow-700">Rascunho</span>
+                  @endif
+                </div>
+                
+                @if(cardapioVirtual.description)
+                  <p class="text-sm app-muted mb-4">{{ cardapioVirtual.description }}</p>
+                @endif
+                
+                <div class="flex gap-2">
+                  <a href="{{ route('cardapios_virtuais.show', {id: cardapioVirtual.id}) }}" class="flex-1 text-center rounded-lg bg-accent-600 px-3 py-2 text-sm font-semibold text-white hover:bg-accent-500">Gerenciar</a>
+                  @if(cardapioVirtual.status === 'published')
+                    <a href="{{ route('cardapios_virtuais.public', {slug: cardapioVirtual.slug}) }}" target="_blank" class="flex-1 text-center rounded-lg bg-industrial-800 px-3 py-2 text-sm font-semibold text-white hover:bg-industrial-700">Ver Público</a>
+                  @endif
+                </div>
+              </div>
+            @endeach
+          </div>
+        @else
+          <div class="text-center py-12 bg-white shadow-sm rounded-xl ring-1 ring-industrial-100">
+            <i class="fas fa-qrcode text-6xl text-industrial-200 mb-4"></i>
+            <h3 class="mt-2 text-sm font-semibold text-industrial-900">Nenhum cardápio virtual</h3>
+            <p class="mt-1 text-sm text-industrial-500">Comece criando seu primeiro cardápio virtual</p>
+            <div class="mt-6">
+              <a href="{{ route('cardapios_virtuais.create') }}" class="inline-flex items-center gap-2 rounded-lg bg-accent-600 px-3 py-2 text-sm font-semibold text-white hover:bg-accent-500">
+                <i class="fas fa-plus"></i> Criar Cardápio Virtual
+              </a>
+            </div>
+          </div>
+        @endif
+      </div>
+    </main>
+  </div>
+  @include('components/quick_actions')
+</body>
+</html>

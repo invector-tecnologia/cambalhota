@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Nota Fiscal - Venda #{{ venda.saleNumber }}</title>
+    <style>
+        /* Estilos para impressoras térmicas de 80mm */
+        @page {
+            size: 80mm auto;
+            margin: 0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 12px;
+            line-height: 1.4;
+            color: #000;
+            background: #fff;
+            width: 80mm;
+            padding: 5mm;
+            margin: 0 auto; /* Centraliza horizontalmente dentro do iframe */
+            font-weight: bold;
+        }
+
+        .receipt {
+            width: 100%;
+            margin: 0 auto; /* Centraliza o conteúdo dentro da largura fixa */
+        }
+
+        /* Header com Logo */
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #000;
+            padding-bottom: 8px;
+            margin-bottom: 8px;
+        }
+
+        .logo {
+            max-width: 60mm;
+            max-height: 25mm;
+            margin: 0 auto 8px;
+            display: block;
+        }
+
+        .empresa-nome {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 2px;
+        }
+
+        .empresa-info {
+            font-size: 10px;
+            line-height: 1.3;
+        }
+
+        /* Seção de informações */
+        .info-section {
+            margin-bottom: 8px;
+            font-size: 11px;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 2px;
+        }
+
+        .info-label {
+            font-weight: bold;
+        }
+
+        /* Separadores */
+        .separator {
+            border-top: 2px solid #000;
+            margin: 8px 0;
+        }
+
+        .separator-dashed {
+            border-top: 1px dashed #000;
+            margin: 6px 0;
+        }
+
+        /* Títulos de seção */
+        .section-title {
+            font-weight: bold;
+            font-size: 12px;
+            margin-bottom: 4px;
+            text-align: center;
+        }
+
+        /* Itens da venda */
+        .items-section {
+            margin: 8px 0;
+        }
+
+        .item {
+            margin-bottom: 6px;
+        }
+
+        .item-name {
+            font-weight: bold;
+            margin-bottom: 2px;
+        }
+
+        .item-details {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        /* Total */
+        .total-section {
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 2px solid #000;
+        }
+
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+            font-size: 11px;
+        }
+
+        .total-final {
+            font-size: 14px;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            margin-top: 6px;
+            padding-top: 6px;
+            border-top: 1px solid #000;
+        }
+
+        /* Rodapé */
+        .footer {
+            margin-top: 12px;
+            padding-top: 8px;
+            border-top: 2px solid #000;
+            text-align: center;
+            font-size: 10px;
+        }
+
+        .footer-message {
+            margin-bottom: 6px;
+            line-height: 1.4;
+        }
+
+        .footer-info {
+            font-size: 9px;
+            color: #666;
+            margin-top: 6px;
+        }
+
+        /* Impressão */
+        @media print {
+            body {
+                width: 80mm;
+            }
+
+            .no-print {
+                display: none !important;
+            }
+        }
+
+        
+    </style>
+</head>
+<body>    
+    <div class="receipt">
+        <!-- Header com Logo e Informações da Empresa -->
+        <div class="header">
+            @if(empresa.logoUrl)
+                <img src="{{ empresa.logoUrl }}" alt="Logo" class="logo">
+            @end
+            
+            <div class="empresa-nome">{{ empresa.razaoSocial }}</div>
+            
+            @if(empresa.tradeName)
+                <div class="empresa-info">{{ empresa.tradeName }}</div>
+            @end
+            
+            @if(empresa.documentType === 'cpf')
+                <div class="empresa-info">CPF: {{ empresa.formattedDocument }}</div>
+            @else
+                <div class="empresa-info">CNPJ: {{ empresa.formattedDocument }}</div>
+            @end
+            <div class="empresa-info">{{ empresa.address }}, {{ empresa.addressNumber || 'S/N' }}</div>
+            
+            @if(empresa.addressComplement)
+                <div class="empresa-info">{{ empresa.addressComplement }}</div>
+            @end
+            
+            <div class="empresa-info">
+                {{ empresa.neighborhood }} - {{ empresa.city }}/{{ empresa.state }}
+            </div>
+            <div class="empresa-info">CEP: {{ empresa.zipCode }}</div>
+            
+            @if(empresa.phone)
+                <div class="empresa-info">Tel: {{ empresa.phone }}</div>
+            @end
+            
+            @if(empresa.email)
+                <div class="empresa-info">{{ empresa.email }}</div>
+            @end
+        </div>
+
+        <!-- Informações da Venda -->
+        <div class="info-section">
+            <div class="info-row">
+                <span class="info-label">VENDA Nº:</span>
+                <span>{{ venda.saleNumber }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">DATA:</span>
+                <span>{{ venda.saleDate }} {{ venda.createdAt }}</span>
+            </div>
+            @if(venda.comanda)
+                <div class="info-row">
+                    <span class="info-label">COMANDA:</span>
+                    <span>{{ venda.comanda.number }}</span>
+                </div>
+            @end
+            @if(venda.comanda && venda.comanda.mesa)
+                <div class="info-row">
+                    <span class="info-label">MESA:</span>
+                    <span>{{ venda.comanda.mesa.name || venda.comanda.mesa.number }}</span>
+                </div>
+            @end
+        </div>
+
+        <!-- Itens da Venda -->
+        <div class="separator"></div>
+        <div class="section-title">ITENS DA VENDA</div>
+        <div class="separator-dashed"></div>
+
+        <div class="items-section">
+            @each(item in venda.items)
+                <div class="item">
+                    <div class="item-name">{{ item.itemName }}</div>
+                    <div class="item-details">
+                        <span>
+                            {{ item.quantity }} x 
+                            R$ {{ (item.unitPrice).toFixed(2).replace('.', ',') }}
+                        </span>
+                        <span>
+                            R$ {{ (item.subtotal).toFixed(2).replace('.', ',') }}
+                        </span>
+                    </div>
+                    @if(item.notes)
+                        <div style="font-size: 10px; margin-top: 2px; color: #666;">
+                            Obs: {{ item.notes }}
+                        </div>
+                    @end
+                </div>
+            @end
+        </div>
+
+        <!-- Total -->
+        <div class="total-section">
+            <div class="total-row">
+                <span>SUBTOTAL:</span>
+                <span>R$ {{ (venda.subtotal).toFixed(2).replace('.', ',') }}</span>
+            </div>
+            
+            @if(venda.discount > 0)
+                <div class="total-row" style="color: green;">
+                    <span>DESCONTO:</span>
+                    <span>- R$ {{ (venda.discount).toFixed(2).replace('.', ',') }}</span>
+                </div>
+            @else
+                <div class="total-row" style="color: green;">
+                    <span>DESCONTO:</span>
+                    <span>- R$ 0,00</span>
+                </div>
+            @end
+            
+            @if(venda.tax && venda.tax > 0)
+                <div class="total-row" style="color: red;">
+                    <span>TAXAS:</span>
+                    <span>+ R$ {{ (venda.tax).toFixed(2).replace('.', ',') }}</span>
+                </div>
+            @else
+                <div class="total-row" style="color: red;">
+                    <span>TAXAS:</span>
+                    <span>+ R$ 0,00</span>
+                </div>
+            @end
+
+            <div class="total-final">
+                <span>TOTAL:</span>
+                <span>R$ {{ (venda.total || venda.subtotal - (venda.discount || 0) + (venda.tax || 0) || 0).toFixed(2).replace('.', ',') }}</span>
+            </div>
+
+            <div class="separator-dashed"></div>
+
+            <div class="total-row">
+                <span>FORMA DE PAGAMENTO:</span>
+                <span>
+                    @if(venda.paymentMethod === 'cash')
+                        DINHEIRO
+                    @elseif(venda.paymentMethod === 'card')
+                        CARTÃO
+                    @elseif(venda.paymentMethod === 'pix')
+                        PIX
+                    @elseif(venda.paymentMethod === 'split')
+                        MISTO
+                    @else
+                        {{ venda.paymentMethod }}
+                    @end
+                </span>
+            </div>
+
+            @if(venda.notes)
+                <div class="separator-dashed"></div>
+                <div style="font-size: 10px; margin-top: 6px;">
+                    <strong>OBSERVAÇÕES:</strong><br>
+                    {{ venda.notes }}
+                </div>
+            @end
+        </div>
+
+        <!-- Rodapé com Mensagem Personalizada -->
+        <div class="footer">
+            @if(empresa.notaFiscalFooterMessage)
+                <div class="footer-message">
+                    {{ empresa.notaFiscalFooterMessage }}
+                </div>
+            @end
+
+            <div class="footer-info">
+                Este documento não tem valor fiscal
+            </div>
+            <div class="footer-info">
+                Emitido em <span data-now="datetime"></span>
+            </div>
+            @if(empresa.website)
+                <div class="footer-info">
+                    {{ empresa.website }}
+                </div>
+            @end
+        </div>
+    </div>
+
+    <script>
+        window.onafterprint = function() {
+            // Mantém a janela aberta; modal controla impressão/fechamento
+        };
+    </script>
+    <script>
+        (function () {
+            const dateTimeFormatter = new Intl.DateTimeFormat('pt-BR', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            })
+
+            document.querySelectorAll('[data-now="datetime"]').forEach((el) => {
+                el.textContent = dateTimeFormatter.format(new Date())
+            })
+        })()
+    </script>
+</body>
+</html>
