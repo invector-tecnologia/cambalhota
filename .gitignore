@@ -1,0 +1,5 @@
+.nimble_cache
+dumps/
+backups/
+*.sql
+!migrations/

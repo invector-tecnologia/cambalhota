@@ -1,28 +1,10 @@
-import illwill
-import os, strutils
+import tatui
+import os, strutils, options, unicode
 import core/migrations
 import core/db
 
 proc exitProc() {.noconv.} =
-  illwillDeinit()
-  showCursor()
   quit(0)
-
-proc drawMenu(tb: var TerminalBuffer, selectedIdx: int) =
-  let menuItems = [" Config ", " Backup ", " Restore / Migrations "]
-  var x = 2
-  let y = 1
-  for i, item in menuItems:
-    if i == selectedIdx:
-      tb.setBackgroundColor(bgMagenta)
-      tb.setForegroundColor(fgWhite)
-      tb.write(x, y, item)
-      tb.resetAttributes()
-    else:
-      tb.setForegroundColor(fgCyan)
-      tb.write(x, y, item)
-      tb.resetAttributes()
-    x += item.len + 2
 
 proc getFiles(menuIdx: int): seq[string] =
   result = @[]
@@ -39,9 +21,11 @@ proc getFiles(menuIdx: int): seq[string] =
           result.add(file)
 
 proc main() =
-  illwillInit(fullscreen=true)
   setControlCHook(exitProc)
-  hideCursor()
+
+  var term = newTerminal(newAnsiBackend())
+  term.setup()
+  defer: term.restore()
 
   var selectedMenu = 2 # 0: Config, 1: Backup, 2: Restore / Migrations
   var selectedFileIdx = 0
@@ -53,128 +37,109 @@ proc main() =
   let dbName = getEnv("DB_NAME", "postgres")
   let dbConn = "postgresql://" & dbUser & "@" & dbHost & ":" & dbPort & "/" & dbName
 
-  while true:
-    var tw = terminalWidth()
-    var th = terminalHeight()
-    var tb = newTerminalBuffer(tw, th)
-    
-    tb.setBackgroundColor(bgBlack)
-    tb.fill(0, 0, tw-1, th-1, " ")
-    
-    # Title Bar
-    tb.setForegroundColor(fgMagenta, true)
-    tb.write(2, 0, "=== CAMBALHOTA MIGRATION ENGINE (Retrowave TUI) ===")
-    
-    # Draw Menu
-    drawMenu(tb, selectedMenu)
+  var listSt: ListState
+  var running = true
 
-    let histX = 1
-    let histY = 3
-    let histW = tw div 3
-    let histH = th - 4
-
-    let viewX = histW + 2
-    let viewY = 3
-    let viewW = tw - histW - 3
-    let viewH = th - 6
-
-    let statY = th - 2
-
+  while running:
     let files = getFiles(selectedMenu)
     if files.len > 0 and selectedFileIdx >= files.len:
       selectedFileIdx = files.len - 1
     elif files.len == 0:
       selectedFileIdx = 0
-
-    # Draw History Panel
-    tb.setForegroundColor(fgCyan)
-    tb.drawRect(histX, histY, histX + histW, histY + histH)
-    tb.setForegroundColor(fgMagenta, true)
-    tb.write(histX + 2, histY, " HISTORY / ACTIONS ")
     
-    var cy = histY + 2
-    for i, file in files:
-      if cy >= histY + histH - 1: break
-      if i == selectedFileIdx:
-        tb.setBackgroundColor(bgWhite)
-        tb.setForegroundColor(fgBlack)
-        tb.write(histX + 2, cy, file.extractFilename())
-        tb.resetAttributes()
-      else:
-        tb.setForegroundColor(fgWhite)
-        tb.write(histX + 2, cy, file.extractFilename())
-      cy += 1
-
-    # Draw Code Panel
-    tb.setForegroundColor(fgCyan)
-    tb.drawRect(viewX, viewY, viewX + viewW, viewY + viewH)
-    tb.setForegroundColor(fgMagenta, true)
-    tb.write(viewX + 2, viewY, " FILE VIEWER ")
-    
-    if files.len > 0 and selectedFileIdx < files.len:
-      let path = files[selectedFileIdx]
-      if fileExists(path):
-        let content = readFile(path)
-        let lines = content.splitLines()
-        var fcy = viewY + 2
-        for i, line in lines:
-          if fcy >= viewY + viewH - 1: break
-          var displayLine = line
-          if displayLine.len > viewW - 4:
-            displayLine = displayLine[0 .. max(0, viewW - 5)]
-          tb.setForegroundColor(fgGreen)
-          tb.write(viewX + 2, fcy, displayLine)
-          fcy += 1
-
-    # Status Panel
-    tb.setForegroundColor(fgCyan)
-    tb.drawRect(viewX, statY - 1, viewX + viewW, statY + 1)
-    tb.setForegroundColor(fgYellow)
-    
-    var truncStatusMsg = statusMsg
-    if truncStatusMsg.len > viewW - 4:
-        truncStatusMsg = truncStatusMsg[0 .. max(0, viewW - 5)]
-    tb.write(viewX + 2, statY, truncStatusMsg)
-    
-    tb.display()
-
-    let key = getKey()
-    case key
-    of Key.None: sleep(50)
-    of Key.Q, Key.Escape: exitProc()
-    of Key.Left:
-      if selectedMenu > 0: 
-        selectedMenu.dec
-        selectedFileIdx = 0
-        statusMsg = "STATUS: Ready."
-    of Key.Right:
-      if selectedMenu < 2: 
-        selectedMenu.inc
-        selectedFileIdx = 0
-        statusMsg = "STATUS: Ready."
-    of Key.Up:
-      if selectedFileIdx > 0: selectedFileIdx.dec
-    of Key.Down:
-      if files.len > 0 and selectedFileIdx < files.len - 1: selectedFileIdx.inc
-    of Key.Enter:
-      if files.len > 0 and selectedFileIdx < files.len:
-        let file = files[selectedFileIdx]
-        try:
-          if selectedMenu == 1:
-            if restoreSchema(dbHost, dbPort, dbUser, dbName, file):
-              statusMsg = "STATUS: Restored schema from " & file.extractFilename()
-            else:
-              statusMsg = "STATUS: Failed to restore schema."
-          elif selectedMenu == 2:
-            let m = parseMigrationFilename(file.extractFilename())
-            if executeMigration(m, dbConn):
-              statusMsg = "STATUS: Executed migration " & file.extractFilename()
-            else:
-              statusMsg = "STATUS: Failed to execute migration."
-        except Exception as e:
-          statusMsg = "STATUS: Error - " & e.msg
+    if files.len > 0:
+      listSt.select(selectedFileIdx)
     else:
-      discard
+      listSt.selected = none(int)
+
+    term.draw proc(f: var Frame) =
+      let vChunks = f.area.split(Vertical, @[length(1), length(1), fill(1), length(3)])
+      let titleRect = vChunks[0]
+      let headerRect = vChunks[1]
+      let bodyRect = vChunks[2]
+      let statusRect = vChunks[3]
+
+      # Title
+      f.renderWidget(paragraph(text("=== CAMBALHOTA MIGRATION ENGINE (Retrowave TUI) ==="), style = defaultStyle().fg(Blue)), titleRect)
+
+      # Menu / Tabs
+      let menuItems = @[" Config ", " Backup ", " Restore / Migrations "]
+      var t = tabs(menuItems, selected = selectedMenu, highlightStyle = defaultStyle().bg(Blue).fg(White))
+      t.style = defaultStyle().fg(Cyan)
+      f.renderWidget(t, headerRect)
+
+      # Body split
+      let hChunks = bodyRect.split(Horizontal, @[pct(33), pct(67)])
+      let histRect = hChunks[0]
+      let viewRect = hChunks[1]
+
+      # History Panel
+      var items: seq[ListItem]
+      for file in files:
+        items.add listItem(file.extractFilename(), style = defaultStyle().fg(White))
+      
+      f.renderStateful(
+        list(items, blk = some(initBlock(title = " HISTORY / ACTIONS ", borders = AllBorders, borderStyle = defaultStyle().fg(Blue), titleStyle = defaultStyle().fg(Blue))),
+             highlightStyle = defaultStyle().bg(White).fg(Black)),
+        histRect, listSt
+      )
+
+      # Code Panel
+      var codeContent = ""
+      if files.len > 0 and selectedFileIdx < files.len:
+        let path = files[selectedFileIdx]
+        if fileExists(path):
+          codeContent = readFile(path)
+
+      f.renderWidget(
+        paragraph(text(codeContent), blk = some(initBlock(title = " FILE VIEWER ", borders = AllBorders, borderStyle = defaultStyle().fg(Blue), titleStyle = defaultStyle().fg(Blue))), style = defaultStyle().fg(Green)),
+        viewRect
+      )
+
+      # Status Panel
+      f.renderWidget(
+        paragraph(text(statusMsg), blk = some(initBlock(borders = AllBorders, borderStyle = defaultStyle().fg(Cyan))), style = defaultStyle().fg(Yellow)),
+        statusRect
+      )
+
+    let ev = pollEvent(50)
+    if ev.isSome and ev.get.kind == evKey:
+      let k = ev.get.key
+      if k.code == kcChar and (k.rune == Rune('q'.ord) or k.rune == Rune('Q'.ord)):
+        running = false
+      elif k.code == kcEsc:
+        running = false
+      elif k.code == kcLeft:
+        if selectedMenu > 0:
+          selectedMenu.dec
+          selectedFileIdx = 0
+          statusMsg = "STATUS: Ready."
+      elif k.code == kcRight:
+        if selectedMenu < 2:
+          selectedMenu.inc
+          selectedFileIdx = 0
+          statusMsg = "STATUS: Ready."
+      elif k.code == kcUp:
+        if selectedFileIdx > 0: selectedFileIdx.dec
+      elif k.code == kcDown:
+        if files.len > 0 and selectedFileIdx < files.len - 1: selectedFileIdx.inc
+      elif k.code == kcEnter:
+        if files.len > 0 and selectedFileIdx < files.len:
+          let file = files[selectedFileIdx]
+          try:
+            if selectedMenu == 1:
+              if restoreSchema(dbHost, dbPort, dbUser, dbName, file):
+                statusMsg = "STATUS: Restored schema from " & file.extractFilename()
+              else:
+                statusMsg = "STATUS: Failed to restore schema."
+            elif selectedMenu == 2:
+              let m = parseMigrationFilename(file.extractFilename())
+              if executeMigration(m, dbConn):
+                statusMsg = "STATUS: Executed migration " & file.extractFilename()
+              else:
+                statusMsg = "STATUS: Failed to execute migration."
+          except Exception as e:
+            statusMsg = "STATUS: Error - " & e.msg
 
 when isMainModule:
   main()
