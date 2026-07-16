@@ -1,6 +1,6 @@
-# Trabalhando com AiDD
-
-Etapas de um projeto com AiDD da invector:
+# Template AiDD Instrumentation
+## Trabalhando com AiDD
+### Etapas de um projeto com AiDD da invector:
 1. Estapa de descrição do projeto: [`scope.md`](./docs/scope.md).
   - Descreva detalhadamente o projeto e as tecnologias que você quer usar.
 2. Estapa de instrumentação de agentes de ia: [`harness_instruction.yaml`](./harness_instruction.yaml).
