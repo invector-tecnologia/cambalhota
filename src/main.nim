@@ -1,79 +1,180 @@
+import illwill
+import os, strutils
+import core/migrations
 import core/db
-import os, strformat
 
-proc initTUI() =
-  # Mock simulando o frontend Tatuí conforme Design System e Scope
-  echo "\e[1;36m====================================================\e[0m"
-  echo "\e[1;36m|                 CAMBALHOTA TUI                   |\e[0m"
-  echo "\e[1;36m====================================================\e[0m"
-  echo "\e[32m[Info]\e[0m Interface Tatuí Inicializada (Dark Mode Ativo)"
-  echo "\e[32m[Info]\e[0m Tema: Monoid 13px | Highlights: #88C0D0"
-  echo "----------------------------------------------------\n"
+proc exitProc() {.noconv.} =
+  illwillDeinit()
+  showCursor()
+  quit(0)
+
+proc drawMenu(tb: var TerminalBuffer, selectedIdx: int) =
+  let menuItems = [" Config ", " Backup ", " Restore / Migrations "]
+  var x = 2
+  let y = 1
+  for i, item in menuItems:
+    if i == selectedIdx:
+      tb.setBackgroundColor(bgMagenta)
+      tb.setForegroundColor(fgWhite)
+      tb.write(x, y, item)
+      tb.resetAttributes()
+    else:
+      tb.setForegroundColor(fgCyan)
+      tb.write(x, y, item)
+      tb.resetAttributes()
+    x += item.len + 2
+
+proc getFiles(menuIdx: int): seq[string] =
+  result = @[]
+  var path = ""
+  if menuIdx == 1:
+    path = "dumps"
+  elif menuIdx == 2:
+    path = "migrations/up"
+  
+  if path.len > 0 and dirExists(path):
+    for kind, file in walkDir(path):
+      if kind == pcFile or kind == pcLinkToFile:
+        if file.endsWith(".sql"):
+          result.add(file)
 
 proc main() =
-  initTUI()
+  illwillInit(fullscreen=true)
+  setControlCHook(exitProc)
+  hideCursor()
 
-  if paramCount() < 1:
-    echo "\e[31m[Erro]\e[0m Argumentos insuficientes. Comandos disponíveis:"
-    echo "  cambalhota backup <schema>"
-    echo "  cambalhota restore <schema> <arquivo_sql>"
-    echo "  cambalhota list-backups"
-    quit(1)
-    
-  let action = paramStr(1)
+  var selectedMenu = 2 # 0: Config, 1: Backup, 2: Restore / Migrations
+  var selectedFileIdx = 0
+  var statusMsg = "STATUS: Ready. Press Left/Right to select, Up/Down for file, Enter to execute, Q to quit."
   
-  # Leitura de credenciais de forma segura via variáveis de ambiente (Zero-Trust)
   let dbHost = getEnv("DB_HOST", "localhost")
   let dbPort = getEnv("DB_PORT", "5432")
   let dbUser = getEnv("DB_USER", "postgres")
   let dbName = getEnv("DB_NAME", "postgres")
-  
-  # CDN ou Repo Git montado/disponível localmente
-  let cdnMount = getEnv("CDN_MOUNT_PATH", "./dumps")
-  
-  if action == "backup":
-    if paramCount() < 2:
-      echo "\e[31m[Erro]\e[0m Informe o nome do schema para extração."
-      quit(1)
+  let dbConn = "postgresql://" & dbUser & "@" & dbHost & ":" & dbPort & "/" & dbName
+
+  while true:
+    var tw = terminalWidth()
+    var th = terminalHeight()
+    var tb = newTerminalBuffer(tw, th)
     
-    let schema = paramStr(2)
-    echo fmt"\e[36m[Ação]\e[0m Iniciando backup do schema '{schema}' do BD '{dbName}'..."
+    tb.setBackgroundColor(bgBlack)
+    tb.fill(0, 0, tw-1, th-1, " ")
     
-    try:
-      let savedPath = extractSchema(dbHost, dbPort, dbUser, dbName, schema, cdnMount)
-      echo fmt"\e[32m[Sucesso]\e[0m Backup estrutural/dados concluído!"
-      echo fmt"  -> Persistido no Git/CDN em: {savedPath}"
-    except Exception as e:
-      echo "\e[31m[Falha Fatal]\e[0m ", e.msg
-      quit(1)
-      
-  elif action == "restore":
-    if paramCount() < 3:
-      echo "\e[31m[Erro]\e[0m Informe o schema e o caminho do arquivo de backup no Git/CDN."
-      quit(1)
-      
-    let schema = paramStr(2)
-    let filePath = paramStr(3)
-    echo fmt"\e[36m[Ação]\e[0m Iniciando restauração do schema '{schema}' usando '{filePath}'..."
+    # Title Bar
+    tb.setForegroundColor(fgMagenta, true)
+    tb.write(2, 0, "=== CAMBALHOTA MIGRATION ENGINE (Retrowave TUI) ===")
     
-    try:
-      if restoreSchema(dbHost, dbPort, dbUser, dbName, filePath):
-        echo fmt"\e[32m[Sucesso]\e[0m Restauração (Restore) aplicada 100% no banco de dados."
-    except Exception as e:
-      echo "\e[31m[Falha Fatal]\e[0m ", e.msg
-      quit(1)
-      
-  elif action == "list-backups":
-    echo fmt"\e[36m[Ação]\e[0m Listando backups disponíveis em '{cdnMount}'..."
-    let backups = listBackups(cdnMount)
-    if backups.len == 0:
-      echo "\e[33m[Aviso]\e[0m Nenhum backup encontrado na CDN."
+    # Draw Menu
+    drawMenu(tb, selectedMenu)
+
+    let histX = 1
+    let histY = 3
+    let histW = tw div 3
+    let histH = th - 4
+
+    let viewX = histW + 2
+    let viewY = 3
+    let viewW = tw - histW - 3
+    let viewH = th - 6
+
+    let statY = th - 2
+
+    let files = getFiles(selectedMenu)
+    if files.len > 0 and selectedFileIdx >= files.len:
+      selectedFileIdx = files.len - 1
+    elif files.len == 0:
+      selectedFileIdx = 0
+
+    # Draw History Panel
+    tb.setForegroundColor(fgCyan)
+    tb.drawRect(histX, histY, histX + histW, histY + histH)
+    tb.setForegroundColor(fgMagenta, true)
+    tb.write(histX + 2, histY, " HISTORY / ACTIONS ")
+    
+    var cy = histY + 2
+    for i, file in files:
+      if cy >= histY + histH - 1: break
+      if i == selectedFileIdx:
+        tb.setBackgroundColor(bgWhite)
+        tb.setForegroundColor(fgBlack)
+        tb.write(histX + 2, cy, file.extractFilename())
+        tb.resetAttributes()
+      else:
+        tb.setForegroundColor(fgWhite)
+        tb.write(histX + 2, cy, file.extractFilename())
+      cy += 1
+
+    # Draw Code Panel
+    tb.setForegroundColor(fgCyan)
+    tb.drawRect(viewX, viewY, viewX + viewW, viewY + viewH)
+    tb.setForegroundColor(fgMagenta, true)
+    tb.write(viewX + 2, viewY, " FILE VIEWER ")
+    
+    if files.len > 0 and selectedFileIdx < files.len:
+      let path = files[selectedFileIdx]
+      if fileExists(path):
+        let content = readFile(path)
+        let lines = content.splitLines()
+        var fcy = viewY + 2
+        for i, line in lines:
+          if fcy >= viewY + viewH - 1: break
+          var displayLine = line
+          if displayLine.len > viewW - 4:
+            displayLine = displayLine[0 .. max(0, viewW - 5)]
+          tb.setForegroundColor(fgGreen)
+          tb.write(viewX + 2, fcy, displayLine)
+          fcy += 1
+
+    # Status Panel
+    tb.setForegroundColor(fgCyan)
+    tb.drawRect(viewX, statY - 1, viewX + viewW, statY + 1)
+    tb.setForegroundColor(fgYellow)
+    
+    var truncStatusMsg = statusMsg
+    if truncStatusMsg.len > viewW - 4:
+        truncStatusMsg = truncStatusMsg[0 .. max(0, viewW - 5)]
+    tb.write(viewX + 2, statY, truncStatusMsg)
+    
+    tb.display()
+
+    let key = getKey()
+    case key
+    of Key.None: sleep(50)
+    of Key.Q, Key.Escape: exitProc()
+    of Key.Left:
+      if selectedMenu > 0: 
+        selectedMenu.dec
+        selectedFileIdx = 0
+        statusMsg = "STATUS: Ready."
+    of Key.Right:
+      if selectedMenu < 2: 
+        selectedMenu.inc
+        selectedFileIdx = 0
+        statusMsg = "STATUS: Ready."
+    of Key.Up:
+      if selectedFileIdx > 0: selectedFileIdx.dec
+    of Key.Down:
+      if files.len > 0 and selectedFileIdx < files.len - 1: selectedFileIdx.inc
+    of Key.Enter:
+      if files.len > 0 and selectedFileIdx < files.len:
+        let file = files[selectedFileIdx]
+        try:
+          if selectedMenu == 1:
+            if restoreSchema(dbHost, dbPort, dbUser, dbName, file):
+              statusMsg = "STATUS: Restored schema from " & file.extractFilename()
+            else:
+              statusMsg = "STATUS: Failed to restore schema."
+          elif selectedMenu == 2:
+            let m = parseMigrationFilename(file.extractFilename())
+            if executeMigration(m, dbConn):
+              statusMsg = "STATUS: Executed migration " & file.extractFilename()
+            else:
+              statusMsg = "STATUS: Failed to execute migration."
+        except Exception as e:
+          statusMsg = "STATUS: Error - " & e.msg
     else:
-      for b in backups:
-        echo fmt"  - {b}"
-      
-  else:
-    echo fmt"\e[31m[Erro]\e[0m Ação '{action}' desconhecida na CLI do Cambalhota."
+      discard
 
 when isMainModule:
   main()
