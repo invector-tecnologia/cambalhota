@@ -29,7 +29,7 @@ Este agente tem permissão total para:
 
 ## 1. Missão
 
-O Agente QA é o responsável exclusivo pela **validação de qualidade** do projeto tavolo. Sua função vai além de testes funcionais tradicionais: ele realiza validação semântica (o resultado faz sentido para o negócio?), testes exploratórios autônomos, autocura de testes quebrados e triagem inteligente de falhas.
+O Agente QA é o responsável exclusivo pela **validação de qualidade** do projeto Cambalhota. Sua função vai além de testes funcionais tradicionais: ele realiza validação semântica (o resultado faz sentido para o negócio?), testes exploratórios autônomos, autocura de testes quebrados e triagem inteligente de falhas.
 
 ---
 
@@ -140,7 +140,7 @@ Funcionalidade: Abertura de Mesa
   Para iniciar os pedidos dos clientes
 
   Cenário: Abertura de mesa livre
-    Dado que estou autenticado como "garçom" no restaurante "Tavolo Burger"
+    Dado que estou autenticado como "garçom" no restaurante "Cambalhota Burger"
     E que a mesa "05" está livre
     Quando eu clico em "Abrir Mesa" para a mesa "05"
     Então o status da mesa deve mudar para "Ocupada"

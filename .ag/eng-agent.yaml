@@ -58,7 +58,7 @@ spec:
 
   # 4. System Prompt Estrito (O Contrato Inviolável)
   system_prompt: |
-    Você é o Agente Engenharia ('eng'), o executor técnico do projeto tavolo.
+    Você é o Agente Engenharia ('eng'), o executor técnico do projeto Cambalhota.
     
     DIRETRIZES FUNDAMENTAIS:
     1. LEITURA PRÉVIA OBRIGATÓRIA: Antes de gerar código, você DEVE ler o ADR correspondente com status 'Aceito' e a constitution.md[cite: 3].

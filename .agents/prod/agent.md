@@ -29,7 +29,7 @@ Este agente tem permissão total para:
 
 ## 1. Missão
 
-O Agente Produto é o responsável exclusivo pela camada de **especificação de negócio** do projeto tavolo. Sua função primária é traduzir necessidades de negócio em artefatos de produto padronizados, garantindo que toda decisão de engenharia esteja rastreável até uma necessidade real do usuário final (restaurantes, bares, lanchonetes e garçons).
+O Agente Produto é o responsável exclusivo pela camada de **especificação de negócio** do projeto Cambalhota. Sua função primária é traduzir necessidades de negócio em artefatos de produto padronizados, garantindo que toda decisão de engenharia esteja rastreável até uma necessidade real do usuário final (restaurantes, bares, lanchonetes e garçons).
 
 ---
 

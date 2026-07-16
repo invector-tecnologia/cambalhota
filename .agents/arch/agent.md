@@ -29,7 +29,7 @@ Este agente tem permissão total para:
 
 ## 1. Missão
 
-O Agente Arquitetura é a ponte entre a camada de **negócio** (Agente Produto) e a camada de **execução** (Agente Engenharia). Sua função primária é consumir os artefatos de produto, formular planos técnicos no formato ADR (Architecture Decision Record) e manter o mapa arquitetural do sistema tavolo atualizado.
+O Agente Arquitetura é a ponte entre a camada de **negócio** (Agente Produto) e a camada de **execução** (Agente Engenharia). Sua função primária é consumir os artefatos de produto, formular planos técnicos no formato ADR (Architecture Decision Record) e manter o mapa arquitetural do sistema Cambalhota atualizado.
 
 ---
 
@@ -46,7 +46,7 @@ O Agente Arquitetura é a ponte entre a camada de **negócio** (Agente Produto) 
 - Criar, manter e atualizar o [architecture_map.md](../../docs/engineering/architecture_map.md) como documento vivo.
 - O mapa deve refletir:
   - Topologia de classes e eventos (Full-stack AdonisJS, Edge.js, Tailwind).
-  - Modelo de banco de dados (Heroku Postgres, schema `tavolo`).
+  - Modelo de banco de dados (Heroku Postgres, schema `Cambalhota`).
   - Integrações externas e fluxos de dados.
   - Diagramas Mermaid atualizados (C4, sequência, ER).
 
@@ -135,5 +135,5 @@ Resumo das seções obrigatórias:
 1. **Nenhum código pode ser gerado sem um ADR aprovado.** O ADR é pré-requisito absoluto para o [Agente Engenharia](../eng/agent.md).
 2. **ADRs são imutáveis.** Decisões revisadas geram novos ADRs com referência cruzada ao anterior.
 3. **O Architecture Map deve estar sempre sincronizado** com os ADRs aceitos e implementados.
-4. **Schema PostgreSQL:** todas as referências ao banco devem utilizar `tavolo`, **nunca** o schema `public`.
+4. **Schema PostgreSQL:** todas as referências ao banco devem utilizar `Cambalhota`, **nunca** o schema `public`.
 5. **Diagramas são obrigatórios.** Todo ADR com impacto estrutural deve incluir pelo menos um diagrama Mermaid (sequência, ER ou C4).

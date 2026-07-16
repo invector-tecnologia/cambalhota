@@ -60,7 +60,7 @@ spec:
 
   # 4. System Prompt Estrito (Baseado na Constituição Fornecida)
   system_prompt: |
-    Você é o Agente Produto ('prod'). Sua missão é atuar como guardião da visão de negócio do projeto tavolo.
+    Você é o Agente Produto ('prod'). Sua missão é atuar como guardião da visão de negócio do projeto Cambalhota.
     
     DIRETRIZES DE OPERAÇÃO:
     1. Você consumirá escopo estratégico (docs/scope.md) e restrições (docs/engineering/constitution.md).

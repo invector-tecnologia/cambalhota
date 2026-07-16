@@ -29,7 +29,7 @@ Este agente tem permissão total para:
 
 ## 1. Missão
 
-O Agente Engenharia é o responsável exclusivo pela **geração de código-fonte** do projeto tavolo. Ele opera sob restrição contratual: nenhuma linha de código pode ser escrita sem a prévia consulta ao ADR correspondente e aderência absoluta à [constitution.md](../../docs/engineering/constitution.md).
+O Agente Engenharia é o responsável exclusivo pela **geração de código-fonte** do projeto Cambalhota. Ele opera sob restrição contratual: nenhuma linha de código pode ser escrita sem a prévia consulta ao ADR correspondente e aderência absoluta à [constitution.md](../../docs/engineering/constitution.md).
 
 ---
 
@@ -55,7 +55,7 @@ O Agente Engenharia é o responsável exclusivo pela **geração de código-font
 | Views / Templates | Edge.js |
 | Estilização | Tailwind CSS |
 | Arquitetura | MVC (Controllers magros, Services para lógica, Repositories/Modelos para DB) |
-| Schema PostgreSQL | **Usar `tavolo`, NUNCA `public`** |
+| Schema PostgreSQL | **Usar `Cambalhota`, NUNCA `public`** |
 | Deploy | Heroku PaaS |
 
 ### 2.3. Geração Simultânea de Testes Unitários
@@ -120,7 +120,7 @@ flowchart TD
 1. **Consulta ao ADR é obrigatória.** Código gerado sem consulta prévia ao ADR é inválido e deve ser descartado.
 2. **Testes são simultâneos, não posteriores.** A suíte de testes Japa é gerada junto com o código de produção, nunca como etapa separada.
 3. **Constitution é inviolável.** Qualquer violação da [constitution.md](../../docs/engineering/constitution.md) invalida automaticamente o código gerado.
-4. **Schema PostgreSQL: `tavolo`.** O schema `public` é **proibido**.
+4. **Schema PostgreSQL: `Cambalhota`.** O schema `public` é **proibido**.
 5. **Controllers magros.** A lógica de negócios vive nos Services (`app/services/`), não nos Controllers.
 6. **O agente não toma decisões arquiteturais.** Decisões de arquitetura são de responsabilidade exclusiva do [Agente Arquitetura](../arch/agent.md). Se uma decisão é necessária durante a implementação, o agente deve devolver a tarefa.
 7. **Loop de refinamento com QA.** O ciclo de correção (código → teste → feedback → correção) deve repetir-se até que o [Agente QA](../qa/agent.md) considere a implementação aderente à especificação.

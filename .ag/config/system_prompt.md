@@ -1,55 +1,43 @@
-# System Prompt - Agentes tavolo
+# System Prompt - Agentes Cambalhota
 
 ## Stack Tecnológica
 
-- **Backend:** AdonisJS v6, Lucid ORM, Vine.js, Edge.js, TypeScript
-- **Frontend:** Tailwind CSS, Alpine.js (renderizado via Edge.js)
-- **Infra:** Heroku (web dyno) + Heroku Postgres
-- **CI:** npm run typecheck, npm run lint, npm test
+- **Backend / Core Engine:** Nim (Compilação ORC para alta performance, I/O intensivo)
+- **Frontend / CLI:** Tatuí (Terminal User Interface framework)
+- **Infra / Ferramentas:** Shell/Bash scripting
+- **Persistência Externa:** Git, CDNs diversas (AWS S3, GCP, Cloudflare R2, Dropbox, GDrive)
 
-## Regras de Banco de Dados
+## Regras Core de Negócios
 
-- Usar **sempre** a env var `DATABASE_SCHEMA` para definir o schema; **NUNCA** usar `public`.
-- Migrations devem iniciar explicitamente com `this.schema.withSchema('tavolo')`.
-- Usar acesso a dados exclusivamente através do Lucid ORM Models.
-- Multi-tenant: isolamento de dados por `empresa_id` em todas as queries referentes aos restaurantes.
+- **Dump & Restore:** O sistema deve interagir de forma robusta e segura com SGBDs relacionais (PostgreSQL, MySQL, SQL Server) para extração integral de metadados e dados. 
+- **Offload de Backups:** Arquivos .sql gerados **NUNCA** devem residir soltos na infraestrutura após a operação; obrigatoriamente devem ser disparados para o repósitório Git ou CDN homologados.
+- **Gerenciamento Flyway-Like:** A engenharia de migrações (`up`/`down`) será tratada com um framework comparável ao Flyway/Liquibase, mantendo um controle de versões e diffs estruturais severo.
 
 ## Segurança
 
-- Autenticação de usuários/funcionários.
-- Hierarquia de papéis (do mais ao menos privilegiado):
-  `superadmin > admin > gerente > caixa > garçom`
-- Operações privilegiadas (CRUD de usuários, estornos, exclusão de comandas) **devem** gerar audit log.
+- **Zero-Trust para Credenciais:** Proibido estritamente deixar qualquer variável de acesso a DB ou chaves de CDNs vazarem para arquivos persistidos em repositório (ex: hardcoded ou arquivos `.env` commitados).
+- Utilizar apenas a leitura segura por hooks de segurança ou injeção de variáveis de ambiente.
 
 ## Convenções de Código
 
-- Arquitetura MVC em camadas: `Router → Controllers → Services → Models`.
-- Testes unitários/funcionais (Japa) **devem** ser escritos junto com o código de produção — nunca depois.
-- `npm run lint` sem warnings; `npm run typecheck` sem erros.
-- Nomes de models em PascalCase; controllers e tabelas em snake_case plural/singular (convenções Adonis).
-
-## Pré-requisito ADR
-
-> **Nenhum código de produção pode ser gerado sem um ADR aprovado.**
-
-ADRs ficam em `docs/engineering/adrs/` no formato `NNNN-titulo.md`.
-Antes de implementar qualquer feature, verificar se o ADR correspondente existe e está com status "Aceito".
+- Arquitetura focada na agilidade do terminal, separando responsabilidades: `CLI/TUI (Apresentação) → Migration Engine → Extractor Engine`.
+- Documentações devem ser automaticamente geradas em formato Markdown padrão.
 
 ## Modelo de Aprovação
 
 1. Para cada tarefa, **sugerir** o modelo Gemini mais adequado (Flash, Pro, etc.) com justificativa.
-2. **Aguardar aprovação explícita** do usuário antes de editar qualquer arquivo em `app/` ou `resources/`.
-3. Apresentar diff resumido antes de aplicar mudanças destrutivas.
+2. **Aguardar aprovação explícita** do usuário antes de iniciar grandes implementações em `src/`.
+3. Apresentar um resumo dos comandos antes de qualquer alteração destrutiva ou remoção de pastas.
 
 ## Referências
 
-- [Constituição do Projeto](docs/engineering/constitution.md)
-- [Escopo do Produto](docs/scope.md)
-- [Instrumentação e Observabilidade](docs/instrumentation.md)
+- [Constituição do Projeto](../docs/engineering/constitution.md)
+- [Escopo do Produto](../docs/scope.md)
+- [Mapa de Funcionalidades](../docs/product/features_map.md)
 
 ## Agentes Operacionais
 
-- [Agente Arquitetura](.agents/arch/agent.md) — ADRs e architecture_map
-- [Agente Engenharia](.agents/eng/agent.md) — Código AdonisJS + TypeScript + Edge.js
-- [Agente Produto](.agents/prod/agent.md) — features_map e roadmaps
-- [Agente QA](.agents/qa/agent.md) — Planos de teste Gherkin e validação
+- [Agente Arquitetura](../.agents/arch/agent.md) — Design do engine Nim e integrações TUI
+- [Agente Engenharia](../.agents/eng/agent.md) — Implementação das lógicas core de migrations e dumps
+- [Agente Produto](../.agents/prod/agent.md) — Escopo e features_map
+- [Agente QA](../.agents/qa/agent.md) — Casos de uso de extração, falhas em restore e monitoramento
