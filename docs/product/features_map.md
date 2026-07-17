@@ -11,6 +11,9 @@ Este documento detalha todos os Épicos e Features do produto Cambalhota, atuand
   - Vinculação de uma "CDN" ou Repositório Git (S3, GCP Buckets, Cloudflare R2, Google Drive, Dropbox, OneDrive, ou NAS) para atuar como central de espelhamento e upload em nuvem.
 - **Feature 1.3: Preferências de Projeto** `[A Fazer]` `(v1.0)`
   - Configuração sobre o formato da geração e exportação de arquivos, como as migrations (Plain text ou SQL puro).
+- **Feature 1.4: Gerenciamento Visual de Múltiplas Conexões** `[A Fazer]` `(v1.0.1)`
+  - Eliminação de variáveis de ambiente para conexão, adotando configuração exclusiva via TUI.
+  - Gravação local em SQLite criptografado (AES) para persistência segura de múltiplas credenciais.
 
 ## Epic 2: Extração (Backup) e Persistência
 - **Feature 2.1: Extração Estruturada** `[Concluído] [QA Aprovado]` `(v1.0)`
@@ -44,6 +47,9 @@ Este documento detalha todos os Épicos e Features do produto Cambalhota, atuand
   - Navegação visual através de abas e painéis implementada sobre a tecnologia base (Tatuí).
   - Padronização orientada ao Design System: Dark mode, tipografia `Monoid`, layout fluido com bordas arredondadas e destaques por cores lógicas (sucesso, alerta, informação).
   - Exibição de painéis ricos para as saídas de relatórios de migration, auditorias e listagens locais de restore.
+- **Feature 5.2: Identidade Visual e Fluxo Cruzado** `[A Fazer]` `(v1.0.1)`
+  - Renderização de Logo Retrowave em ASCII Art no canto superior esquerdo.
+  - Seleção independente de bancos de Origem e Destino para viabilizar backup e restore cruzado de forma intuitiva.
 
 ## Epic 6: Documentação e Utilitários Técnicos
 - **Feature 6.1: Documentação DDL Automática** `[A Fazer]` `(v2.0)`

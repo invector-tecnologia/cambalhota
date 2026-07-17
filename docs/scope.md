@@ -30,6 +30,7 @@ Mapeamento claro dos usuários que interagem com o sistema, para guiar o *Domain
 
 *   **3.1. Configuração do Sistema e Conexão**
     *   O sistema será capaz de configurar as credenciais de acesso aos bancos de dados usando a URL de conexão fornecida.
+    *   O sistema deve permitir o cadastro de múltiplas conexões pela interface gráfica, armazenando as senhas de maneira segura (criptografia AES) em um banco local SQLite, eliminando o uso de variáveis de ambiente.
     *   O sistema será capaz de identificar e apresentar os nomes dos schemas existentes para que o usuário selecione qual deseja extrair/operar.
     *   O sistema será capaz de configurar o formato de geração dos arquivos de migration (Plain ou SQL).
 *   **3.2. Extração (Backup) e Persistência**
@@ -38,6 +39,7 @@ Mapeamento claro dos usuários que interagem com o sistema, para guiar o *Domain
 *   **3.3. Restauração (Restore)**
     *   O sistema listará dinamicamente todos os backups disponíveis no ambiente local do host em `~/.cambalhota/db_dumps/YYYY/`.
     *   O sistema fará o restore completo (schema, tabelas e dados) a partir de um backup local listado e selecionado pelo usuário.
+    *   O sistema permitirá o restore cruzado (cross-database restore), possibilitando gerar o dump de uma conexão origem e restaurar os dados em uma conexão destino previamente cadastrada.
 *   **3.4. Geração e Execução de Migrations**
     *   O sistema gerará arquivos de migration com rotinas de up e down.
     *   O sistema comparará duas versões do banco de dados e gerará arquivos de diff (migration).
@@ -67,6 +69,7 @@ Contratos visuais e referências de benchmark para o desenvolvimento das camadas
     - Layout baseado em abas e painéis verticais
     - Uso de bordas arredondadas (`corner_radius`)
     - Padding lateral de `16px`
+    - Exibição de uma Logo do projeto em formato ASCII Art 'Retrowave' fixada no canto superior esquerdo da tela.
 
 ## 6. Fundações Tecnológicas (Stack Baseline)
 Definição do ecossistema técnico aprovado pela liderança para sustentar a operação.
