@@ -141,6 +141,9 @@ proc main() =
               else:
                 statusMsg = "STATUS: Failed to restore schema."
             elif selectedMenu == 2:
+              let dbPass = getEnv("DB_PASS", "postgres")
+              putEnv("PGPASSWORD", dbPass)
+              discard initSchemaHistory(dbHost, dbPort, dbUser, dbName)
               let mFull = parseMigrationFilename(file)
               if applyMigration(dbHost, dbPort, dbUser, dbName, mFull):
                 statusMsg = "STATUS: Executed migration " &
