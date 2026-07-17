@@ -36,10 +36,10 @@ Chega de olhar para telas de log subindo descontroladamente ou congeladas. O *Ca
 Se você já quer saltar para a ação e instalar o utilitário nativo na sua máquina, execute:
 
 ```bash
-curl -sSL https://github.com/invector-tecnologia/tai/releases/download/v1.0.0/install.sh | bash
+curl -sSL https://github.com/invector-tecnologia/cambalhota/releases/download/v1.0.0/install.sh | bash
 ```
 
-*Nota: O script baixará o binário recém-compilado da nossa página de [Releases](https://github.com/invector-tecnologia/tai/releases) e aplicará a configuração em `/usr/local/bin`.*
+*Nota: O script baixará o binário recém-compilado da nossa página de [Releases](https://github.com/invector-tecnologia/cambalhota/releases) e aplicará a configuração em `/usr/local/bin`.*
 
 ---
 
@@ -89,8 +89,8 @@ O Cambalhota foi construído integralmente em [Nim](https://nim-lang.org/). Se v
    ```
 2. Clone o repositório:
    ```bash
-   git clone https://github.com/invector-tecnologia/tai.git
-   cd tai
+   git clone https://github.com/invector-tecnologia/cambalhota.git
+   cd cambalhota
    ```
 3. Compile a aplicação na flag mais agressiva de liberação (Release C Backend):
    ```bash

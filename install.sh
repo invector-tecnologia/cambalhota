@@ -13,7 +13,7 @@ echo "Detectando sistema: $OS ($ARCH)"
 INSTALL_DIR="/usr/local/bin"
 BIN_NAME="cambalhota"
 
-REPO="invector-tecnologia/tai"
+REPO="invector-tecnologia/cambalhota"
 DOWNLOAD_URL="https://github.com/$REPO/releases/download/v1.0.0/cambalhota"
 
 echo "Baixando o binário..."
