@@ -46,6 +46,10 @@ proc runTui*(initialConf: ExtractorConfig = ExtractorConfig()) =
     listStRestoreDump: ListState
     listStRestoreConn: ListState
     configFilesIdx, backupFilesIdx, restoreDumpIdx, restoreConnIdx = 0
+    isAddingConn = false
+    formIndex = 0
+    formLabels = ["Name", "Engine (pg, mysql)", "Host", "Port", "User", "DB Name", "Password", "Schema"]
+    formValues = ["", "", "", "", "", "", "", ""]
 
   while running:
     let connections = listConnections()
@@ -91,7 +95,13 @@ proc runTui*(initialConf: ExtractorConfig = ExtractorConfig()) =
       t.style = defaultStyle().fg(Cyan)
       f.renderWidget(t, headerRect)
 
-      if selectedMenu == 0:
+      if isAddingConn:
+        var formLines = "=== ADD NEW CONNECTION (Esc to Cancel) ===\n\n"
+        for i, label in formLabels:
+          let pointer = if i == formIndex: " > " else: "   "
+          formLines.add(pointer & label & ": " & formValues[i] & "\n")
+        f.renderWidget(paragraph(text(formLines), blk = some(initBlock(title = " NEW CONNECTION ", borders = AllBorders, borderStyle = defaultStyle().fg(Green)))), bodyRect)
+      elif selectedMenu == 0:
         var items: seq[ListItem]
         for c in connections:
           items.add listItem(c.name & " [" & c.engine & "] - " & c.user & "@" & c.host & ":" & $c.port & "/" & c.dbname, style = defaultStyle().fg(White))
@@ -129,6 +139,34 @@ proc runTui*(initialConf: ExtractorConfig = ExtractorConfig()) =
     let evOpt = pollEvent(50)
     if evOpt.isSome and evOpt.get.kind == evKey:
       let k = evOpt.get.key
+      if isAddingConn:
+        if k.code == kcEsc:
+          isAddingConn = false
+          formValues = ["", "", "", "", "", "", "", ""]
+          formIndex = 0
+        elif k.code == kcUp and formIndex > 0: formIndex.dec
+        elif k.code == kcDown and formIndex < formLabels.len - 1: formIndex.inc
+        elif k.code == kcBackspace:
+          if formValues[formIndex].len > 0: formValues[formIndex] = formValues[formIndex][0 .. ^2]
+        elif k.code == kcEnter:
+          if formIndex < formLabels.len - 1:
+            formIndex.inc
+          else:
+            try:
+              var cSchema = formValues[7]
+              if cSchema == "": cSchema = "Cambalhota"
+              let cPort = parseInt(formValues[3])
+              saveConnection(ConnectionRecord(name: formValues[0], engine: formValues[1], host: formValues[2], port: cPort, user: formValues[4], dbname: formValues[5], encrypted_password: formValues[6], schema: cSchema))
+              statusMsg = "STATUS: Connection saved."
+            except Exception as e:
+              statusMsg = "STATUS: Failed to save: " & e.msg
+            isAddingConn = false
+            formValues = ["", "", "", "", "", "", "", ""]
+            formIndex = 0
+        elif k.code == kcChar:
+          formValues[formIndex].add($k.rune)
+        continue
+
       if k.code == kcChar and (k.rune == Rune('q'.ord) or k.rune == Rune('Q'.ord)):
         running = false
       elif k.code == kcLeft:
@@ -150,24 +188,7 @@ proc runTui*(initialConf: ExtractorConfig = ExtractorConfig()) =
           if inFocus == 0 and dumps.len > 0 and restoreDumpIdx < dumps.len - 1: restoreDumpIdx.inc
           elif inFocus == 1 and connections.len > 0 and restoreConnIdx < connections.len - 1: restoreConnIdx.inc
       elif k.code == kcChar and (k.rune == Rune('a'.ord) or k.rune == Rune('A'.ord)) and selectedMenu == 0:
-        term.restore()
-        echo "\n=== ADD NEW CONNECTION ==="
-        stdout.write("Name (unique): "); let cName = stdin.readLine().strip()
-        stdout.write("Engine (pg, mysql): "); let cEngine = stdin.readLine().strip()
-        stdout.write("Host: "); let cHost = stdin.readLine().strip()
-        stdout.write("Port: "); let cPortStr = stdin.readLine().strip()
-        stdout.write("User: "); let cUser = stdin.readLine().strip()
-        stdout.write("DB Name: "); let cDb = stdin.readLine().strip()
-        stdout.write("Password: "); let cPass = stdin.readLine().strip()
-        stdout.write("Schema (default: Cambalhota): "); var cSchema = stdin.readLine().strip()
-        if cSchema == "": cSchema = "Cambalhota"
-        try:
-          let cPort = parseInt(cPortStr)
-          saveConnection(ConnectionRecord(name: cName, engine: cEngine, host: cHost, port: cPort, user: cUser, dbname: cDb, encrypted_password: cPass, schema: cSchema))
-          statusMsg = "STATUS: Connection saved."
-        except Exception as e:
-          statusMsg = "STATUS: Failed to save: " & e.msg
-        term.setup()
+        isAddingConn = true
       elif k.code == kcChar and (k.rune == Rune('d'.ord) or k.rune == Rune('D'.ord)) and selectedMenu == 0:
         if connections.len > 0 and configFilesIdx < connections.len:
           deleteConnection(connections[configFilesIdx].id)
