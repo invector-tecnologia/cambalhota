@@ -3,3 +3,6 @@ dumps/
 backups/
 *.sql
 !migrations/
+nimble.develop
+nimble.paths
+nimbledeps

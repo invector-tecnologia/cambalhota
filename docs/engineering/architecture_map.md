@@ -8,7 +8,7 @@ O **Cambalhota** é uma ferramenta CLI/TUI nativa compilada em **Nim** (com gest
 ```mermaid
 flowchart TD
     subgraph UI ["Frontend / CLI"]
-        TUI[Interface Tatuí]
+        TUI[Interface Tatuí (com Menu Side-by-side e Logo ASCII)]
         CLI[Comandos CLI e Automação]
     end
 
@@ -17,13 +17,16 @@ flowchart TD
         DBCore[db_core.nim - Adaptadores RDBMS]
         MigEngine[Migration Engine]
         ExtAdapter[Extractor Adapter / Factory]
-        DumpRest[Dump & Restore Engine]
+        DumpRest[Dump & Restore Engine (Cross-Database via osproc)]
         StreamPipe[Pipeline de Streaming & Criptografia]
+        ConfigManager[Configuration Manager]
     end
 
     subgraph Persistence ["Armazenamento e Persistência"]
         CDN[CDN / Git / Cloud Buckets]
-        Local[Sistema de Arquivos Local]
+        Local[Sistema de Arquivos Local (Dumps)]
+        SQLite[(Local Config DB - SQLite)]
+        Keyring{OS Keyring}
     end
 
     subgraph DB ["Banco de Dados Alvo"]
@@ -44,14 +47,18 @@ flowchart TD
     TargetDB --- AuditTable
     Core <--> CDN
     Core <--> Local
+    ConfigManager <--> SQLite
+    ConfigManager <--> Keyring
+    TUI <--> ConfigManager
 ```
 
 ## Detalhamento dos Componentes Técnicos
 
 ### 1. Camada de UI (Frontend / CLI)
 - **TUI Tatuí:** Provê toda a experiência visual rica via terminal para interatividade humana.
-  - Implementa um Design System unificado (Dark mode, fontes monoespaçadas, destaques semânticos de cores).
-  - Organiza funcionalidades complexas em abas intuitivas (Extrator, Relatórios de Auditoria, Restauração).
+  - Implementa um Design System unificado (Dark mode, fontes monoespaçadas, destaques semânticos de cores, Logo Retrowave ASCII global).
+  - Organiza funcionalidades complexas em abas intuitivas (Conexões, Extrator, Relatórios de Auditoria, Restauração).
+  - Emprega layouts "side-by-side" (como na aba de Cross-Restore) para segmentação cognitiva (Origem vs. Destino).
 - **CLI Utilities:** Interface programática *headless* para orquestração (via CI/CD) e disparo automatizado de comandos.
   - Utiliza `parseopt` para validação rigorosa de parâmetros, implementando um *Hard Block* ativo que aborta a extração (ex: barrando o schema `public`) e injeta estados de erro (`stError`) na thread da UI para feedback imediato ao usuário.
 
@@ -59,8 +66,13 @@ flowchart TD
 Construído com gestão `ORC` para maximizar a previsibilidade e diminuir a latência do garbage collector, lidando de modo eficiente com volumes altos de leitura/escrita e redes.
 
 #### Camada de IO Assíncrono (Processos em Background)
-- Desacopla execuções pesadas (como o streaming do `pg_dump`) da Thread Principal através de Threads e Canais (`Channel[Msg]`).
+- Desacopla execuções pesadas (como o streaming do `pg_dump` e chamadas OS via `osproc`) da Thread Principal através de Threads e Canais (`Channel[Msg]`).
 - Assegura que a UI Tatuí nunca congele durante I/O, repassando status e logs em tempo real (Promessa Fail-safe).
+
+#### Configuration Manager (Multi-Connections)
+- Gerencia o estado das conexões configuradas localmente na TUI.
+- Elimina o uso de variáveis de ambiente (`.env`) em favor de um banco **SQLite** local criptografado (`connections.db`).
+- Interage com o **OS Keyring** nativo (Secret Service, Keychain, Credential Locker) para armazenar de forma segura a chave mestra (Master Key), utilizada na encriptação e decriptação (AES-256 via `nimcrypto`) das senhas dos SGBDs.
 
 #### `db_core.nim` (Camada de Acesso RDBMS)
 - Driver agnóstico que atua como tradutor de dialetos para PostgreSQL, MySQL e SQL Server.
@@ -75,8 +87,8 @@ Uma implementação Flyway-like responsável pela evolução contínua da estrut
 
 #### Dump & Restore Engine
 - Orquestra extrações unificadas e estruturadas em arquivos padrão (`yyyy-mm-dd_..._dump-db.sql`).
-- Executa rotinas completas de *restore* do banco, permitindo inclusive o mock e a carga de fixtures localmente.
-- **Extractor Adapter / Factory Pattern:** Resolve e instancia dinamicamente o utilitário nativo de dump compatível com o banco alvo (ex: `pg_dump`, `mysqldump`, `mongodump`), tornando a arquitetura agnóstica ao motor de dados.
+- Executa rotinas completas de *restore* do banco, permitindo inclusive o mock e a carga de fixtures localmente, assim como migrações cruzadas (**Cross-Database Restore**) onde o Dump é aplicado em uma conexão Destino via acionamento de CLI nativo em `osproc`.
+- **Extractor Adapter / Factory Pattern:** Resolve e instancia dinamicamente o utilitário nativo de dump compatível com o banco alvo (ex: `pg_dump`, `mysqldump`, `mongodump`), tornando a arquitetura agnóstica ao motor de dados. A injeção de credenciais decriptadas é feita por arquivos temporários ou variáveis seguras injetadas no subset OSProc.
 - **Segurança e Otimização:** Delega processamento pesado ao *Pipeline de Streaming & Criptografia* (ADR-004), interceptando a saída universal do utilitário instanciado (`stdout`) e operando em pedaços contínuos. A compressão (`std/zlib`) e a criptografia E2E (`nimcrypto` AES-256) ocorrem on-the-fly por blocos, blindando a memória contra falhas OOM. Em paralelo, a *worker thread* alimenta a interface com o status dos blocos processados via canais (`Channel`).
 
 ### 3. Integração Remota (Persistência Off-Site)
