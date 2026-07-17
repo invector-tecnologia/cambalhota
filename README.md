@@ -8,7 +8,7 @@
 
 O **Cambalhota** não é apenas mais um gerenciador de banco de dados; é uma plataforma completa construída em **Nim** que abstrai o caos do gerenciamento de *dumps*, *restores* e *migrations*. Ele foca em segurança local em estado de repouso (at-rest), tolerância a gargalos de RAM e uma experiência visual *Retrowave* direto no seu terminal.
 
-## 🌟 Principais Features (v1.0)
+## 🌟 Principais Features (v1.0.1)
 
 ### 1. 🛡️ Segurança Local-First (Epic 7)
 Nunca mais deixe um dump legível na sua máquina. O Cambalhota exporta e salva arquivos localmente na pasta `~/.cambalhota/db_dumps/YYYY/`.
@@ -28,6 +28,10 @@ Chega de olhar para telas de log subindo descontroladamente ou congeladas. O *Ca
 - Abas e painéis isolados de configurações, backups locais, histórico e File Viewer.
 - Navegue nos seus scripts locais, leia todo o código na TUI e aplique suas migrações apertando `Enter`. 
 - Log não-bloqueante via *Channels*, provendo barras de progresso contínuas e imunes ao peso do processamento I/O do disco/banco.
+
+### 5. 🗄️ Multi-Conexões Seguras & Cross-Restore (v1.0.1)
+Acabou a bagunça de `.env`! O Cambalhota gerencia múltiplas conexões de banco de dados diretamente na interface, armazenando as senhas encriptadas com AES em um banco SQLite invisível (`~/.cambalhota/connections.db`).
+Graças à aba `Restore` com layout *side-by-side*, você pode pegar o dump de um servidor local e mandar restaurar direto num banco remoto na nuvem cruzando pontas com o mínimo de cliques.
 
 ---
 
@@ -51,17 +55,11 @@ Basta chamar `cambalhota` de dentro do diretório do seu projeto onde os seus ar
 cambalhota
 ```
 
-### 2. Configurações de Banco (Environment)
-O Cambalhota respeita rigorosamente variáveis de ambiente. Defina as variáveis antes de subir a ferramenta ou as declare no seu `~/.bashrc`:
-
-```bash
-export DB_HOST="localhost"
-export DB_PORT="5432"
-export DB_USER="postgres"
-export DB_NAME="postgres"
-export DB_PASS="senha_super_secreta" # Para processos não solicitarem TTY interativa.
-```
-*(Opcionalmente, você pode usar a interface visual na aba `Config` para sobrescrever os acessos na sessão).*
+### 2. Gestão de Conexões (TUI SQLite)
+Diferente dos tradicionais utilitários, não exigimos preenchimento de variáveis de ambiente.
+Ao iniciar a aplicação, vá até a aba **Config**, pressione o comando para adicionar e insira os dados do banco (Host, Porta, Engine, Credenciais).
+- Todas as senhas digitadas são blindadas e criptografadas em AES antes de tocar no disco.
+- Você pode cadastrar dezenas de conexões e, na hora do Backup ou Restore, o painel interativo pedirá para você apontar o servidor de Origem e Destino com um simples clique de setas!
 
 ### 3. Navegação (Keybinds)
 - `Esquerda / Direita`: Altera as abas no topo da aplicação (Config -> Backup -> Restore / Migrations).
