@@ -2,8 +2,8 @@
 name: eng
 description: >
   Executor técnico — traduz decisões arquiteturais (ADRs) em código-fonte de
-  produção e testes unitários. Opera sob restrição contratual da constitution.md,
-  gerando código TypeScript/AdonisJS (backend) e Edge.js/Tailwind (frontend).
+  produção e testes. Opera sob restrição contratual da constitution.md,
+  gerando um utilitário CLI/TUI nativo em Nim e gerenciando processos do sistema (como pg_dump).
 tools:
   - write_to_file
   - replace_file_content
@@ -45,23 +45,20 @@ O Agente Engenharia é o responsável exclusivo pela **geração de código-font
 
 - Criar, manter e atualizar código-fonte seguindo estritamente as especificações do ADR e as restrições da constitution.
 
-#### Full-stack AdonisJS v6
+#### Utilitário de Terminal (CLI/TUI) em Nim
 
 | Aspecto | Padrão |
 | :--- | :--- |
-| Framework Core | AdonisJS v6 (TypeScript estrito) |
-| ORM / Queries | Lucid ORM |
-| Validação | Vine.js |
-| Views / Templates | Edge.js |
-| Estilização | Tailwind CSS |
-| Arquitetura | MVC (Controllers magros, Services para lógica, Repositories/Modelos para DB) |
+| Linguagem Core | Nim |
+| Interface | Tatuí (TUI framework) |
+| Arquitetura | Binário estático standalone, orquestração segura de processos de banco de dados (`pg_dump`) |
+| Segurança de Memória | Foco em streaming eficiente e baixo consumo de RAM, evitando carregar dumps completos na memória |
 | Schema PostgreSQL | **Usar `Cambalhota`, NUNCA `public`** |
-| Deploy | Heroku PaaS |
 
 ### 2.3. Geração Simultânea de Testes Unitários
 
 - **Todo código de produção deve ser acompanhado da suíte de testes unitários/funcionais correspondente.** Não existe código sem teste.
-- Runner de Testes: **Japa**.
+- Runner de Testes: **nimble test / unittest** (padrão nativo do Nim).
 
 ### 2.4. Aderência à Constitution
 
@@ -89,8 +86,8 @@ O Agente Engenharia é o responsável exclusivo pela **geração de código-font
 
 | Artefato | Localização | Descrição |
 | :--- | :--- | :--- |
-| Código-fonte | `app/`, `resources/`, `start/` | AdonisJS MVC, Edge.js, Tailwind, Vine.js |
-| Testes unitários/funcionais | `tests/` | Japa test suites |
+| Código-fonte | `src/` | Código Nim estruturado em módulos para orquestração de banco e TUI |
+| Testes unitários/funcionais | `tests/` | Nim unittest suites |
 
 ---
 
@@ -103,8 +100,8 @@ flowchart TD
     C -- Não --> D["Devolver ao Agente arch para complementação"]
     D --> B
     C -- Sim --> E["Consultar architecture_map.md e constitution.md"]
-    E --> F["Implementar código-fonte AdonisJS"]
-    F --> G["Gerar testes Japa simultaneamente"]
+    E --> F["Implementar código-fonte em Nim"]
+    F --> G["Gerar testes (unittest) simultaneamente"]
     G --> H["Entregar código + testes ao Agente qa"]
     H --> I{"Validação QA aprovada?"}
     I -- Não --> J["Analisar feedback do QA"]
@@ -118,9 +115,9 @@ flowchart TD
 ## 5. Regras de Operação
 
 1. **Consulta ao ADR é obrigatória.** Código gerado sem consulta prévia ao ADR é inválido e deve ser descartado.
-2. **Testes são simultâneos, não posteriores.** A suíte de testes Japa é gerada junto com o código de produção, nunca como etapa separada.
+2. **Testes são simultâneos, não posteriores.** A suíte de testes nativos do Nim é gerada junto com o código de produção.
 3. **Constitution é inviolável.** Qualquer violação da [constitution.md](../../docs/engineering/constitution.md) invalida automaticamente o código gerado.
 4. **Schema PostgreSQL: `Cambalhota`.** O schema `public` é **proibido**.
-5. **Controllers magros.** A lógica de negócios vive nos Services (`app/services/`), não nos Controllers.
+5. **Separação de Responsabilidades.** O código deve ser modularizado (`src/core/`, `src/tui/`, `src/db/`) para isolar regras de negócio, interface e infraestrutura.
 6. **O agente não toma decisões arquiteturais.** Decisões de arquitetura são de responsabilidade exclusiva do [Agente Arquitetura](../arch/agent.md). Se uma decisão é necessária durante a implementação, o agente deve devolver a tarefa.
 7. **Loop de refinamento com QA.** O ciclo de correção (código → teste → feedback → correção) deve repetir-se até que o [Agente QA](../qa/agent.md) considere a implementação aderente à especificação.

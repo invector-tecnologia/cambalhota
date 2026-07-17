@@ -141,8 +141,8 @@ proc main() =
               else:
                 statusMsg = "STATUS: Failed to restore schema."
             elif selectedMenu == 2:
-              let m = parseMigrationFilename(file.extractFilename())
-              if executeMigration(m, dbConn):
+              let mFull = parseMigrationFilename(file)
+              if applyMigration(dbHost, dbPort, dbUser, dbName, mFull):
                 statusMsg = "STATUS: Executed migration " &
                     file.extractFilename()
               else:

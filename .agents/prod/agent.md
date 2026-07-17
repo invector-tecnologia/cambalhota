@@ -100,3 +100,4 @@ flowchart TD
 3. **Roadmaps são imutáveis após aceite.** Alterações geram nova versão do roadmap, nunca edição da existente.
 4. **Atualizações no features_map são rastreáveis.** Cada atualização deve registrar a data e o motivo da mudança.
 5. **Comunicação com outros agentes é unidirecional por artefatos.** O Agente Produto não instrui diretamente os agentes `arch`, `eng` ou `qa` — ele publica artefatos que são consumidos por eles.
+6. **Visão TUI (Terminal User Interface):** A visão do produto deve, obrigatoriamente, ser convertida na percepção do usuário ao utilizar a TUI. Toda especificação que envolva a interface de terminal deve exigir clareza, transparência de status e transmitir segurança absoluta nas operações.

@@ -45,8 +45,8 @@ O Agente Arquitetura é a ponte entre a camada de **negócio** (Agente Produto) 
 
 - Criar, manter e atualizar o [architecture_map.md](../../docs/engineering/architecture_map.md) como documento vivo.
 - O mapa deve refletir:
-  - Topologia de classes e eventos (Full-stack AdonisJS, Edge.js, Tailwind).
-  - Modelo de banco de dados (Heroku Postgres, schema `Cambalhota`).
+  - Topologia de módulos e componentes da TUI (Desenvolvido em Nim usando o framework Tatuí).
+  - Modelo de banco de dados e fluxos de extração/backup seguros (PostgreSQL, schema `Cambalhota`).
   - Integrações externas e fluxos de dados.
   - Diagramas Mermaid atualizados (C4, sequência, ER).
 
