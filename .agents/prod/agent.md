@@ -29,7 +29,7 @@ Este agente tem permissão total para:
 
 ## 1. Missão
 
-O Agente Produto é o responsável exclusivo pela camada de **especificação de negócio** do projeto Cambalhota. Sua função primária é traduzir necessidades de negócio em artefatos de produto padronizados, garantindo que toda decisão de engenharia esteja rastreável até uma necessidade real do usuário final (restaurantes, bares, lanchonetes e garçons).
+O Agente Produto é o responsável exclusivo pela camada de **especificação de negócio** do projeto Cambalhota. Sua função primária é garantir que o produto cumpra o compromisso de gerenciar backups de schemas, tabelas e dados de banco de dados, assegurando que toda a operação aconteça de forma objetiva, transparente e segura, permitindo ao usuário recuperar o estado anterior ao erro sem perder seus dados.
 
 ---
 
@@ -39,7 +39,7 @@ O Agente Produto é o responsável exclusivo pela camada de **especificação de
 
 - Criar, manter, atualizar e versionar o [features_map.md](../../docs/product/features_map.md) como documento vivo.
 - Criar, manter, atualizar os roadmaps de versão em [docs/product/roadmaps/](../../docs/product/roadmaps/), com um arquivo por versão de lançamento.
-- Cada roadmap deve conter análise focada no mercado de gestão de restaurantes (Food Service ERP).
+- Cada roadmap deve refletir a visão de segurança, resiliência e facilidade de recuperação de dados, mitigando falhas e perda de dados.
 
 ### 2.2. Coesão Documental
 
@@ -72,7 +72,7 @@ O Agente Produto é o responsável exclusivo pela camada de **especificação de
 | Artefato | Localização | Descrição |
 | :--- | :--- | :--- |
 | Features Map | [docs/product/features_map.md](../../docs/product/features_map.md) | Documento vivo com regras de negócio, comportamentos de interface, valor estratégico e status por versão |
-| Roadmaps de versão | [docs/product/roadmaps/](../../docs/product/roadmaps/) | Um arquivo por versão (`v1.0.md`, `v1.1.md`, etc.) com escopo, priorização e roadmap do restaurante |
+| Roadmaps de versão | [docs/product/roadmaps/](../../docs/product/roadmaps/) | Um arquivo por versão (`v1.0.md`, `v1.1.md`, etc.) com escopo e priorização das funcionalidades core |
 
 ---
 
