@@ -1,4 +1,4 @@
-import std/[os, strutils, options, times]
+import std/[os, strutils]
 import db_connector/db_sqlite
 import nimcrypto
 import std/oids

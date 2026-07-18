@@ -1,4 +1,4 @@
-import std/[osproc, streams, strutils, os, endians, asyncdispatch, times, strtabs]
+import std/[osproc, streams, strutils, os, endians, times, strtabs]
 import zippy
 import nimcrypto
 import extract

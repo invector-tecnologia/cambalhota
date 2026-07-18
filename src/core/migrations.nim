@@ -1,5 +1,6 @@
-import strutils, os, algorithm, osproc, times, strformat
+import strutils, os, algorithm, osproc, times, strformat, strtabs, streams
 import nimcrypto/sha2
+import ../tui/msg
 
 type
   MigrationType* = enum
@@ -64,8 +65,29 @@ proc scanMigrations*(dir: string): seq[Migration] =
 
 type MigrationError* = object of CatchableError
 
+proc execCmdWithEnvLogged*(cmd: string, dbPass: string): (string, int) =
+  var env = newStringTable(modeCaseInsensitive)
+  for key, val in envPairs(): env[key] = val
+  if dbPass.len > 0:
+    env["PGPASSWORD"] = dbPass
+    env["MYSQL_PWD"] = dbPass
+  let p = startProcess(cmd, env = env, options = {poUsePath, poEvalCommand, poStdErrToStdOut})
+  let outStream = p.outputStream
+  var outp = ""
+  try:
+    var line = ""
+    while outStream.readLine(line):
+      outp &= line & "\n"
+      logChannel.send(Msg(kind: mkLog, text: line))
+  except EOFError:
+    discard
+  except CatchableError:
+    discard
+  let exitCode = p.waitForExit()
+  p.close()
+  return (outp, exitCode)
 
-proc executeMigrationScript*(dbHost, dbPort, dbUser, dbName: string, m: Migration): (bool, string, int) =
+proc executeMigrationScript*(dbHost, dbPort, dbUser, dbPass, dbName: string, m: Migration): (bool, string, int) =
   let startT = cpuTime()
   let content = if fileExists(m.filePath): readFile(m.filePath) else: ""
   let wrappedContent = "BEGIN;\n" & content & "\nCOMMIT;\n"
@@ -74,7 +96,7 @@ proc executeMigrationScript*(dbHost, dbPort, dbUser, dbName: string, m: Migratio
   writeFile(tmpFile, wrappedContent)
   
   let cmd = fmt"psql -h {dbHost} -p {dbPort} -U {dbUser} -d {dbName} -f {tmpFile}"
-  let (outp, exitCode) = execCmdEx(cmd)
+  let (outp, exitCode) = execCmdWithEnvLogged(cmd, dbPass)
   removeFile(tmpFile)
   
   let endT = cpuTime()
@@ -85,7 +107,7 @@ proc executeMigrationScript*(dbHost, dbPort, dbUser, dbName: string, m: Migratio
   else:
     return (false, outp, execTimeMs)
 
-proc initSchemaHistory*(dbHost, dbPort, dbUser, dbName: string): bool =
+proc initSchemaHistory*(dbHost, dbPort, dbUser, dbPass, dbName: string): bool =
   let ddl = """
   CREATE SCHEMA IF NOT EXISTS Cambalhota;
   CREATE TABLE IF NOT EXISTS Cambalhota.cambalhota_schema_history (
@@ -104,13 +126,13 @@ proc initSchemaHistory*(dbHost, dbPort, dbUser, dbName: string): bool =
   let tmpFile = getTempDir() / "cambalhota_init.sql"
   writeFile(tmpFile, ddl)
   let cmd = fmt"psql -h {dbHost} -p {dbPort} -U {dbUser} -d {dbName} -f {tmpFile}"
-  let (outp, exitCode) = execCmdEx(cmd)
+  let (outp, exitCode) = execCmdWithEnvLogged(cmd, dbPass)
   removeFile(tmpFile)
   return exitCode == 0
 
-proc getInstalledMigrations*(dbHost, dbPort, dbUser, dbName: string): seq[string] =
+proc getInstalledMigrations*(dbHost, dbPort, dbUser, dbPass, dbName: string): seq[string] =
   let cmd = fmt"psql -h {dbHost} -p {dbPort} -U {dbUser} -d {dbName} -t -c ""SELECT version FROM Cambalhota.cambalhota_schema_history WHERE success = true;"""
-  let (outp, exitCode) = execCmdEx(cmd)
+  let (outp, exitCode) = execCmdWithEnvLogged(cmd, dbPass)
   var versions: seq[string] = @[]
   if exitCode == 0:
     for line in outp.splitLines():
@@ -119,14 +141,14 @@ proc getInstalledMigrations*(dbHost, dbPort, dbUser, dbName: string): seq[string
         versions.add(v)
   return versions
 
-proc getInstalledChecksum*(dbHost, dbPort, dbUser, dbName, version: string): string =
+proc getInstalledChecksum*(dbHost, dbPort, dbUser, dbPass, dbName, version: string): string =
   let cmd = fmt"psql -h {dbHost} -p {dbPort} -U {dbUser} -d {dbName} -t -c ""SELECT checksum FROM Cambalhota.cambalhota_schema_history WHERE version = '{version}' AND success = true;"""
-  let (outp, exitCode) = execCmdEx(cmd)
+  let (outp, exitCode) = execCmdWithEnvLogged(cmd, dbPass)
   if exitCode == 0:
     return outp.strip()
   return ""
 
-proc recordMigration*(dbHost, dbPort, dbUser, dbName: string, m: Migration, success: bool, execTimeMs: int): bool =
+proc recordMigration*(dbHost, dbPort, dbUser, dbPass, dbName: string, m: Migration, success: bool, execTimeMs: int): bool =
   let successStr = if success: "true" else: "false"
   let scriptName = extractFilename(m.filePath)
   let stmt = fmt"""
@@ -138,12 +160,12 @@ proc recordMigration*(dbHost, dbPort, dbUser, dbName: string, m: Migration, succ
   let tmpFile = getTempDir() / "cambalhota_audit.sql"
   writeFile(tmpFile, stmt)
   let cmd = fmt"psql -h {dbHost} -p {dbPort} -U {dbUser} -d {dbName} -f {tmpFile}"
-  let (outp, exitCode) = execCmdEx(cmd)
+  let (outp, exitCode) = execCmdWithEnvLogged(cmd, dbPass)
   removeFile(tmpFile)
   return exitCode == 0
 
-proc applyMigration*(dbHost, dbPort, dbUser, dbName: string, m: Migration): bool =
-  let installedChecksum = getInstalledChecksum(dbHost, dbPort, dbUser, dbName, m.version)
+proc applyMigration*(dbHost, dbPort, dbUser, dbPass, dbName: string, m: Migration): bool =
+  let installedChecksum = getInstalledChecksum(dbHost, dbPort, dbUser, dbPass, dbName, m.version)
   
   if installedChecksum.len > 0:
     if installedChecksum != m.checksum:
@@ -151,11 +173,37 @@ proc applyMigration*(dbHost, dbPort, dbUser, dbName: string, m: Migration): bool
     else:
       return true # Already installed and valid
       
-  let (success, outp, execTimeMs) = executeMigrationScript(dbHost, dbPort, dbUser, dbName, m)
-  discard recordMigration(dbHost, dbPort, dbUser, dbName, m, success, execTimeMs)
+  let (success, outp, execTimeMs) = executeMigrationScript(dbHost, dbPort, dbUser, dbPass, dbName, m)
+  discard recordMigration(dbHost, dbPort, dbUser, dbPass, dbName, m, success, execTimeMs)
   
   if not success:
     raise newException(MigrationError, "Migration failed: " & outp)
     
   return success
+
+type MigrationArgs* = object
+  dbHost*, dbPort*, dbUser*, dbPass*, dbName*: string
+  migrationFile*: string
+
+proc workerMigrationProc(args: MigrationArgs) {.thread.} =
+  try:
+    logChannel.send(Msg(kind: mkLog, text: "Initializing schema history if needed..."))
+    discard initSchemaHistory(args.dbHost, args.dbPort, args.dbUser, args.dbPass, args.dbName)
+    let mFull = parseMigrationFilename(args.migrationFile)
+    logChannel.send(Msg(kind: mkLog, text: "Applying migration " & mFull.version & " ..."))
+    if applyMigration(args.dbHost, args.dbPort, args.dbUser, args.dbPass, args.dbName, mFull):
+      logChannel.send(Msg(kind: mkSuccess))
+    else:
+      logChannel.send(Msg(kind: mkError, text: "Migration failed for unknown reason."))
+  except CatchableError as e:
+    logChannel.send(Msg(kind: mkError, text: "Migration Exception: " & e.msg))
+
+var migrationThread: Thread[MigrationArgs]
+
+proc startMigration*(args: MigrationArgs) =
+  createThread(migrationThread, workerMigrationProc, args)
+
+proc joinMigration*() =
+  joinThread(migrationThread)
+
 

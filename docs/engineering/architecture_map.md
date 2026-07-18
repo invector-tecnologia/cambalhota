@@ -57,7 +57,7 @@ flowchart TD
 ### 1. Camada de UI (Frontend / CLI)
 - **TUI Tatuí:** Provê toda a experiência visual rica via terminal para interatividade humana.
   - Implementa um Design System unificado (Dark mode, fontes monoespaçadas, destaques semânticos de cores, Logo Retrowave ASCII global).
-  - Organiza funcionalidades complexas em abas intuitivas (Configuração, Backup, Restauração, Histórico).
+  - Organiza funcionalidades complexas em abas intuitivas (Configuração, Backup, Restauração, Histórico, Migrations).
   - Emprega layouts "side-by-side" (como na aba de Cross-Restore) para segmentação cognitiva (Origem vs. Destino).
   - Proteção contra *Buffer Overflow* e injeção de caracteres: limitação rigorosa de `len` e sanitização em todos os campos de input, garantindo estabilidade e segurança.
   - **Console Visual Integrado:** Abolição de `term.restore()` em prol de modais overlay e logs reativos (`logChannel`) em um Console que evita o travamento da thread de UI (ADR-011).
@@ -83,6 +83,7 @@ Construído com gestão `ORC` para maximizar a previsibilidade e diminuir a lat�
 
 #### Migration Engine
 Uma implementação Flyway-like responsável pela evolução contínua da estrutura do banco.
+- **Integração de Conexões (Nova):** Consome credenciais diretamente das conexões salvas e decriptadas pelo `Configuration Manager` (SQLite + Keyring), abandonando o uso de variáveis de ambiente. As execuções geram logs e status reportados via `logChannel` para a TUI unificada (ADR-012).
 - **Nomenclatura Semântica:** Lê do disco os arquivos de versão estruturados (`V{Timestamp}__{Desc}.up.sql` para Up e `V{Timestamp}__{Desc}.down.sql` para Rollback).
 - **Controle Concorrente e Transacional:** Aplica Lockings (ex: `pg_advisory_lock` ou lock table) para evitar corridas ao atualizar o schema, blindando as execuções dentro de blocos transacionais explícitos (`BEGIN/COMMIT`) em bancos suportados.
 - **Rastreio e Auditoria:** Registra a evolução em `Cambalhota.cambalhota_schema_history`, registrando timestamps, durações, autoria e os respectivos *checksums* anti-adulteração de arquivos.

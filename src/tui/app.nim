@@ -1,4 +1,4 @@
-import std/[os, options, unicode, deques, strutils, times]
+import std/[os, options, unicode, strutils, times]
 import std/atomics
 import ../core/cloud
 import tatui
@@ -6,7 +6,7 @@ import tatui/event/reader
 import msg
 import ../core/extract
 import ../core/restore
-import ../core/db
+import ../core/migrations
 import ../db/storage
 
 const MaxLogs = 100
@@ -41,17 +41,19 @@ proc runTui*(initialConf: ExtractorConfig = ExtractorConfig()) =
 
   var
     running = true
-    selectedMenu = 0 # 0: Config, 1: Backup, 2: Restore, 3: History
+    selectedMenu = 0  # 0: Config, 1: Backup, 2: Restore, 3: History
     statusMsg = "STATUS: Ready. [L/R] Tabs | [Up/Dn] Nav | [Enter] Sel | [A] Add | [E] Edit | [C] Copy | [D] Del | [Q] Quit"
-    inFocus = 0      # 0: left, 1: right (for cross-restore)
+    inFocus = 0       # 0: left, 1: right (for cross-restore)
     listStConfig: ListState
     listStBackup: ListState
     listStRestoreDump: ListState
     listStRestoreConn: ListState
     listStHistory: ListState
     listStCloudProvider: ListState
+    listStMigrateFile: ListState
+    listStMigrateConn: ListState
     configFilesIdx, backupFilesIdx, restoreDumpIdx, restoreConnIdx,
-      historyFilesIdx, cloudFilesIdx = 0
+      historyFilesIdx, cloudFilesIdx, migrateFileIdx, migrateConnIdx = 0
     isAddingConn = false
     editingConnId = -1
     formIndex = 0
@@ -61,7 +63,8 @@ proc runTui*(initialConf: ExtractorConfig = ExtractorConfig()) =
     isAddingCloud = false
     editingCloudId = ""
     cloudFormIndex = 0
-    cloudFormLabels = ["Name", "Provider (aws, minio, s3)", "Credentials (JSON)", "Metadata (JSON)"]
+    cloudFormLabels = ["Name", "Provider (aws, minio, s3)",
+        "Credentials (JSON)", "Metadata (JSON)"]
     cloudFormValues = ["", "", "", ""]
     isCloudModalOpen = false
     isCloudOpActive = false
@@ -91,13 +94,15 @@ proc runTui*(initialConf: ExtractorConfig = ExtractorConfig()) =
     let dumps = listLocalBackups(selectedYear)
     let historyList = listRestoreHistory()
     let cloudProviders = listCloudProviders()
+    let migrationFiles = getFiles("migrations/up")
 
     if connections.len > 0:
       if configFilesIdx >= connections.len: configFilesIdx = connections.len - 1
       if backupFilesIdx >= connections.len: backupFilesIdx = connections.len - 1
       if restoreConnIdx >= connections.len: restoreConnIdx = connections.len - 1
+      if migrateConnIdx >= connections.len: migrateConnIdx = connections.len - 1
     else:
-      configFilesIdx = 0; backupFilesIdx = 0; restoreConnIdx = 0
+      configFilesIdx = 0; backupFilesIdx = 0; restoreConnIdx = 0; migrateConnIdx = 0
 
     if dumps.len > 0:
       if restoreDumpIdx >= dumps.len: restoreDumpIdx = dumps.len - 1
@@ -114,14 +119,21 @@ proc runTui*(initialConf: ExtractorConfig = ExtractorConfig()) =
     else:
       cloudFilesIdx = 0
 
+    if migrationFiles.len > 0:
+      if migrateFileIdx >= migrationFiles.len: migrateFileIdx = migrationFiles.len - 1
+    else:
+      migrateFileIdx = 0
+
     if connections.len > 0:
       listStConfig.select(configFilesIdx)
       listStBackup.select(backupFilesIdx)
       listStRestoreConn.select(restoreConnIdx)
+      listStMigrateConn.select(migrateConnIdx)
     else:
       listStConfig.selected = none(int)
       listStBackup.selected = none(int)
       listStRestoreConn.selected = none(int)
+      listStMigrateConn.selected = none(int)
 
     if dumps.len > 0:
       listStRestoreDump.select(restoreDumpIdx)
@@ -141,6 +153,11 @@ proc runTui*(initialConf: ExtractorConfig = ExtractorConfig()) =
     if cloudDumps.len > 0:
       listStCloudDump.select(cloudDumpIdx)
 
+    if migrationFiles.len > 0:
+      listStMigrateFile.select(migrateFileIdx)
+    else:
+      listStMigrateFile.selected = none(int)
+
     let logRes = logChannel.tryRecv()
     if logRes.dataAvailable:
       let lmsg = logRes.msg
@@ -156,21 +173,25 @@ proc runTui*(initialConf: ExtractorConfig = ExtractorConfig()) =
         isDbOpActive = false
         if confirmAction == 3: joinExtraction()
         elif confirmAction == 4: joinRestore()
+        elif confirmAction == 5: joinMigration()
       elif lmsg.kind == mkError:
         statusMsg = "STATUS: Error: " & lmsg.text
         consoleLogs.add("ERROR: " & lmsg.text)
         isDbOpActive = false
         if confirmAction == 3: joinExtraction()
         elif confirmAction == 4: joinRestore()
+        elif confirmAction == 5: joinMigration()
 
     if isCloudOpActive:
       let res = cloudChan.tryRecv()
       if res.dataAvailable:
         let msg = res.msg
         if msg.state == stRunning:
-          let pct = if msg.totalBytes > 0: (msg.bytesProcessed * 100) div msg.totalBytes else: 0
+          let pct = if msg.totalBytes > 0: (msg.bytesProcessed *
+              100) div msg.totalBytes else: 0
           let bars = if pct > 0: pct div 10 else: 0
-          statusMsg = "STATUS: [Cyan] Transferring [" & repeat("█", bars) & repeat("░", 10 - bars) & "] " & $(pct) & "%"
+          statusMsg = "STATUS: [Cyan] Transferring [" & repeat("█", bars) &
+              repeat("░", 10 - bars) & "] " & $(pct) & "%"
         elif msg.state == stSuccess:
           isCloudOpActive = false
           joinThread(cloudThread)
@@ -191,7 +212,8 @@ proc runTui*(initialConf: ExtractorConfig = ExtractorConfig()) =
       f.renderWidget(paragraph(text(LogoAscii), style = defaultStyle().fg(
           Magenta)), logoRect)
 
-      let menuItems = @[" 1. Config ", " 2. Backup ", " 3. Restore ", " 4. Cloud ", " 5. History "]
+      let menuItems = @[" 1. Config ", " 2. Backup ", " 3. Restore ",
+          " 4. Cloud ", " 5. History ", " 6. Migrations "]
       var t = tabs(menuItems, selected = selectedMenu,
           highlightStyle = defaultStyle().bg(Magenta).fg(Black))
       t.style = defaultStyle().fg(Cyan)
@@ -216,6 +238,8 @@ proc runTui*(initialConf: ExtractorConfig = ExtractorConfig()) =
         helpText = "\n[A]: Add Cloud\n[E]: Edit Cloud\n[C]: Clone Cloud\n[D]: Delete Cloud\n[Up/Down]: Scroll list\n[L/R]: Change tabs"
       elif selectedMenu == 4:
         helpText = "\n[Up/Down]: Scroll history\n\nAudit log of restores."
+      elif selectedMenu == 5:
+        helpText = "\n[L/R]: Switch panel focus\n[Up/Down]: Scroll items\n[Enter]: Run Migration"
 
       f.renderWidget(paragraph(text(helpText), blk = some(initBlock(
           title = " QUICK GUIDE ", borders = AllBorders,
@@ -234,7 +258,8 @@ proc runTui*(initialConf: ExtractorConfig = ExtractorConfig()) =
             -1: " NEW CONNECTION " else: " EDIT CONNECTION ",
             borders = AllBorders, borderStyle = defaultStyle().fg(Green)))), contentRect)
       elif isAddingCloud:
-        var formLines = if editingCloudId == "": "=== ADD NEW CLOUD (Ctrl+C to Cancel) ===\n\n" else: "=== EDIT CLOUD (Ctrl+C to Cancel) ===\n\n"
+        var formLines = if editingCloudId ==
+            "": "=== ADD NEW CLOUD (Ctrl+C to Cancel) ===\n\n" else: "=== EDIT CLOUD (Ctrl+C to Cancel) ===\n\n"
         for i, label in cloudFormLabels:
           let pointer = if i == cloudFormIndex: " > " else: "   "
           let cursor = if i == cloudFormIndex: "█" else: ""
@@ -292,9 +317,12 @@ proc runTui*(initialConf: ExtractorConfig = ExtractorConfig()) =
       elif selectedMenu == 3:
         var items: seq[ListItem]
         for c in cloudProviders:
-          items.add listItem("[" & c.provider_type.toUpperAscii() & "] " & c.name, style = defaultStyle().fg(White))
+          items.add listItem("[" & c.provider_type.toUpperAscii() & "] " &
+              c.name, style = defaultStyle().fg(White))
         f.renderStateful(
-          list(items, blk = some(initBlock(title = " CLOUD PROVIDERS [Press A to Add, D to Delete] ", borders = AllBorders, borderStyle = defaultStyle().fg(Blue)))),
+          list(items, blk = some(initBlock(
+              title = " CLOUD PROVIDERS [Press A to Add, D to Delete] ",
+              borders = AllBorders, borderStyle = defaultStyle().fg(Blue)))),
           contentRect, listStCloudProvider
         )
       elif selectedMenu == 4:
@@ -308,25 +336,51 @@ proc runTui*(initialConf: ExtractorConfig = ExtractorConfig()) =
               borders = AllBorders, borderStyle = defaultStyle().fg(Magenta)))),
           contentRect, listStHistory
         )
+      elif selectedMenu == 5:
+        let hChunks = contentRect.split(Horizontal, @[pct(50), pct(50)])
+        var fileItems: seq[ListItem]
+        for m in migrationFiles: fileItems.add listItem("[SQL] " & m.extractFilename(), style = defaultStyle().fg(White))
+        let leftBColor = if inFocus == 0: Yellow else: Blue
+        f.renderStateful(
+          list(fileItems, blk = some(initBlock(title = " 1. MIGRATION FILE ", borders = AllBorders, borderStyle = defaultStyle().fg(leftBColor)))),
+          hChunks[0], listStMigrateFile
+        )
+        var connItems: seq[ListItem]
+        for c in connections: connItems.add listItem("[" & c.engine.toUpperAscii() & "] DB: " & c.dbname & " | SCHEMA: " & c.schema, style = defaultStyle().fg(White))
+        let rightBColor = if inFocus == 1: Yellow else: Blue
+        f.renderStateful(
+          list(connItems, blk = some(initBlock(title = " 2. TARGET CONNECTION ", borders = AllBorders, borderStyle = defaultStyle().fg(rightBColor)))),
+          hChunks[1], listStMigrateConn
+        )
 
       if isDbOpActive:
-        let popupArea = f.area.split(Vertical, @[fill(1), length(20), fill(1)])[1].split(Horizontal, @[fill(1), length(80), fill(1)])[1]
+        let popupArea = f.area.split(Vertical, @[fill(1), length(20), fill(1)])[
+            1].split(Horizontal, @[fill(1), length(80), fill(1)])[1]
         var logsText = "=== DB OPERATION CONSOLE ===\n\n"
         for l in consoleLogs: logsText.add(l & "\n")
-        f.renderWidget(paragraph(text(logsText), blk = some(initBlock(title = " PROGRESS ", borders = AllBorders, borderStyle = defaultStyle().fg(Cyan)))), popupArea)
+        f.renderWidget(paragraph(text(logsText), blk = some(initBlock(
+            title = " PROGRESS ", borders = AllBorders,
+            borderStyle = defaultStyle().fg(Cyan)))), popupArea)
 
       elif isConfirmModalOpen:
-        let popupArea = f.area.split(Vertical, @[fill(1), length(10), fill(1)])[1].split(Horizontal, @[fill(1), length(50), fill(1)])[1]
+        let popupArea = f.area.split(Vertical, @[fill(1), length(10), fill(1)])[
+            1].split(Horizontal, @[fill(1), length(50), fill(1)])[1]
         let msgStr = "\n\n" & confirmMsg & "\n\n[Enter] Confirm   |   [Esc] Cancel"
-        f.renderWidget(paragraph(text(msgStr), blk = some(initBlock(title = " CONFIRMATION ", borders = AllBorders, borderStyle = defaultStyle().fg(Red))), style = defaultStyle().fg(White).bg(Red)), popupArea)
+        f.renderWidget(paragraph(text(msgStr), blk = some(initBlock(
+            title = " CONFIRMATION ", borders = AllBorders,
+            borderStyle = defaultStyle().fg(Red))), style = defaultStyle().fg(
+            White)), popupArea)
 
       elif isCloudModalOpen:
-        let popupArea = f.area.split(Vertical, @[fill(1), length(10), fill(1)])[1].split(Horizontal, @[fill(1), length(50), fill(1)])[1]
+        let popupArea = f.area.split(Vertical, @[fill(1), length(10), fill(1)])[
+            1].split(Horizontal, @[fill(1), length(50), fill(1)])[1]
         var items: seq[ListItem]
         for cd in cloudDumps:
           items.add listItem("[CLOUD] " & cd, style = defaultStyle().fg(White))
         f.renderStateful(
-          list(items, blk = some(initBlock(title = " REMOTE DUMPS [Enter to Download, Esc to Cancel] ", borders = AllBorders, borderStyle = defaultStyle().fg(Cyan)))),
+          list(items, blk = some(initBlock(
+              title = " REMOTE DUMPS [Enter to Download, Esc to Cancel] ",
+              borders = AllBorders, borderStyle = defaultStyle().fg(Cyan)))),
           popupArea, listStCloudDump
         )
 
@@ -341,12 +395,13 @@ proc runTui*(initialConf: ExtractorConfig = ExtractorConfig()) =
     let evOpt = pollEvent(50)
     if evOpt.isSome and evOpt.get.kind == evKey:
       let k = evOpt.get.key
-      
+
       if isDbOpActive:
         continue # Block input while db op is active
-        
+
       if isConfirmModalOpen:
-        if k.code == kcEsc or (k.code == kcChar and (k.rune == Rune(27) or k.rune == Rune(3))):
+        if k.code == kcEsc or (k.code == kcChar and (k.rune == Rune(27) or
+            k.rune == Rune(3))):
           isConfirmModalOpen = false
           confirmAction = 0
         elif k.code == kcEnter:
@@ -360,8 +415,15 @@ proc runTui*(initialConf: ExtractorConfig = ExtractorConfig()) =
           elif confirmAction == 3:
             let conn = connections[backupFilesIdx]
             let isUpload = false
-            let outPath = getHomeDir() / ".cambalhota" / "db_dump" / selectedYear / (conn.name & "_dump_" & $now().toTime().toUnix() & ".enc")
-            let conf = ExtractorConfig(dbType: if conn.engine == "pg": dbPostgres elif conn.engine == "mysql": dbMysql else: dbMongo, host: conn.host, port: conn.port, user: conn.user, password: decryptPassword(conn.encrypted_password), database: conn.dbname, schema: conn.schema, encryptionKey: decryptPassword(conn.encrypted_password), outputPath: outPath)
+            let outPath = getHomeDir() / ".cambalhota" / "db_dump" /
+                selectedYear / (conn.name & "_dump_" & $now().toTime().toUnix() & ".enc")
+            let conf = ExtractorConfig(dbType: if conn.engine ==
+                "pg": dbPostgres elif conn.engine ==
+                "mysql": dbMysql else: dbMongo, host: conn.host,
+                port: conn.port, user: conn.user, password: decryptPassword(
+                conn.encrypted_password), database: conn.dbname,
+                schema: conn.schema, encryptionKey: decryptPassword(
+                conn.encrypted_password), outputPath: outPath)
             isDbOpActive = true
             consoleLogs = @["Starting backup for " & conn.name & "..."]
             startExtraction(conf)
@@ -369,23 +431,50 @@ proc runTui*(initialConf: ExtractorConfig = ExtractorConfig()) =
           elif confirmAction == 4:
             let dumpFile = dumps[restoreDumpIdx]
             let conn = connections[restoreConnIdx]
-            let conf = RestoreConfig(dbType: if conn.engine == "pg": dbPostgres elif conn.engine == "mysql": dbMysql else: dbMongo, host: conn.host, port: conn.port, user: conn.user, password: decryptPassword(conn.encrypted_password), database: conn.dbname, schema: conn.schema, encryptionKey: decryptPassword(conn.encrypted_password), inputPath: dumpFile)
+            let conf = RestoreConfig(dbType: if conn.engine ==
+                "pg": dbPostgres elif conn.engine ==
+                "mysql": dbMysql else: dbMongo, host: conn.host,
+                port: conn.port, user: conn.user, password: decryptPassword(
+                conn.encrypted_password), database: conn.dbname,
+                schema: conn.schema, encryptionKey: decryptPassword(
+                conn.encrypted_password), inputPath: dumpFile)
             isDbOpActive = true
-            consoleLogs = @["Starting restore from " & dumpFile & " to " & conn.name & "..."]
+            consoleLogs = @["Starting restore from " & dumpFile & " to " &
+                conn.name & "..."]
             startRestore(conf)
+          elif confirmAction == 5:
+            let conn = connections[migrateConnIdx]
+            let mFile = migrationFiles[migrateFileIdx]
+            var actualPath = mFile
+            if not actualPath.startsWith("migrations"):
+              actualPath = "migrations/up" / mFile.extractFilename()
+            let args = MigrationArgs(
+              dbHost: conn.host, dbPort: $conn.port, dbUser: conn.user, 
+              dbPass: decryptPassword(conn.encrypted_password), dbName: conn.dbname,
+              migrationFile: actualPath
+            )
+            isDbOpActive = true
+            consoleLogs = @["Starting migration " & actualPath & " on " & conn.name & "..."]
+            startMigration(args)
           confirmAction = 0
         continue
 
       if isCloudModalOpen:
-        if k.code == kcEsc or (k.code == kcChar and (k.rune == Rune(27) or k.rune == Rune(3))):
+        if k.code == kcEsc or (k.code == kcChar and (k.rune == Rune(27) or
+            k.rune == Rune(3))):
           isCloudModalOpen = false
         elif k.code == kcUp and cloudDumpIdx > 0: cloudDumpIdx.dec
-        elif k.code == kcDown and cloudDumpIdx < cloudDumps.len - 1: cloudDumpIdx.inc
+        elif k.code == kcDown and cloudDumpIdx < cloudDumps.len -
+            1: cloudDumpIdx.inc
         elif k.code == kcEnter:
           isCloudModalOpen = false
           if not isCloudOpActive:
-            let conf = CloudConfig(accessKey: "valid", secretKey: "valid", region: "us-east-1", bucket: "bck", endpoint: "")
-            let args = CloudTaskArgs(op: opDownload, config: conf, localFile: "dumps/" & cloudDumps[cloudDumpIdx], remoteKey: cloudDumps[cloudDumpIdx], chanPtr: addr cloudChan, cancelPtr: addr cloudCancel)
+            let conf = CloudConfig(accessKey: "valid", secretKey: "valid",
+                region: "us-east-1", bucket: "bck", endpoint: "")
+            let args = CloudTaskArgs(op: opDownload, config: conf,
+                localFile: "dumps/" & cloudDumps[cloudDumpIdx],
+                remoteKey: cloudDumps[cloudDumpIdx], chanPtr: addr cloudChan,
+                cancelPtr: addr cloudCancel)
             cloudCancel.store(false)
             createThread(cloudThread, cloudWorker, args)
             isCloudOpActive = true
@@ -443,9 +532,11 @@ proc runTui*(initialConf: ExtractorConfig = ExtractorConfig()) =
           cloudFormValues = ["", "", "", ""]
           cloudFormIndex = 0
         elif k.code == kcUp and cloudFormIndex > 0: cloudFormIndex.dec
-        elif k.code == kcDown and cloudFormIndex < cloudFormLabels.len - 1: cloudFormIndex.inc
+        elif k.code == kcDown and cloudFormIndex < cloudFormLabels.len -
+            1: cloudFormIndex.inc
         elif k.code == kcBackspace:
-          if cloudFormValues[cloudFormIndex].len > 0: cloudFormValues[cloudFormIndex] = cloudFormValues[cloudFormIndex][0 .. ^2]
+          if cloudFormValues[cloudFormIndex].len > 0: cloudFormValues[
+              cloudFormIndex] = cloudFormValues[cloudFormIndex][0 .. ^2]
         elif k.code == kcEnter:
           if cloudFormIndex < cloudFormLabels.len - 1:
             cloudFormIndex.inc
@@ -477,17 +568,18 @@ proc runTui*(initialConf: ExtractorConfig = ExtractorConfig()) =
               cloudFormValues[cloudFormIndex].add($k.rune)
         continue
 
-      if k.code == kcChar and (k.rune == Rune('c'.ord) or k.rune == Rune('C'.ord)) and isCloudOpActive:
+      if k.code == kcChar and (k.rune == Rune('c'.ord) or k.rune == Rune(
+          'C'.ord)) and isCloudOpActive:
         cloudCancel.store(true)
         continue
       if k.code == kcChar and (k.rune == Rune('q'.ord) or k.rune == Rune('Q'.ord)):
         running = false
       elif k.code == kcLeft:
-        if selectedMenu == 2 and inFocus == 1: inFocus = 0
+        if (selectedMenu == 2 or selectedMenu == 5) and inFocus == 1: inFocus = 0
         elif selectedMenu > 0: selectedMenu.dec; statusMsg = "STATUS: Ready."
       elif k.code == kcRight:
-        if selectedMenu == 2 and inFocus == 0: inFocus = 1
-        elif selectedMenu < 4: selectedMenu.inc; statusMsg = "STATUS: Ready."
+        if (selectedMenu == 2 or selectedMenu == 5) and inFocus == 0: inFocus = 1
+        elif selectedMenu < 5: selectedMenu.inc; statusMsg = "STATUS: Ready."
       elif k.code == kcUp:
         if selectedMenu == 0 and configFilesIdx > 0: configFilesIdx.dec
         elif selectedMenu == 1 and backupFilesIdx > 0: backupFilesIdx.dec
@@ -496,6 +588,9 @@ proc runTui*(initialConf: ExtractorConfig = ExtractorConfig()) =
           elif inFocus == 1 and restoreConnIdx > 0: restoreConnIdx.dec
         elif selectedMenu == 3 and cloudFilesIdx > 0: cloudFilesIdx.dec
         elif selectedMenu == 4 and historyFilesIdx > 0: historyFilesIdx.dec
+        elif selectedMenu == 5:
+          if inFocus == 0 and migrateFileIdx > 0: migrateFileIdx.dec
+          elif inFocus == 1 and migrateConnIdx > 0: migrateConnIdx.dec
       elif k.code == kcDown:
         if selectedMenu == 0 and connections.len > 0 and configFilesIdx <
             connections.len - 1: configFilesIdx.inc
@@ -510,6 +605,9 @@ proc runTui*(initialConf: ExtractorConfig = ExtractorConfig()) =
             cloudProviders.len - 1: cloudFilesIdx.inc
         elif selectedMenu == 4 and historyList.len > 0 and historyFilesIdx <
             historyList.len - 1: historyFilesIdx.inc
+        elif selectedMenu == 5:
+          if inFocus == 0 and migrationFiles.len > 0 and migrateFileIdx < migrationFiles.len - 1: migrateFileIdx.inc
+          elif inFocus == 1 and connections.len > 0 and migrateConnIdx < connections.len - 1: migrateConnIdx.inc
       elif k.code == kcChar and (k.rune == Rune('a'.ord) or k.rune == Rune(
           'A'.ord)):
         if selectedMenu == 0:
@@ -531,7 +629,8 @@ proc runTui*(initialConf: ExtractorConfig = ExtractorConfig()) =
           if cloudProviders.len > 0 and cloudFilesIdx < cloudProviders.len:
             let c = cloudProviders[cloudFilesIdx]
             editingCloudId = c.id
-            cloudFormValues = [c.name, c.provider_type, decryptCredentials(c.encrypted_credentials), c.metadata]
+            cloudFormValues = [c.name, c.provider_type, decryptCredentials(
+                c.encrypted_credentials), c.metadata]
             isAddingCloud = true
       elif k.code == kcChar and (k.rune == Rune('c'.ord) or k.rune == Rune(
           'C'.ord)):
@@ -546,14 +645,16 @@ proc runTui*(initialConf: ExtractorConfig = ExtractorConfig()) =
           if cloudProviders.len > 0 and cloudFilesIdx < cloudProviders.len:
             let c = cloudProviders[cloudFilesIdx]
             editingCloudId = ""
-            cloudFormValues = [c.name & "_copy", c.provider_type, decryptCredentials(c.encrypted_credentials), c.metadata]
+            cloudFormValues = [c.name & "_copy", c.provider_type,
+                decryptCredentials(c.encrypted_credentials), c.metadata]
             isAddingCloud = true
       elif k.code == kcChar and (k.rune == Rune('d'.ord) or k.rune == Rune('D'.ord)):
         if selectedMenu == 0:
           if connections.len > 0 and configFilesIdx < connections.len:
             confirmTargetId = connections[configFilesIdx].id
             confirmAction = 1
-            confirmMsg = "Are you sure you want to delete connection '" & connections[configFilesIdx].name & "'?"
+            confirmMsg = "Are you sure you want to delete connection '" &
+                connections[configFilesIdx].name & "'?"
             isConfirmModalOpen = true
         elif selectedMenu == 2 and inFocus == 0:
           isCloudModalOpen = true
@@ -568,14 +669,18 @@ proc runTui*(initialConf: ExtractorConfig = ExtractorConfig()) =
           'U'.ord)):
         if selectedMenu == 2 and inFocus == 0 and dumps.len > 0:
           if not isCloudOpActive:
-            let conf = CloudConfig(accessKey: "valid", secretKey: "valid", region: "us-east-1", bucket: "bck", endpoint: "")
+            let conf = CloudConfig(accessKey: "valid", secretKey: "valid",
+                region: "us-east-1", bucket: "bck", endpoint: "")
             let dumpFile = "dumps" / dumps[restoreDumpIdx]
-            let args = CloudTaskArgs(op: opUpload, config: conf, localFile: dumpFile, remoteKey: dumps[restoreDumpIdx], chanPtr: addr cloudChan, cancelPtr: addr cloudCancel)
+            let args = CloudTaskArgs(op: opUpload, config: conf,
+                localFile: dumpFile, remoteKey: dumps[restoreDumpIdx],
+                chanPtr: addr cloudChan, cancelPtr: addr cloudCancel)
             cloudCancel.store(false)
             createThread(cloudThread, cloudWorker, args)
             isCloudOpActive = true
       elif k.code == kcEnter:
-        if selectedMenu == 1 and connections.len > 0 and backupFilesIdx < connections.len:
+        if selectedMenu == 1 and connections.len > 0 and backupFilesIdx <
+            connections.len:
           confirmAction = 3
           let conn = connections[backupFilesIdx]
           confirmMsg = "Start backup for '" & conn.name & "'?"
@@ -585,4 +690,10 @@ proc runTui*(initialConf: ExtractorConfig = ExtractorConfig()) =
           let conn = connections[restoreConnIdx]
           let dumpFile = dumps[restoreDumpIdx]
           confirmMsg = "Restore '" & dumpFile & "' to '" & conn.name & "'?\n\nWARNING: This will overwrite existing data!"
+          isConfirmModalOpen = true
+        elif selectedMenu == 5 and migrationFiles.len > 0 and connections.len > 0:
+          confirmAction = 5
+          let conn = connections[migrateConnIdx]
+          let mFile = migrationFiles[migrateFileIdx]
+          confirmMsg = "Run migration '" & mFile.extractFilename() & "' on '" & conn.name & "'?\n\nIt will execute via thread."
           isConfirmModalOpen = true
