@@ -60,6 +60,7 @@ flowchart TD
   - Organiza funcionalidades complexas em abas intuitivas (Configuração, Backup, Restauração, Histórico).
   - Emprega layouts "side-by-side" (como na aba de Cross-Restore) para segmentação cognitiva (Origem vs. Destino).
   - Proteção contra *Buffer Overflow* e injeção de caracteres: limitação rigorosa de `len` e sanitização em todos os campos de input, garantindo estabilidade e segurança.
+  - **Console Visual Integrado:** Abolição de `term.restore()` em prol de modais overlay e logs reativos (`logChannel`) em um Console que evita o travamento da thread de UI (ADR-011).
 - **CLI Utilities:** Interface programática *headless* para orquestração (via CI/CD) e disparo automatizado de comandos.
   - Utiliza `parseopt` para validação rigorosa de parâmetros, implementando um *Hard Block* ativo que aborta a extração (ex: barrando o schema `public`) e injeta estados de erro (`stError`) na thread da UI para feedback imediato ao usuário.
 
@@ -68,6 +69,7 @@ Construído com gestão `ORC` para maximizar a previsibilidade e diminuir a lat�
 
 #### Camada de IO Assíncrono (Processos em Background)
 - Desacopla execuções pesadas (como o streaming do `pg_dump` e chamadas OS via `osproc`) da Thread Principal através de Threads e Canais (`Channel[Msg]`).
+- Captura de forma assíncrona (via streams/pipes em worker threads) o `stdout`/`stderr` de subprocessos, gerando mensagens em tempo real no `logChannel` para renderização fluida no Console da TUI (ADR-011).
 - Assegura que a UI Tatuí nunca congele durante I/O, repassando status e logs em tempo real (Promessa Fail-safe).
 
 #### Configuration Manager & Governança Local
@@ -88,6 +90,7 @@ Uma implementação Flyway-like responsável pela evolução contínua da estrut
 
 #### Dump & Restore Engine
 - Orquestra extrações unificadas e estruturadas em arquivos padrão (`yyyy-mm-dd_..._dump-db.sql`).
+- **Política Estrita do FileSystem:** Os dumps locais são obrigatoriamente armazenados particionados por ano em `~/.cambalhota/db_dump/YYYY/`, assegurando listagens performáticas na aba Restore sem gargalos ao lidar com milhares de arquivos acumulados (ADR-011).
 - Executa rotinas completas de *restore* do banco, permitindo inclusive o mock e a carga de fixtures localmente, assim como migrações cruzadas (**Cross-Database Restore**) onde o Dump é aplicado em uma conexão Destino via acionamento de CLI nativo em `osproc`.
 - **Extractor Adapter / Factory Pattern:** Resolve e instancia dinamicamente o utilitário nativo de dump compatível com o banco alvo (ex: `pg_dump`, `mysqldump`, `mongodump`), tornando a arquitetura agnóstica ao motor de dados. A injeção de credenciais decriptadas é feita por arquivos temporários ou variáveis seguras injetadas no subset OSProc.
 - **Segurança e Otimização:** Delega processamento pesado ao *Pipeline de Streaming & Criptografia* (ADR-004), interceptando a saída universal do utilitário instanciado (`stdout`) e operando em pedaços contínuos. A compressão (`std/zlib`) e a criptografia E2E (`nimcrypto` AES-256) ocorrem on-the-fly por blocos, blindando a memória contra falhas OOM. O pipeline possui tolerância a falhas na Worker Thread (ADR-010): erros de descriptografia de arquivos corrompidos não geram pânico, mas são isolados por `try/except` e repassados como status de erro à TUI. Em paralelo, a *worker thread* alimenta a interface com o status dos blocos processados via canais (`Channel`).

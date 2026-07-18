@@ -1,10 +1,11 @@
-import std/[os, options, unicode, deques, strutils]
+import std/[os, options, unicode, deques, strutils, times]
 import std/atomics
 import ../core/cloud
 import tatui
 import tatui/event/reader
 import msg
 import ../core/extract
+import ../core/restore
 import ../core/db
 import ../db/storage
 
@@ -70,6 +71,14 @@ proc runTui*(initialConf: ExtractorConfig = ExtractorConfig()) =
     cloudChan: Channel[CloudStatusMsg]
     cloudCancel: Atomic[bool]
     cloudThread: Thread[CloudTaskArgs]
+    isConfirmModalOpen = false
+    confirmAction = 0 # 1:delConn, 2:delCloud, 3:backup, 4:restore
+    confirmTargetId = -1
+    confirmTargetCloudId = ""
+    confirmMsg = ""
+    isDbOpActive = false
+    consoleLogs: seq[string] = @[]
+    selectedYear = $now().year()
 
   cloudChan.open()
   logChannel.open()
@@ -79,7 +88,7 @@ proc runTui*(initialConf: ExtractorConfig = ExtractorConfig()) =
 
   while running:
     let connections = listConnections()
-    let dumps = getFiles("dumps")
+    let dumps = listLocalBackups(selectedYear)
     let historyList = listRestoreHistory()
     let cloudProviders = listCloudProviders()
 
@@ -137,12 +146,22 @@ proc runTui*(initialConf: ExtractorConfig = ExtractorConfig()) =
       let lmsg = logRes.msg
       if lmsg.kind == mkLog:
         statusMsg = "STATUS: " & lmsg.text
+        consoleLogs.add(lmsg.text)
+        if consoleLogs.len > MaxLogs: consoleLogs.delete(0)
       elif lmsg.kind == mkProgress:
         statusMsg = "STATUS: Processed " & $(lmsg.bytesRead div 1024) & " KB"
       elif lmsg.kind == mkSuccess:
         statusMsg = "STATUS: Operation successful"
+        consoleLogs.add("Operation successful")
+        isDbOpActive = false
+        if confirmAction == 3: joinExtraction()
+        elif confirmAction == 4: joinRestore()
       elif lmsg.kind == mkError:
         statusMsg = "STATUS: Error: " & lmsg.text
+        consoleLogs.add("ERROR: " & lmsg.text)
+        isDbOpActive = false
+        if confirmAction == 3: joinExtraction()
+        elif confirmAction == 4: joinRestore()
 
     if isCloudOpActive:
       let res = cloudChan.tryRecv()
@@ -290,7 +309,18 @@ proc runTui*(initialConf: ExtractorConfig = ExtractorConfig()) =
           contentRect, listStHistory
         )
 
-      if isCloudModalOpen:
+      if isDbOpActive:
+        let popupArea = f.area.split(Vertical, @[fill(1), length(20), fill(1)])[1].split(Horizontal, @[fill(1), length(80), fill(1)])[1]
+        var logsText = "=== DB OPERATION CONSOLE ===\n\n"
+        for l in consoleLogs: logsText.add(l & "\n")
+        f.renderWidget(paragraph(text(logsText), blk = some(initBlock(title = " PROGRESS ", borders = AllBorders, borderStyle = defaultStyle().fg(Cyan)))), popupArea)
+
+      elif isConfirmModalOpen:
+        let popupArea = f.area.split(Vertical, @[fill(1), length(10), fill(1)])[1].split(Horizontal, @[fill(1), length(50), fill(1)])[1]
+        let msgStr = "\n\n" & confirmMsg & "\n\n[Enter] Confirm   |   [Esc] Cancel"
+        f.renderWidget(paragraph(text(msgStr), blk = some(initBlock(title = " CONFIRMATION ", borders = AllBorders, borderStyle = defaultStyle().fg(Red))), style = defaultStyle().fg(White).bg(Red)), popupArea)
+
+      elif isCloudModalOpen:
         let popupArea = f.area.split(Vertical, @[fill(1), length(10), fill(1)])[1].split(Horizontal, @[fill(1), length(50), fill(1)])[1]
         var items: seq[ListItem]
         for cd in cloudDumps:
@@ -311,6 +341,40 @@ proc runTui*(initialConf: ExtractorConfig = ExtractorConfig()) =
     let evOpt = pollEvent(50)
     if evOpt.isSome and evOpt.get.kind == evKey:
       let k = evOpt.get.key
+      
+      if isDbOpActive:
+        continue # Block input while db op is active
+        
+      if isConfirmModalOpen:
+        if k.code == kcEsc or (k.code == kcChar and (k.rune == Rune(27) or k.rune == Rune(3))):
+          isConfirmModalOpen = false
+          confirmAction = 0
+        elif k.code == kcEnter:
+          isConfirmModalOpen = false
+          if confirmAction == 1:
+            deleteConnection(confirmTargetId)
+            statusMsg = "STATUS: Connection deleted."
+          elif confirmAction == 2:
+            deleteCloudProvider(confirmTargetCloudId)
+            statusMsg = "STATUS: Cloud Provider deleted."
+          elif confirmAction == 3:
+            let conn = connections[backupFilesIdx]
+            let isUpload = false
+            let outPath = getHomeDir() / ".cambalhota" / "db_dump" / selectedYear / (conn.name & "_dump_" & $now().toTime().toUnix() & ".enc")
+            let conf = ExtractorConfig(dbType: if conn.engine == "pg": dbPostgres elif conn.engine == "mysql": dbMysql else: dbMongo, host: conn.host, port: conn.port, user: conn.user, database: conn.dbname, schema: conn.schema, encryptionKey: decryptPassword(conn.encrypted_password), outputPath: outPath)
+            isDbOpActive = true
+            consoleLogs = @["Starting backup for " & conn.name & "..."]
+            startExtraction(conf)
+            statusMsg = "STATUS: Backup created at " & outPath
+          elif confirmAction == 4:
+            let dumpFile = dumps[restoreDumpIdx]
+            let conn = connections[restoreConnIdx]
+            let conf = RestoreConfig(dbType: if conn.engine == "pg": dbPostgres elif conn.engine == "mysql": dbMysql else: dbMongo, host: conn.host, port: conn.port, user: conn.user, database: conn.dbname, schema: conn.schema, encryptionKey: decryptPassword(conn.encrypted_password), inputPath: dumpFile)
+            isDbOpActive = true
+            consoleLogs = @["Starting restore from " & dumpFile & " to " & conn.name & "..."]
+            startRestore(conf)
+          confirmAction = 0
+        continue
 
       if isCloudModalOpen:
         if k.code == kcEsc or (k.code == kcChar and (k.rune == Rune(27) or k.rune == Rune(3))):
@@ -484,16 +548,19 @@ proc runTui*(initialConf: ExtractorConfig = ExtractorConfig()) =
             editingCloudId = ""
             cloudFormValues = [c.name & "_copy", c.provider_type, decryptCredentials(c.encrypted_credentials), c.metadata]
             isAddingCloud = true
-      elif k.code == kcChar and (k.rune == Rune('d'.ord) or k.rune == Rune(
-          'D'.ord)):
+      elif k.code == kcChar and (k.rune == Rune('d'.ord) or k.rune == Rune('D'.ord)):
         if selectedMenu == 0:
           if connections.len > 0 and configFilesIdx < connections.len:
-            deleteConnection(connections[configFilesIdx].id)
-            statusMsg = "STATUS: Connection deleted."
+            confirmTargetId = connections[configFilesIdx].id
+            confirmAction = 1
+            confirmMsg = "Are you sure you want to delete connection '" & connections[configFilesIdx].name & "'?"
+            isConfirmModalOpen = true
         elif selectedMenu == 2 and inFocus == 0:
           isCloudModalOpen = true
           cloudDumpIdx = 0
         elif selectedMenu == 3:
+          if cloudProviders.len > 0 and cloudFilesIdx < cloudProviders.len:
+            confirmTargetCloudId = cloudProviders[cloudFilesIdx].id
           if cloudProviders.len > 0 and cloudFilesIdx < cloudProviders.len:
             deleteCloudProvider(cloudProviders[cloudFilesIdx].id)
             statusMsg = "STATUS: Cloud Provider deleted."
@@ -508,43 +575,14 @@ proc runTui*(initialConf: ExtractorConfig = ExtractorConfig()) =
             createThread(cloudThread, cloudWorker, args)
             isCloudOpActive = true
       elif k.code == kcEnter:
-        if selectedMenu == 1 and connections.len > 0 and backupFilesIdx <
-            connections.len:
-          let isUpload = (kmShift in k.mods)
+        if selectedMenu == 1 and connections.len > 0 and backupFilesIdx < connections.len:
+          confirmAction = 3
           let conn = connections[backupFilesIdx]
-          term.restore()
-          echo "Starting backup for ", conn.name, "..."
-          try:
-            putEnv("PGPASSWORD", decryptPassword(conn.encrypted_password))
-            let outPath = extractSchema(conn.host, $conn.port, conn.user,
-                conn.dbname, conn.schema, "dumps")
-            statusMsg = "STATUS: Backup created at " & outPath
-            if isUpload and not isCloudOpActive:
-              let conf = CloudConfig(accessKey: "valid", secretKey: "valid", region: "us-east-1", bucket: "bck", endpoint: "")
-              let args = CloudTaskArgs(op: opUpload, config: conf, localFile: outPath, remoteKey: "remote.enc", chanPtr: addr cloudChan, cancelPtr: addr cloudCancel)
-              cloudCancel.store(false)
-              createThread(cloudThread, cloudWorker, args)
-              isCloudOpActive = true
-          except Exception as e:
-            statusMsg = "STATUS: Backup failed: " & e.msg
-          # Sleep to let user see echo
-          sleep(1500)
-          term.setup()
+          confirmMsg = "Start backup for '" & conn.name & "'?"
+          isConfirmModalOpen = true
         elif selectedMenu == 2 and dumps.len > 0 and connections.len > 0:
-          let dumpFile = "dumps" / dumps[restoreDumpIdx]
+          confirmAction = 4
           let conn = connections[restoreConnIdx]
-          term.restore()
-          echo "Starting restore from ", dumpFile, " to ", conn.name, "..."
-          try:
-            putEnv("PGPASSWORD", decryptPassword(conn.encrypted_password))
-            if restoreSchema(conn.host, $conn.port, conn.user, conn.dbname, dumpFile):
-              statusMsg = "STATUS: Restored successfully."
-              saveRestoreHistory(RestoreHistoryRecord(dump_file: dumpFile,
-                  connection_name: conn.name, dbname: conn.dbname,
-                  schema: conn.schema))
-            else:
-              statusMsg = "STATUS: Restore failed."
-          except Exception as e:
-            statusMsg = "STATUS: Restore error: " & e.msg
-          sleep(1500)
-          term.setup()
+          let dumpFile = dumps[restoreDumpIdx]
+          confirmMsg = "Restore '" & dumpFile & "' to '" & conn.name & "'?\n\nWARNING: This will overwrite existing data!"
+          isConfirmModalOpen = true

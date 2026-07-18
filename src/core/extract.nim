@@ -46,12 +46,29 @@ proc initCTR*(key: string): CTR[aes256] =
   
   result.init(keyArr, iv)
 
+proc stderrWorker(pStream: Stream) {.thread.} =
+  try:
+    var line = ""
+    while pStream.readLine(line):
+      logChannel.send(Msg(kind: mkLog, text: line))
+  except EOFError:
+    discard
+  except CatchableError:
+    discard
+
 proc workerProc(conf: ExtractorConfig) {.thread.} =
   try:
     let cmd = getCommand(conf)
     
-    let p = startProcess(cmd, options = {poUsePath, poEvalCommand, poStdErrToStdOut})
+    let p = startProcess(cmd, options = {poUsePath, poEvalCommand})
     let outStream = p.outputStream
+    let errStream = p.errorStream
+    
+    var errThread: Thread[Stream]
+    createThread(errThread, stderrWorker, errStream)
+    
+    # Ensure directory YYYY exists
+    createDir(parentDir(conf.outputPath))
     
     let outFile = open(conf.outputPath, fmWrite)
     defer: outFile.close()
@@ -96,6 +113,7 @@ proc workerProc(conf: ExtractorConfig) {.thread.} =
         lastTime = now
     
     let exitCode = p.waitForExit()
+    joinThread(errThread)
     p.close()
     ctx.clear()
     

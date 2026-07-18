@@ -29,19 +29,33 @@ proc getRestoreCommand*(conf: RestoreConfig): string =
 
 proc listLocalBackups*(year: string): seq[string] =
   result = @[]
-  let baseDir = getHomeDir() / ".cambalhota" / "db_dumps" / year
+  let baseDir = getHomeDir() / ".cambalhota" / "db_dump" / year
   if dirExists(baseDir):
     for kind, path in walkDir(baseDir):
       if kind == pcFile and path.endsWith(".enc"):
         result.add(path)
+
+proc stderrWorkerRestore(pStream: Stream) {.thread.} =
+  try:
+    var line = ""
+    while pStream.readLine(line):
+      logChannel.send(Msg(kind: mkLog, text: line))
+  except EOFError:
+    discard
+  except CatchableError:
+    discard
 
 proc workerRestoreProc(conf: RestoreConfig) {.thread.} =
   try:
     let cmd = getRestoreCommand(conf)
     
     # We use poUsePath to find psql/mysql/mongorestore in PATH, poEvalCommand just in case
-    let p = startProcess(cmd, options = {poUsePath, poEvalCommand, poStdErrToStdOut})
+    let p = startProcess(cmd, options = {poUsePath, poEvalCommand})
     let inStream = p.inputStream
+    let errStream = p.errorStream
+    
+    var errThread: Thread[Stream]
+    createThread(errThread, stderrWorkerRestore, errStream)
     
     let inFile = open(conf.inputPath, fmRead)
     defer: inFile.close()
@@ -93,6 +107,7 @@ proc workerRestoreProc(conf: RestoreConfig) {.thread.} =
     inStream.close() # Signal EOF to db utility
     
     let exitCode = p.waitForExit()
+    joinThread(errThread)
     p.close()
     ctx.clear()
     
