@@ -158,3 +158,4 @@ Funcionalidade: Extração Segura de Banco de Dados
 5. **Falsos positivos são filtrados.** Falhas transientes (rede, timeout) são identificadas e separadas de bugs reais.
 6. **Foco na Integridade:** Todo plano de teste deve incluir avaliações que comprovem a integridade do estado e o fail-safe.
 7. **Feedback ao Agente Engenharia é estruturado.** Relatórios de bugs seguem o formato padronizado com severidade, logs de execução do banco/TUI e ADR relacionado.
+8. **Testes Unitários/Integração Nativos:** Sempre inclua os códigos/arquivos de testes nativos (como `.nim`) dentro da pasta `/tests/`. Se a pasta não existir, crie-a e mova os testes para lá. Você deve alterar o mecanismo de testes (`nimble test` ou configuração do projeto) para ler desta pasta e, se necessário, refatorar os arquivos de teste (ajustando imports e caminhos) para que funcionem corretamente a partir de dentro do diretório `/tests/`.
