@@ -61,7 +61,7 @@ proc main() =
       let statusRect = vChunks[3]
 
       # Title
-      f.renderWidget(paragraph(text("=== CAMBALHOTA MIGRATION ENGINE (Retrowave TUI) ==="),
+      f.renderWidget(paragraph(text("=== CAMBALHOTA MIGRATION ENGINE ==="),
           style = defaultStyle().fg(Blue)), titleRect)
 
       # Menu / Tabs
@@ -113,7 +113,8 @@ proc main() =
     let ev = pollEvent(50)
     if ev.isSome and ev.get.kind == evKey:
       let k = ev.get.key
-      if k.code == kcChar and (kmCtrl in k.mods) and (k.rune == Rune('q'.ord) or k.rune == Rune('Q'.ord)):
+      if k.code == kcChar and (kmCtrl in k.mods) and (k.rune == Rune('q'.ord) or
+          k.rune == Rune('Q'.ord)):
         running = false
       elif k.code == kcLeft:
         if selectedMenu > 0:

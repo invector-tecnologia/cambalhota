@@ -1,6 +1,12 @@
 <div align="center">
-  <h1>🤸‍♂️ Cambalhota</h1>
-  <h3>The Retrowave Database Swiss Army Knife</h3>
+<pre style="line-height: 1.1; font-family: monospace; color: #FF00FF; font-weight: bold; text-shadow: 0 0 5px #FF00FF;">
+  ████    █████   ███   ███  ██████    █████   ██       ██   ██   ██████   ████████   █████  
+ ██  ██  ██   ██  ████ ████  ██   ██  ██   ██  ██       ██   ██  ██    ██     ██     ██   ██ 
+ ██      ███████  ██ ███ ██  ██████   ███████  ██       ███████  ██    ██     ██     ███████ 
+ ██  ██  ██   ██  ██  █  ██  ██   ██  ██   ██  ██       ██   ██  ██    ██     ██     ██   ██ 
+  ████   ██   ██  ██     ██  ██████   ██   ██  ███████  ██   ██   ██████      ██     ██   ██ 
+</pre>
+  <h3>The Database Swiss Army Knife</h3>
   <p>Controle de versão de banco de dados nativo, ultra-rápido, criptografado e orientado à interface de terminal (TUI).</p>
 </div>
 
