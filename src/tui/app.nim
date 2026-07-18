@@ -96,7 +96,7 @@ proc runTui*(initialConf: ExtractorConfig = ExtractorConfig()) =
     else:
       listStHistory.selected = none(int)
 
-    term.draw proc(f: var Frame) =
+    try: term.draw proc(f: var Frame) =
       let mainChunks = f.area.split(Vertical, @[length(7), length(1), fill(1),
           length(3)])
       let logoRect = mainChunks[0]
@@ -207,6 +207,10 @@ proc runTui*(initialConf: ExtractorConfig = ExtractorConfig()) =
       f.renderWidget(paragraph(text(statusMsg), blk = some(initBlock(
           borders = AllBorders, borderStyle = defaultStyle().fg(Cyan))),
           style = defaultStyle().fg(Yellow)), statusRect)
+    except IOError:
+      discard # Terminal resize (SIGWINCH) interrupted sys write
+    except Exception as e:
+      statusMsg = "Render Error: " & e.msg
 
     let evOpt = pollEvent(50)
     if evOpt.isSome and evOpt.get.kind == evKey:
