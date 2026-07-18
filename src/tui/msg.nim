@@ -1,6 +1,7 @@
 type
   MsgKind* = enum
     mkLog
+    mkProgress
     mkSuccess
     mkError
 
@@ -8,6 +9,9 @@ type
     case kind*: MsgKind
     of mkLog, mkError:
       text*: string
+    of mkProgress:
+      bytesRead*: int64
+      totalBytes*: int64
     of mkSuccess:
       discard
 

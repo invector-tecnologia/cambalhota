@@ -1,6 +1,7 @@
 import std/[os, strutils, options, times]
 import db_connector/db_sqlite
 import nimcrypto
+import std/oids
 
 type
   ConnectionRecord* = object
@@ -22,6 +23,15 @@ type
     dbname*: string
     schema*: string
     restored_at*: string
+
+  CloudProviderRecord* = object
+    id*: string
+    name*: string
+    provider_type*: string
+    encrypted_credentials*: string
+    metadata*: string
+    created_at*: string
+    updated_at*: string
 
 const MasterKey = "cambalhota_master_key_12345678" # 32 bytes for AES-256
 
@@ -54,6 +64,17 @@ proc initDb*() =
       dbname TEXT NOT NULL,
       schema TEXT NOT NULL,
       restored_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  """)
+  db.exec(sql"""
+    CREATE TABLE IF NOT EXISTS cloud_providers (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL UNIQUE,
+      provider_type TEXT NOT NULL,
+      encrypted_credentials TEXT NOT NULL,
+      metadata TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   """)
   db.close()
@@ -148,3 +169,43 @@ proc listRestoreHistory*(): seq[RestoreHistoryRecord] =
       schema: row[4],
       restored_at: row[5]
     )
+
+proc encryptCredentials*(credsJson: string): string =
+  return encryptPassword(credsJson)
+
+proc decryptCredentials*(encryptedHex: string): string =
+  return decryptPassword(encryptedHex)
+
+proc saveCloudProvider*(rec: var CloudProviderRecord) =
+  let db = open(getDbPath(), "", "", "")
+  defer: db.close()
+  if rec.id == "": rec.id = $genOid()
+  let encCreds = encryptCredentials(rec.encrypted_credentials)
+  db.exec(sql"INSERT INTO cloud_providers (id, name, provider_type, encrypted_credentials, metadata) VALUES (?, ?, ?, ?, ?)",
+    rec.id, rec.name, rec.provider_type, encCreds, rec.metadata)
+
+proc updateCloudProvider*(id: string, rec: CloudProviderRecord) =
+  let db = open(getDbPath(), "", "", "")
+  defer: db.close()
+  let encCreds = encryptCredentials(rec.encrypted_credentials)
+  db.exec(sql"UPDATE cloud_providers SET name = ?, provider_type = ?, encrypted_credentials = ?, metadata = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+    rec.name, rec.provider_type, encCreds, rec.metadata, id)
+
+proc listCloudProviders*(): seq[CloudProviderRecord] =
+  let db = open(getDbPath(), "", "", "")
+  defer: db.close()
+  for row in db.fastRows(sql"SELECT id, name, provider_type, encrypted_credentials, metadata, created_at, updated_at FROM cloud_providers"):
+    result.add CloudProviderRecord(
+      id: row[0],
+      name: row[1],
+      provider_type: row[2],
+      encrypted_credentials: row[3],
+      metadata: row[4],
+      created_at: row[5],
+      updated_at: row[6]
+    )
+
+proc deleteCloudProvider*(id: string) =
+  let db = open(getDbPath(), "", "", "")
+  defer: db.close()
+  db.exec(sql"DELETE FROM cloud_providers WHERE id = ?", id)

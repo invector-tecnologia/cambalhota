@@ -59,6 +59,7 @@ flowchart TD
   - Implementa um Design System unificado (Dark mode, fontes monoespaçadas, destaques semânticos de cores, Logo Retrowave ASCII global).
   - Organiza funcionalidades complexas em abas intuitivas (Configuração, Backup, Restauração, Histórico).
   - Emprega layouts "side-by-side" (como na aba de Cross-Restore) para segmentação cognitiva (Origem vs. Destino).
+  - Proteção contra *Buffer Overflow* e injeção de caracteres: limitação rigorosa de `len` e sanitização em todos os campos de input, garantindo estabilidade e segurança.
 - **CLI Utilities:** Interface programática *headless* para orquestração (via CI/CD) e disparo automatizado de comandos.
   - Utiliza `parseopt` para validação rigorosa de parâmetros, implementando um *Hard Block* ativo que aborta a extração (ex: barrando o schema `public`) e injeta estados de erro (`stError`) na thread da UI para feedback imediato ao usuário.
 
@@ -70,9 +71,9 @@ Construído com gestão `ORC` para maximizar a previsibilidade e diminuir a lat�
 - Assegura que a UI Tatuí nunca congele durante I/O, repassando status e logs em tempo real (Promessa Fail-safe).
 
 #### Configuration Manager & Governança Local
-- Gerencia o estado das conexões configuradas localmente na TUI e mantém auditoria de operações.
-- Elimina o uso de variáveis de ambiente (`.env`) em favor de um banco **SQLite** local criptografado (`connections.db`). A tabela `restore_history` armazena localmente o registro histórico detalhado de todas as operações de restauração.
-- Interage com o **OS Keyring** nativo (Secret Service, Keychain, Credential Locker) para armazenar de forma segura a chave mestra (Master Key), utilizada na encriptação e decriptação (AES-256 via `nimcrypto`) das senhas dos SGBDs.
+- Gerencia o estado das conexões de banco de dados e as configurações de provedores de Cloud (S3, Git, Google Drive, etc) configuradas localmente pela TUI, além de manter auditoria de operações.
+- Elimina o uso de variáveis de ambiente (`.env`) em favor de um banco **SQLite** local criptografado (`connections.db`). A tabela `restore_history` armazena localmente o registro histórico detalhado, enquanto `cloud_providers` armazena as integrações de nuvem com flexibilidade de esquema via JSON.
+- Interage com o **OS Keyring** nativo (Secret Service, Keychain, Credential Locker) para armazenar de forma segura a chave mestra (Master Key), utilizada na encriptação e decriptação (AES-256 via `nimcrypto`) das senhas dos SGBDs e das credenciais de nuvem (Access Keys, OAuth Tokens, SSH Keys).
 
 #### `db_core.nim` (Camada de Acesso RDBMS)
 - Driver agnóstico que atua como tradutor de dialetos para PostgreSQL, MySQL e SQL Server.
@@ -89,9 +90,9 @@ Uma implementação Flyway-like responsável pela evolução contínua da estrut
 - Orquestra extrações unificadas e estruturadas em arquivos padrão (`yyyy-mm-dd_..._dump-db.sql`).
 - Executa rotinas completas de *restore* do banco, permitindo inclusive o mock e a carga de fixtures localmente, assim como migrações cruzadas (**Cross-Database Restore**) onde o Dump é aplicado em uma conexão Destino via acionamento de CLI nativo em `osproc`.
 - **Extractor Adapter / Factory Pattern:** Resolve e instancia dinamicamente o utilitário nativo de dump compatível com o banco alvo (ex: `pg_dump`, `mysqldump`, `mongodump`), tornando a arquitetura agnóstica ao motor de dados. A injeção de credenciais decriptadas é feita por arquivos temporários ou variáveis seguras injetadas no subset OSProc.
-- **Segurança e Otimização:** Delega processamento pesado ao *Pipeline de Streaming & Criptografia* (ADR-004), interceptando a saída universal do utilitário instanciado (`stdout`) e operando em pedaços contínuos. A compressão (`std/zlib`) e a criptografia E2E (`nimcrypto` AES-256) ocorrem on-the-fly por blocos, blindando a memória contra falhas OOM. Em paralelo, a *worker thread* alimenta a interface com o status dos blocos processados via canais (`Channel`).
+- **Segurança e Otimização:** Delega processamento pesado ao *Pipeline de Streaming & Criptografia* (ADR-004), interceptando a saída universal do utilitário instanciado (`stdout`) e operando em pedaços contínuos. A compressão (`std/zlib`) e a criptografia E2E (`nimcrypto` AES-256) ocorrem on-the-fly por blocos, blindando a memória contra falhas OOM. O pipeline possui tolerância a falhas na Worker Thread (ADR-010): erros de descriptografia de arquivos corrompidos não geram pânico, mas são isolados por `try/except` e repassados como status de erro à TUI. Em paralelo, a *worker thread* alimenta a interface com o status dos blocos processados via canais (`Channel`).
 
 ### 3. Integração Remota (Persistência Off-Site)
-- **S3 / Cloud Connectors:** Adaptador responsável pelo offload autônomo dos dumps massivos gerados no Core para serviços de Cloud Storage (AWS S3, MinIO, Cloudflare R2).
-- **Multithreading e Non-blocking I/O:** O envio e recebimento dos arquivos é feito estritamente através de **Worker Threads** segregadas. O status de progresso (Upload/Download) é transmitido à TUI principal através de `Channel[T]`, garantindo uma UI (`app.nim`) 100% responsiva sem congelamentos durante os gargalos de rede.
+- **S3 / Cloud Connectors:** Adaptador responsável pelo offload autônomo dos dumps massivos gerados no Core para serviços de Cloud Storage (AWS S3, MinIO, Cloudflare R2). Garante resiliência de rede (ADR-010) com configuração estrita de timeout (evitando *deadlocks* em conexões instáveis), implementação de *retries* e *exponential backoff*.
+- **Multithreading e Non-blocking I/O:** O envio e recebimento dos arquivos é feito estritamente através de **Worker Threads** segregadas. O status de progresso (Upload/Download) é transmitido à TUI principal através de `Channel[T]`, garantindo uma UI (`app.nim`) 100% responsiva sem congelamentos durante os gargalos de rede. Para evitar picos de alocação de memória (ADR-010), implementa-se *debouncing* e *batching* no envio de atualizações (ex: de 100 em 100ms em vez de atualizar a cada *byte* transferido), trafegando tipos de dados leves pelo canal.
 - **Protocolo Agnóstico:** Emprega a biblioteca padrão `httpclient` (ou ecosistema Nim HTTP) para orquestração de APIs REST via AWS Signature V4 em vez de caros SDKs pesados, mantendo o executável extremamente leve e focado no protocolo.

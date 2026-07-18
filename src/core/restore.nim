@@ -1,4 +1,4 @@
-import std/[osproc, streams, strutils, os, endians, asyncdispatch]
+import std/[osproc, streams, strutils, os, endians, asyncdispatch, times]
 import zippy
 import nimcrypto
 import extract
@@ -50,6 +50,7 @@ proc workerRestoreProc(conf: RestoreConfig) {.thread.} =
     
     var totalProcessed: int64 = 0
     var chunksProcessed: int64 = 0
+    var lastTime = cpuTime()
     
     while not inFile.endOfFile:
       # Read encrypted length (4 bytes)
@@ -84,8 +85,10 @@ proc workerRestoreProc(conf: RestoreConfig) {.thread.} =
         totalProcessed += plainText.len
         
       chunksProcessed += 1
-      if chunksProcessed mod 10 == 0:
-        logChannel.send(Msg(kind: mkLog, text: "Restored " & $(totalProcessed div 1024) & " KB"))
+      let now = cpuTime()
+      if now - lastTime > 0.1:
+        logChannel.send(Msg(kind: mkProgress, bytesRead: totalProcessed, totalBytes: 0))
+        lastTime = now
     
     inStream.close() # Signal EOF to db utility
     
@@ -97,7 +100,7 @@ proc workerRestoreProc(conf: RestoreConfig) {.thread.} =
       logChannel.send(Msg(kind: mkSuccess))
     else:
       logChannel.send(Msg(kind: mkError, text: "Restore process exited with code " & $exitCode))
-  except Exception as e:
+  except CatchableError as e:
     logChannel.send(Msg(kind: mkError, text: "Exception: " & e.msg))
 
 var restoreThread: Thread[RestoreConfig]

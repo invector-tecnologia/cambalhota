@@ -1,4 +1,4 @@
-import std/[osproc, streams, strutils, os, endians]
+import std/[osproc, streams, strutils, os, endians, times]
 import zippy
 import nimcrypto
 import ../tui/msg
@@ -61,6 +61,7 @@ proc workerProc(conf: ExtractorConfig) {.thread.} =
     var buffer = newString(64 * 1024)
     var totalProcessed: int64 = 0
     var chunksProcessed: int64 = 0
+    var lastTime = cpuTime()
     
     while true:
       let bytesRead = outStream.readData(buffer[0].addr, buffer.len)
@@ -89,8 +90,10 @@ proc workerProc(conf: ExtractorConfig) {.thread.} =
       totalProcessed += bytesRead
       chunksProcessed += 1
       
-      if chunksProcessed mod 10 == 0:
-        logChannel.send(Msg(kind: mkLog, text: "Processed " & $(totalProcessed div 1024) & " KB"))
+      let now = cpuTime()
+      if now - lastTime > 0.1:
+        logChannel.send(Msg(kind: mkProgress, bytesRead: totalProcessed, totalBytes: 0))
+        lastTime = now
     
     let exitCode = p.waitForExit()
     p.close()
@@ -100,7 +103,7 @@ proc workerProc(conf: ExtractorConfig) {.thread.} =
       logChannel.send(Msg(kind: mkSuccess))
     else:
       logChannel.send(Msg(kind: mkError, text: "Process exited with code " & $exitCode))
-  except Exception as e:
+  except CatchableError as e:
     logChannel.send(Msg(kind: mkError, text: "Exception: " & e.msg))
 
 var extractThread: Thread[ExtractorConfig]

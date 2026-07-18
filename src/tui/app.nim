@@ -66,8 +66,10 @@ proc runTui*(initialConf: ExtractorConfig = ExtractorConfig()) =
     cloudThread: Thread[CloudTaskArgs]
 
   cloudChan.open()
+  logChannel.open()
   cloudCancel.store(false)
   defer: cloudChan.close()
+  defer: logChannel.close()
 
   while running:
     let connections = listConnections()
@@ -112,6 +114,18 @@ proc runTui*(initialConf: ExtractorConfig = ExtractorConfig()) =
 
     if cloudDumps.len > 0:
       listStCloudDump.select(cloudDumpIdx)
+
+    let logRes = logChannel.tryRecv()
+    if logRes.dataAvailable:
+      let lmsg = logRes.msg
+      if lmsg.kind == mkLog:
+        statusMsg = "STATUS: " & lmsg.text
+      elif lmsg.kind == mkProgress:
+        statusMsg = "STATUS: Processed " & $(lmsg.bytesRead div 1024) & " KB"
+      elif lmsg.kind == mkSuccess:
+        statusMsg = "STATUS: Operation successful"
+      elif lmsg.kind == mkError:
+        statusMsg = "STATUS: Error: " & lmsg.text
 
     if isCloudOpActive:
       let res = cloudChan.tryRecv()
@@ -313,7 +327,10 @@ proc runTui*(initialConf: ExtractorConfig = ExtractorConfig()) =
             formValues = ["", "", "", "", "", "", "", ""]
             formIndex = 0
         elif k.code == kcChar:
-          formValues[formIndex].add($k.rune)
+          if formValues[formIndex].len < 256:
+            let cInt = int(k.rune)
+            if cInt >= 32 and cInt != 127:
+              formValues[formIndex].add($k.rune)
         continue
 
       if k.code == kcChar and (k.rune == Rune('c'.ord) or k.rune == Rune('C'.ord)) and isCloudOpActive:

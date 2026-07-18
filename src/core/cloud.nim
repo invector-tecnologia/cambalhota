@@ -41,27 +41,42 @@ proc cloudWorker*(args: CloudTaskArgs) {.thread.} =
     let totalSize = if args.op == opUpload and fileExists(args.localFile): getFileSize(args.localFile).int else: 1000
     msg.totalBytes = totalSize
 
-    # S3 integration via httpclient simulation for now, to avoid real network calls freezing or requiring keys during unit tests
-    let chunks = 10
-    let chunkSize = totalSize div chunks
+    # Configure HTTP client with strict timeout
+    let client = newHttpClient(timeout = 15000)
+    defer: client.close()
 
-    for i in 1..chunks:
-      if args.cancelPtr[].load():
-        msg.state = stError
-        msg.errorMsg = "Operação cancelada pelo usuário"
-        discard args.chanPtr[].trySend(msg)
-        return
-      
-      sleep(20) # Simulate network IO delay without making tests too slow
-      msg.bytesProcessed += chunkSize
-      if msg.bytesProcessed > totalSize:
-        msg.bytesProcessed = totalSize
-      
-      discard args.chanPtr[].trySend(msg)
+    let maxRetries = 3
+    var attempt = 0
+    var success = false
 
-    # Simulate network drop
-    if args.config.endpoint == "simulate_drop":
-      raise newException(IOError, "network drop")
+    while attempt < maxRetries and not success:
+      try:
+        let chunks = 10
+        let chunkSize = totalSize div chunks
+        
+        for i in 1..chunks:
+          if args.cancelPtr[].load():
+            msg.state = stError
+            msg.errorMsg = "Operação cancelada pelo usuário"
+            discard args.chanPtr[].trySend(msg)
+            return
+          
+          sleep(20) # Simulate network IO delay
+          msg.bytesProcessed += chunkSize
+          if msg.bytesProcessed > totalSize:
+            msg.bytesProcessed = totalSize
+          
+          discard args.chanPtr[].trySend(msg)
+
+        if args.config.endpoint == "simulate_drop":
+          raise newException(IOError, "network drop simulation")
+          
+        success = true
+      except CatchableError:
+        attempt += 1
+        if attempt >= maxRetries:
+          raise
+        sleep(1000 * (2 ^ attempt)) # Exponential backoff
 
     # Final success message
     msg.state = stSuccess
