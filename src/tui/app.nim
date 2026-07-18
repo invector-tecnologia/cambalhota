@@ -361,7 +361,7 @@ proc runTui*(initialConf: ExtractorConfig = ExtractorConfig()) =
             let conn = connections[backupFilesIdx]
             let isUpload = false
             let outPath = getHomeDir() / ".cambalhota" / "db_dump" / selectedYear / (conn.name & "_dump_" & $now().toTime().toUnix() & ".enc")
-            let conf = ExtractorConfig(dbType: if conn.engine == "pg": dbPostgres elif conn.engine == "mysql": dbMysql else: dbMongo, host: conn.host, port: conn.port, user: conn.user, database: conn.dbname, schema: conn.schema, encryptionKey: decryptPassword(conn.encrypted_password), outputPath: outPath)
+            let conf = ExtractorConfig(dbType: if conn.engine == "pg": dbPostgres elif conn.engine == "mysql": dbMysql else: dbMongo, host: conn.host, port: conn.port, user: conn.user, password: decryptPassword(conn.encrypted_password), database: conn.dbname, schema: conn.schema, encryptionKey: decryptPassword(conn.encrypted_password), outputPath: outPath)
             isDbOpActive = true
             consoleLogs = @["Starting backup for " & conn.name & "..."]
             startExtraction(conf)
@@ -369,7 +369,7 @@ proc runTui*(initialConf: ExtractorConfig = ExtractorConfig()) =
           elif confirmAction == 4:
             let dumpFile = dumps[restoreDumpIdx]
             let conn = connections[restoreConnIdx]
-            let conf = RestoreConfig(dbType: if conn.engine == "pg": dbPostgres elif conn.engine == "mysql": dbMysql else: dbMongo, host: conn.host, port: conn.port, user: conn.user, database: conn.dbname, schema: conn.schema, encryptionKey: decryptPassword(conn.encrypted_password), inputPath: dumpFile)
+            let conf = RestoreConfig(dbType: if conn.engine == "pg": dbPostgres elif conn.engine == "mysql": dbMysql else: dbMongo, host: conn.host, port: conn.port, user: conn.user, password: decryptPassword(conn.encrypted_password), database: conn.dbname, schema: conn.schema, encryptionKey: decryptPassword(conn.encrypted_password), inputPath: dumpFile)
             isDbOpActive = true
             consoleLogs = @["Starting restore from " & dumpFile & " to " & conn.name & "..."]
             startRestore(conf)

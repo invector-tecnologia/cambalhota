@@ -1,4 +1,4 @@
-import std/[osproc, streams, strutils, os, endians, times]
+import std/[osproc, streams, strutils, os, endians, times, strtabs]
 import zippy
 import nimcrypto
 import ../tui/msg
@@ -60,7 +60,12 @@ proc workerProc(conf: ExtractorConfig) {.thread.} =
   try:
     let cmd = getCommand(conf)
     
-    let p = startProcess(cmd, options = {poUsePath, poEvalCommand})
+    var env = newStringTable(modeCaseInsensitive)
+    for key, val in envPairs(): env[key] = val
+    env["PGPASSWORD"] = conf.password
+    env["MYSQL_PWD"] = conf.password
+    
+    let p = startProcess(cmd, env = env, options = {poUsePath, poEvalCommand})
     let outStream = p.outputStream
     let errStream = p.errorStream
     

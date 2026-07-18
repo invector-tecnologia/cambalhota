@@ -1,4 +1,4 @@
-import std/[osproc, streams, strutils, os, endians, asyncdispatch, times]
+import std/[osproc, streams, strutils, os, endians, asyncdispatch, times, strtabs]
 import zippy
 import nimcrypto
 import extract
@@ -49,8 +49,13 @@ proc workerRestoreProc(conf: RestoreConfig) {.thread.} =
   try:
     let cmd = getRestoreCommand(conf)
     
+    var env = newStringTable(modeCaseInsensitive)
+    for key, val in envPairs(): env[key] = val
+    env["PGPASSWORD"] = conf.password
+    env["MYSQL_PWD"] = conf.password
+    
     # We use poUsePath to find psql/mysql/mongorestore in PATH, poEvalCommand just in case
-    let p = startProcess(cmd, options = {poUsePath, poEvalCommand})
+    let p = startProcess(cmd, env = env, options = {poUsePath, poEvalCommand})
     let inStream = p.inputStream
     let errStream = p.errorStream
     
