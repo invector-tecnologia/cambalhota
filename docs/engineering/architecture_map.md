@@ -92,5 +92,6 @@ Uma implementação Flyway-like responsável pela evolução contínua da estrut
 - **Segurança e Otimização:** Delega processamento pesado ao *Pipeline de Streaming & Criptografia* (ADR-004), interceptando a saída universal do utilitário instanciado (`stdout`) e operando em pedaços contínuos. A compressão (`std/zlib`) e a criptografia E2E (`nimcrypto` AES-256) ocorrem on-the-fly por blocos, blindando a memória contra falhas OOM. Em paralelo, a *worker thread* alimenta a interface com o status dos blocos processados via canais (`Channel`).
 
 ### 3. Integração Remota (Persistência Off-Site)
-- **CDN / Git Connectors:** Adaptador responsável pelo offload autônomo dos dumps massivos gerados no Core e recuperação de listagens históricas.
-- Provê interface fluída para sincronizar a TUI Tatuí com S3, GCP Buckets, Google Drive, ou repositórios Git, garantindo centralização e governança dos schemas guardados.
+- **S3 / Cloud Connectors:** Adaptador responsável pelo offload autônomo dos dumps massivos gerados no Core para serviços de Cloud Storage (AWS S3, MinIO, Cloudflare R2).
+- **Multithreading e Non-blocking I/O:** O envio e recebimento dos arquivos é feito estritamente através de **Worker Threads** segregadas. O status de progresso (Upload/Download) é transmitido à TUI principal através de `Channel[T]`, garantindo uma UI (`app.nim`) 100% responsiva sem congelamentos durante os gargalos de rede.
+- **Protocolo Agnóstico:** Emprega a biblioteca padrão `httpclient` (ou ecosistema Nim HTTP) para orquestração de APIs REST via AWS Signature V4 em vez de caros SDKs pesados, mantendo o executável extremamente leve e focado no protocolo.

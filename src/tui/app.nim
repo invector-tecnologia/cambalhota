@@ -1,4 +1,6 @@
 import std/[os, options, unicode, deques, strutils]
+import std/atomics
+import ../core/cloud
 import tatui
 import tatui/event/reader
 import msg
@@ -54,6 +56,18 @@ proc runTui*(initialConf: ExtractorConfig = ExtractorConfig()) =
     formLabels = ["Name", "Engine (pg, mysql)", "Host", "Port", "User",
         "DB Name", "Password", "Schema"]
     formValues = ["", "", "", "", "", "", "", ""]
+    isCloudModalOpen = false
+    isCloudOpActive = false
+    cloudDumps = @["remote_dump_prod_2026.enc", "remote_dump_staging_2026.enc", "remote_dump_dev.enc"]
+    cloudDumpIdx = 0
+    listStCloudDump: ListState
+    cloudChan: Channel[CloudStatusMsg]
+    cloudCancel: Atomic[bool]
+    cloudThread: Thread[CloudTaskArgs]
+
+  cloudChan.open()
+  cloudCancel.store(false)
+  defer: cloudChan.close()
 
   while running:
     let connections = listConnections()
@@ -96,6 +110,26 @@ proc runTui*(initialConf: ExtractorConfig = ExtractorConfig()) =
     else:
       listStHistory.selected = none(int)
 
+    if cloudDumps.len > 0:
+      listStCloudDump.select(cloudDumpIdx)
+
+    if isCloudOpActive:
+      let res = cloudChan.tryRecv()
+      if res.dataAvailable:
+        let msg = res.msg
+        if msg.state == stRunning:
+          let pct = if msg.totalBytes > 0: (msg.bytesProcessed * 100) div msg.totalBytes else: 0
+          let bars = if pct > 0: pct div 10 else: 0
+          statusMsg = "STATUS: [Cyan] Transferring [" & repeat("█", bars) & repeat("░", 10 - bars) & "] " & $(pct) & "%"
+        elif msg.state == stSuccess:
+          isCloudOpActive = false
+          joinThread(cloudThread)
+          statusMsg = "STATUS: [Green] Operação concluída com sucesso"
+        elif msg.state == stError:
+          isCloudOpActive = false
+          joinThread(cloudThread)
+          statusMsg = "STATUS: [Red] " & msg.errorMsg
+
     try: term.draw proc(f: var Frame) =
       let mainChunks = f.area.split(Vertical, @[length(7), length(1), fill(1),
           length(3)])
@@ -123,9 +157,9 @@ proc runTui*(initialConf: ExtractorConfig = ExtractorConfig()) =
       elif selectedMenu == 0:
         helpText = "\n[A]: Add new connection\n[E]: Edit connection\n[C]: Clone connection\n[D]: Delete connection\n[Up/Down]: Scroll list\n[L/R]: Change tabs"
       elif selectedMenu == 1:
-        helpText = "\n[Up/Down]: Scroll list\n[Enter]: Trigger backup\n\nBackups are saved locally."
+        helpText = "\n[Up/Down]: Scroll list\n[Enter]: Trigger backup\n[Shift+Enter]: Backup & Upload\n\nBackups are saved locally."
       elif selectedMenu == 2:
-        helpText = "\n[L/R]: Switch panel focus\n[Up/Down]: Scroll items\n[Enter]: Trigger restore"
+        helpText = "\n[L/R]: Switch panel focus\n[Up/Down]: Scroll items\n[Enter]: Trigger restore\n[D]: Download from Cloud\n[U]: Upload to Cloud"
       elif selectedMenu == 3:
         helpText = "\n[Up/Down]: Scroll history\n\nAudit log of restores."
 
@@ -204,6 +238,16 @@ proc runTui*(initialConf: ExtractorConfig = ExtractorConfig()) =
           contentRect, listStHistory
         )
 
+      if isCloudModalOpen:
+        let popupArea = f.area.split(Vertical, @[fill(1), length(10), fill(1)])[1].split(Horizontal, @[fill(1), length(50), fill(1)])[1]
+        var items: seq[ListItem]
+        for cd in cloudDumps:
+          items.add listItem("[CLOUD] " & cd, style = defaultStyle().fg(White))
+        f.renderStateful(
+          list(items, blk = some(initBlock(title = " REMOTE DUMPS [Enter to Download, Esc to Cancel] ", borders = AllBorders, borderStyle = defaultStyle().fg(Cyan)))),
+          popupArea, listStCloudDump
+        )
+
       f.renderWidget(paragraph(text(statusMsg), blk = some(initBlock(
           borders = AllBorders, borderStyle = defaultStyle().fg(Cyan))),
           style = defaultStyle().fg(Yellow)), statusRect)
@@ -215,6 +259,23 @@ proc runTui*(initialConf: ExtractorConfig = ExtractorConfig()) =
     let evOpt = pollEvent(50)
     if evOpt.isSome and evOpt.get.kind == evKey:
       let k = evOpt.get.key
+
+      if isCloudModalOpen:
+        if k.code == kcEsc or (k.code == kcChar and (k.rune == Rune(27) or k.rune == Rune(3))):
+          isCloudModalOpen = false
+        elif k.code == kcUp and cloudDumpIdx > 0: cloudDumpIdx.dec
+        elif k.code == kcDown and cloudDumpIdx < cloudDumps.len - 1: cloudDumpIdx.inc
+        elif k.code == kcEnter:
+          isCloudModalOpen = false
+          if not isCloudOpActive:
+            let conf = CloudConfig(accessKey: "valid", secretKey: "valid", region: "us-east-1", bucket: "bck", endpoint: "")
+            let args = CloudTaskArgs(op: opDownload, config: conf, localFile: "dumps/" & cloudDumps[cloudDumpIdx], remoteKey: cloudDumps[cloudDumpIdx], chanPtr: addr cloudChan, cancelPtr: addr cloudCancel)
+            cloudCancel.store(false)
+            createThread(cloudThread, cloudWorker, args)
+            isCloudOpActive = true
+            statusMsg = "STATUS: Starting download..."
+        continue
+
       if isAddingConn:
         if k.code == kcEsc or (k.code == kcChar and (k.rune == Rune(27) or
             k.rune == Rune(3) or (k.rune == Rune('c'.ord) and kmCtrl in k.mods))):
@@ -255,6 +316,9 @@ proc runTui*(initialConf: ExtractorConfig = ExtractorConfig()) =
           formValues[formIndex].add($k.rune)
         continue
 
+      if k.code == kcChar and (k.rune == Rune('c'.ord) or k.rune == Rune('C'.ord)) and isCloudOpActive:
+        cloudCancel.store(true)
+        continue
       if k.code == kcChar and (k.rune == Rune('q'.ord) or k.rune == Rune('Q'.ord)):
         running = false
       elif k.code == kcLeft:
@@ -303,13 +367,28 @@ proc runTui*(initialConf: ExtractorConfig = ExtractorConfig()) =
               c.dbname, decryptPassword(c.encrypted_password), c.schema]
           isAddingConn = true
       elif k.code == kcChar and (k.rune == Rune('d'.ord) or k.rune == Rune(
-          'D'.ord)) and selectedMenu == 0:
-        if connections.len > 0 and configFilesIdx < connections.len:
-          deleteConnection(connections[configFilesIdx].id)
-          statusMsg = "STATUS: Connection deleted."
+          'D'.ord)):
+        if selectedMenu == 0:
+          if connections.len > 0 and configFilesIdx < connections.len:
+            deleteConnection(connections[configFilesIdx].id)
+            statusMsg = "STATUS: Connection deleted."
+        elif selectedMenu == 2 and inFocus == 0:
+          isCloudModalOpen = true
+          cloudDumpIdx = 0
+      elif k.code == kcChar and (k.rune == Rune('u'.ord) or k.rune == Rune(
+          'U'.ord)):
+        if selectedMenu == 2 and inFocus == 0 and dumps.len > 0:
+          if not isCloudOpActive:
+            let conf = CloudConfig(accessKey: "valid", secretKey: "valid", region: "us-east-1", bucket: "bck", endpoint: "")
+            let dumpFile = "dumps" / dumps[restoreDumpIdx]
+            let args = CloudTaskArgs(op: opUpload, config: conf, localFile: dumpFile, remoteKey: dumps[restoreDumpIdx], chanPtr: addr cloudChan, cancelPtr: addr cloudCancel)
+            cloudCancel.store(false)
+            createThread(cloudThread, cloudWorker, args)
+            isCloudOpActive = true
       elif k.code == kcEnter:
         if selectedMenu == 1 and connections.len > 0 and backupFilesIdx <
             connections.len:
+          let isUpload = (kmShift in k.mods)
           let conn = connections[backupFilesIdx]
           term.restore()
           echo "Starting backup for ", conn.name, "..."
@@ -318,6 +397,12 @@ proc runTui*(initialConf: ExtractorConfig = ExtractorConfig()) =
             let outPath = extractSchema(conn.host, $conn.port, conn.user,
                 conn.dbname, conn.schema, "dumps")
             statusMsg = "STATUS: Backup created at " & outPath
+            if isUpload and not isCloudOpActive:
+              let conf = CloudConfig(accessKey: "valid", secretKey: "valid", region: "us-east-1", bucket: "bck", endpoint: "")
+              let args = CloudTaskArgs(op: opUpload, config: conf, localFile: outPath, remoteKey: "remote.enc", chanPtr: addr cloudChan, cancelPtr: addr cloudCancel)
+              cloudCancel.store(false)
+              createThread(cloudThread, cloudWorker, args)
+              isCloudOpActive = true
           except Exception as e:
             statusMsg = "STATUS: Backup failed: " & e.msg
           # Sleep to let user see echo
