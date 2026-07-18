@@ -35,7 +35,6 @@ proc main() =
   let dbPort = getEnv("DB_PORT", "5432")
   let dbUser = getEnv("DB_USER", "postgres")
   let dbName = getEnv("DB_NAME", "postgres")
-  let dbConn = "postgresql://" & dbUser & "@" & dbHost & ":" & dbPort & "/" & dbName
 
   var listSt: ListState
   var running = true
