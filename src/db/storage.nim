@@ -15,6 +15,14 @@ type
     encrypted_password*: string
     createdAt*: string
 
+  RestoreHistoryRecord* = object
+    id*: int
+    dump_file*: string
+    connection_name*: string
+    dbname*: string
+    schema*: string
+    restored_at*: string
+
 const MasterKey = "cambalhota_master_key_12345678" # 32 bytes for AES-256
 
 proc getDbPath*(): string =
@@ -36,6 +44,16 @@ proc initDb*() =
       schema TEXT NOT NULL DEFAULT 'Cambalhota',
       encrypted_password TEXT NOT NULL,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  """)
+  db.exec(sql"""
+    CREATE TABLE IF NOT EXISTS restore_history (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      dump_file TEXT NOT NULL,
+      connection_name TEXT NOT NULL,
+      dbname TEXT NOT NULL,
+      schema TEXT NOT NULL,
+      restored_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   """)
   db.close()
@@ -83,6 +101,13 @@ proc saveConnection*(rec: ConnectionRecord) =
   db.exec(sql"INSERT INTO connections (name, engine, host, port, user, dbname, schema, encrypted_password) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
     rec.name, rec.engine, rec.host, rec.port, rec.user, rec.dbname, rec.schema, encPw)
 
+proc updateConnection*(id: int, rec: ConnectionRecord) =
+  let db = open(getDbPath(), "", "", "")
+  defer: db.close()
+  let encPw = encryptPassword(rec.encrypted_password)
+  db.exec(sql"UPDATE connections SET name = ?, engine = ?, host = ?, port = ?, user = ?, dbname = ?, schema = ?, encrypted_password = ? WHERE id = ?",
+    rec.name, rec.engine, rec.host, rec.port, rec.user, rec.dbname, rec.schema, encPw, id)
+
 proc listConnections*(): seq[ConnectionRecord] =
   let db = open(getDbPath(), "", "", "")
   defer: db.close()
@@ -104,3 +129,22 @@ proc deleteConnection*(id: int) =
   let db = open(getDbPath(), "", "", "")
   defer: db.close()
   db.exec(sql"DELETE FROM connections WHERE id = ?", id)
+
+proc saveRestoreHistory*(rec: RestoreHistoryRecord) =
+  let db = open(getDbPath(), "", "", "")
+  defer: db.close()
+  db.exec(sql"INSERT INTO restore_history (dump_file, connection_name, dbname, schema) VALUES (?, ?, ?, ?)",
+    rec.dump_file, rec.connection_name, rec.dbname, rec.schema)
+
+proc listRestoreHistory*(): seq[RestoreHistoryRecord] =
+  let db = open(getDbPath(), "", "", "")
+  defer: db.close()
+  for row in db.fastRows(sql"SELECT id, dump_file, connection_name, dbname, schema, restored_at FROM restore_history ORDER BY id DESC"):
+    result.add RestoreHistoryRecord(
+      id: parseInt(row[0]),
+      dump_file: row[1],
+      connection_name: row[2],
+      dbname: row[3],
+      schema: row[4],
+      restored_at: row[5]
+    )

@@ -25,7 +25,7 @@ flowchart TD
     subgraph Persistence ["Armazenamento e Persistência"]
         CDN[CDN / Git / Cloud Buckets]
         Local[Sistema de Arquivos Local (Dumps)]
-        SQLite[(Local Config DB - SQLite)]
+        SQLite[(Local SQLite DB - Conexões e Histórico)]
         Keyring{OS Keyring}
     end
 
@@ -57,7 +57,7 @@ flowchart TD
 ### 1. Camada de UI (Frontend / CLI)
 - **TUI Tatuí:** Provê toda a experiência visual rica via terminal para interatividade humana.
   - Implementa um Design System unificado (Dark mode, fontes monoespaçadas, destaques semânticos de cores, Logo Retrowave ASCII global).
-  - Organiza funcionalidades complexas em abas intuitivas (Conexões, Extrator, Relatórios de Auditoria, Restauração).
+  - Organiza funcionalidades complexas em abas intuitivas (Configuração, Backup, Restauração, Histórico).
   - Emprega layouts "side-by-side" (como na aba de Cross-Restore) para segmentação cognitiva (Origem vs. Destino).
 - **CLI Utilities:** Interface programática *headless* para orquestração (via CI/CD) e disparo automatizado de comandos.
   - Utiliza `parseopt` para validação rigorosa de parâmetros, implementando um *Hard Block* ativo que aborta a extração (ex: barrando o schema `public`) e injeta estados de erro (`stError`) na thread da UI para feedback imediato ao usuário.
@@ -69,9 +69,9 @@ Construído com gestão `ORC` para maximizar a previsibilidade e diminuir a lat�
 - Desacopla execuções pesadas (como o streaming do `pg_dump` e chamadas OS via `osproc`) da Thread Principal através de Threads e Canais (`Channel[Msg]`).
 - Assegura que a UI Tatuí nunca congele durante I/O, repassando status e logs em tempo real (Promessa Fail-safe).
 
-#### Configuration Manager (Multi-Connections)
-- Gerencia o estado das conexões configuradas localmente na TUI.
-- Elimina o uso de variáveis de ambiente (`.env`) em favor de um banco **SQLite** local criptografado (`connections.db`).
+#### Configuration Manager & Governança Local
+- Gerencia o estado das conexões configuradas localmente na TUI e mantém auditoria de operações.
+- Elimina o uso de variáveis de ambiente (`.env`) em favor de um banco **SQLite** local criptografado (`connections.db`). A tabela `restore_history` armazena localmente o registro histórico detalhado de todas as operações de restauração.
 - Interage com o **OS Keyring** nativo (Secret Service, Keychain, Credential Locker) para armazenar de forma segura a chave mestra (Master Key), utilizada na encriptação e decriptação (AES-256 via `nimcrypto`) das senhas dos SGBDs.
 
 #### `db_core.nim` (Camada de Acesso RDBMS)
