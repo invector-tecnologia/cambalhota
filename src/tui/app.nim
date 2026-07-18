@@ -48,14 +48,20 @@ proc runTui*(initialConf: ExtractorConfig = ExtractorConfig()) =
     listStRestoreDump: ListState
     listStRestoreConn: ListState
     listStHistory: ListState
+    listStCloudProvider: ListState
     configFilesIdx, backupFilesIdx, restoreDumpIdx, restoreConnIdx,
-      historyFilesIdx = 0
+      historyFilesIdx, cloudFilesIdx = 0
     isAddingConn = false
     editingConnId = -1
     formIndex = 0
     formLabels = ["Name", "Engine (pg, mysql)", "Host", "Port", "User",
         "DB Name", "Password", "Schema"]
     formValues = ["", "", "", "", "", "", "", ""]
+    isAddingCloud = false
+    editingCloudId = ""
+    cloudFormIndex = 0
+    cloudFormLabels = ["Name", "Provider (aws, minio, s3)", "Credentials (JSON)", "Metadata (JSON)"]
+    cloudFormValues = ["", "", "", ""]
     isCloudModalOpen = false
     isCloudOpActive = false
     cloudDumps = @["remote_dump_prod_2026.enc", "remote_dump_staging_2026.enc", "remote_dump_dev.enc"]
@@ -75,6 +81,7 @@ proc runTui*(initialConf: ExtractorConfig = ExtractorConfig()) =
     let connections = listConnections()
     let dumps = getFiles("dumps")
     let historyList = listRestoreHistory()
+    let cloudProviders = listCloudProviders()
 
     if connections.len > 0:
       if configFilesIdx >= connections.len: configFilesIdx = connections.len - 1
@@ -92,6 +99,11 @@ proc runTui*(initialConf: ExtractorConfig = ExtractorConfig()) =
       if historyFilesIdx >= historyList.len: historyFilesIdx = historyList.len - 1
     else:
       historyFilesIdx = 0
+
+    if cloudProviders.len > 0:
+      if cloudFilesIdx >= cloudProviders.len: cloudFilesIdx = cloudProviders.len - 1
+    else:
+      cloudFilesIdx = 0
 
     if connections.len > 0:
       listStConfig.select(configFilesIdx)
@@ -111,6 +123,11 @@ proc runTui*(initialConf: ExtractorConfig = ExtractorConfig()) =
       listStHistory.select(historyFilesIdx)
     else:
       listStHistory.selected = none(int)
+
+    if cloudProviders.len > 0:
+      listStCloudProvider.select(cloudFilesIdx)
+    else:
+      listStCloudProvider.selected = none(int)
 
     if cloudDumps.len > 0:
       listStCloudDump.select(cloudDumpIdx)
@@ -155,7 +172,7 @@ proc runTui*(initialConf: ExtractorConfig = ExtractorConfig()) =
       f.renderWidget(paragraph(text(LogoAscii), style = defaultStyle().fg(
           Magenta)), logoRect)
 
-      let menuItems = @[" 1. Config ", " 2. Backup ", " 3. Restore ", " 4. History "]
+      let menuItems = @[" 1. Config ", " 2. Backup ", " 3. Restore ", " 4. Cloud ", " 5. History "]
       var t = tabs(menuItems, selected = selectedMenu,
           highlightStyle = defaultStyle().bg(Magenta).fg(Black))
       t.style = defaultStyle().fg(Cyan)
@@ -168,6 +185,8 @@ proc runTui*(initialConf: ExtractorConfig = ExtractorConfig()) =
       var helpText = ""
       if isAddingConn:
         helpText = "\n[Up/Down]: Move between fields\n[Backspace]: Delete char\n[Esc/Ctrl+C]: Cancel\n[Enter]: Save on the last field\n\n- Engine: 'pg', 'mysql', etc\n- Port: pg=5432, mysql=3306"
+      elif isAddingCloud:
+        helpText = "\n[Up/Down]: Move fields\n[Backspace]: Del char\n[Esc/Ctrl+C]: Cancel\n[Enter]: Save on last field\n\nJSON strictly."
       elif selectedMenu == 0:
         helpText = "\n[A]: Add new connection\n[E]: Edit connection\n[C]: Clone connection\n[D]: Delete connection\n[Up/Down]: Scroll list\n[L/R]: Change tabs"
       elif selectedMenu == 1:
@@ -175,6 +194,8 @@ proc runTui*(initialConf: ExtractorConfig = ExtractorConfig()) =
       elif selectedMenu == 2:
         helpText = "\n[L/R]: Switch panel focus\n[Up/Down]: Scroll items\n[Enter]: Trigger restore\n[D]: Download from Cloud\n[U]: Upload to Cloud"
       elif selectedMenu == 3:
+        helpText = "\n[A]: Add Cloud\n[E]: Edit Cloud\n[C]: Clone Cloud\n[D]: Delete Cloud\n[Up/Down]: Scroll list\n[L/R]: Change tabs"
+      elif selectedMenu == 4:
         helpText = "\n[Up/Down]: Scroll history\n\nAudit log of restores."
 
       f.renderWidget(paragraph(text(helpText), blk = some(initBlock(
@@ -192,6 +213,15 @@ proc runTui*(initialConf: ExtractorConfig = ExtractorConfig()) =
         f.renderWidget(paragraph(text(formLines), blk = some(initBlock(
             title = if editingConnId ==
             -1: " NEW CONNECTION " else: " EDIT CONNECTION ",
+            borders = AllBorders, borderStyle = defaultStyle().fg(Green)))), contentRect)
+      elif isAddingCloud:
+        var formLines = if editingCloudId == "": "=== ADD NEW CLOUD (Ctrl+C to Cancel) ===\n\n" else: "=== EDIT CLOUD (Ctrl+C to Cancel) ===\n\n"
+        for i, label in cloudFormLabels:
+          let pointer = if i == cloudFormIndex: " > " else: "   "
+          let cursor = if i == cloudFormIndex: "█" else: ""
+          formLines.add(pointer & label & ": " & cloudFormValues[i] & cursor & "\n")
+        f.renderWidget(paragraph(text(formLines), blk = some(initBlock(
+            title = if editingCloudId == "": " NEW CLOUD " else: " EDIT CLOUD ",
             borders = AllBorders, borderStyle = defaultStyle().fg(Green)))), contentRect)
       elif selectedMenu == 0:
         var items: seq[ListItem]
@@ -241,6 +271,14 @@ proc runTui*(initialConf: ExtractorConfig = ExtractorConfig()) =
           hChunks[1], listStRestoreConn
         )
       elif selectedMenu == 3:
+        var items: seq[ListItem]
+        for c in cloudProviders:
+          items.add listItem("[" & c.provider_type.toUpperAscii() & "] " & c.name, style = defaultStyle().fg(White))
+        f.renderStateful(
+          list(items, blk = some(initBlock(title = " CLOUD PROVIDERS [Press A to Add, D to Delete] ", borders = AllBorders, borderStyle = defaultStyle().fg(Blue)))),
+          contentRect, listStCloudProvider
+        )
+      elif selectedMenu == 4:
         var items: seq[ListItem]
         for h in historyList:
           items.add listItem(h.restored_at & " -> " & h.dump_file &
@@ -333,6 +371,48 @@ proc runTui*(initialConf: ExtractorConfig = ExtractorConfig()) =
               formValues[formIndex].add($k.rune)
         continue
 
+      if isAddingCloud:
+        if k.code == kcEsc or (k.code == kcChar and (k.rune == Rune(27) or
+            k.rune == Rune(3) or (k.rune == Rune('c'.ord) and kmCtrl in k.mods))):
+          isAddingCloud = false
+          editingCloudId = ""
+          cloudFormValues = ["", "", "", ""]
+          cloudFormIndex = 0
+        elif k.code == kcUp and cloudFormIndex > 0: cloudFormIndex.dec
+        elif k.code == kcDown and cloudFormIndex < cloudFormLabels.len - 1: cloudFormIndex.inc
+        elif k.code == kcBackspace:
+          if cloudFormValues[cloudFormIndex].len > 0: cloudFormValues[cloudFormIndex] = cloudFormValues[cloudFormIndex][0 .. ^2]
+        elif k.code == kcEnter:
+          if cloudFormIndex < cloudFormLabels.len - 1:
+            cloudFormIndex.inc
+          else:
+            try:
+              var newRec = CloudProviderRecord(
+                id: editingCloudId,
+                name: cloudFormValues[0],
+                provider_type: cloudFormValues[1],
+                encrypted_credentials: cloudFormValues[2],
+                metadata: cloudFormValues[3]
+              )
+              if editingCloudId == "":
+                saveCloudProvider(newRec)
+                statusMsg = "STATUS: Cloud Provider saved."
+              else:
+                updateCloudProvider(editingCloudId, newRec)
+                statusMsg = "STATUS: Cloud Provider updated."
+            except Exception as e:
+              statusMsg = "STATUS: Failed to save: " & e.msg
+            isAddingCloud = false
+            editingCloudId = ""
+            cloudFormValues = ["", "", "", ""]
+            cloudFormIndex = 0
+        elif k.code == kcChar:
+          if cloudFormValues[cloudFormIndex].len < 1024:
+            let cInt = int(k.rune)
+            if cInt >= 32 and cInt != 127:
+              cloudFormValues[cloudFormIndex].add($k.rune)
+        continue
+
       if k.code == kcChar and (k.rune == Rune('c'.ord) or k.rune == Rune('C'.ord)) and isCloudOpActive:
         cloudCancel.store(true)
         continue
@@ -343,14 +423,15 @@ proc runTui*(initialConf: ExtractorConfig = ExtractorConfig()) =
         elif selectedMenu > 0: selectedMenu.dec; statusMsg = "STATUS: Ready."
       elif k.code == kcRight:
         if selectedMenu == 2 and inFocus == 0: inFocus = 1
-        elif selectedMenu < 3: selectedMenu.inc; statusMsg = "STATUS: Ready."
+        elif selectedMenu < 4: selectedMenu.inc; statusMsg = "STATUS: Ready."
       elif k.code == kcUp:
         if selectedMenu == 0 and configFilesIdx > 0: configFilesIdx.dec
         elif selectedMenu == 1 and backupFilesIdx > 0: backupFilesIdx.dec
         elif selectedMenu == 2:
           if inFocus == 0 and restoreDumpIdx > 0: restoreDumpIdx.dec
           elif inFocus == 1 and restoreConnIdx > 0: restoreConnIdx.dec
-        elif selectedMenu == 3 and historyFilesIdx > 0: historyFilesIdx.dec
+        elif selectedMenu == 3 and cloudFilesIdx > 0: cloudFilesIdx.dec
+        elif selectedMenu == 4 and historyFilesIdx > 0: historyFilesIdx.dec
       elif k.code == kcDown:
         if selectedMenu == 0 and connections.len > 0 and configFilesIdx <
             connections.len - 1: configFilesIdx.inc
@@ -361,28 +442,48 @@ proc runTui*(initialConf: ExtractorConfig = ExtractorConfig()) =
               1: restoreDumpIdx.inc
           elif inFocus == 1 and connections.len > 0 and restoreConnIdx <
               connections.len - 1: restoreConnIdx.inc
-        elif selectedMenu == 3 and historyList.len > 0 and historyFilesIdx <
+        elif selectedMenu == 3 and cloudProviders.len > 0 and cloudFilesIdx <
+            cloudProviders.len - 1: cloudFilesIdx.inc
+        elif selectedMenu == 4 and historyList.len > 0 and historyFilesIdx <
             historyList.len - 1: historyFilesIdx.inc
       elif k.code == kcChar and (k.rune == Rune('a'.ord) or k.rune == Rune(
-          'A'.ord)) and selectedMenu == 0:
-        editingConnId = -1
-        isAddingConn = true
-      elif k.code == kcChar and (k.rune == Rune('e'.ord) or k.rune == Rune(
-          'E'.ord)) and selectedMenu == 0:
-        if connections.len > 0 and configFilesIdx < connections.len:
-          let c = connections[configFilesIdx]
-          editingConnId = c.id
-          formValues = [c.name, c.engine, c.host, $c.port, c.user, c.dbname,
-              decryptPassword(c.encrypted_password), c.schema]
-          isAddingConn = true
-      elif k.code == kcChar and (k.rune == Rune('c'.ord) or k.rune == Rune(
-          'C'.ord)) and selectedMenu == 0:
-        if connections.len > 0 and configFilesIdx < connections.len:
-          let c = connections[configFilesIdx]
+          'A'.ord)):
+        if selectedMenu == 0:
           editingConnId = -1
-          formValues = [c.name & "_copy", c.engine, c.host, $c.port, c.user,
-              c.dbname, decryptPassword(c.encrypted_password), c.schema]
           isAddingConn = true
+        elif selectedMenu == 3:
+          editingCloudId = ""
+          isAddingCloud = true
+      elif k.code == kcChar and (k.rune == Rune('e'.ord) or k.rune == Rune(
+          'E'.ord)):
+        if selectedMenu == 0:
+          if connections.len > 0 and configFilesIdx < connections.len:
+            let c = connections[configFilesIdx]
+            editingConnId = c.id
+            formValues = [c.name, c.engine, c.host, $c.port, c.user, c.dbname,
+                decryptPassword(c.encrypted_password), c.schema]
+            isAddingConn = true
+        elif selectedMenu == 3:
+          if cloudProviders.len > 0 and cloudFilesIdx < cloudProviders.len:
+            let c = cloudProviders[cloudFilesIdx]
+            editingCloudId = c.id
+            cloudFormValues = [c.name, c.provider_type, decryptCredentials(c.encrypted_credentials), c.metadata]
+            isAddingCloud = true
+      elif k.code == kcChar and (k.rune == Rune('c'.ord) or k.rune == Rune(
+          'C'.ord)):
+        if selectedMenu == 0:
+          if connections.len > 0 and configFilesIdx < connections.len:
+            let c = connections[configFilesIdx]
+            editingConnId = -1
+            formValues = [c.name & "_copy", c.engine, c.host, $c.port, c.user,
+                c.dbname, decryptPassword(c.encrypted_password), c.schema]
+            isAddingConn = true
+        elif selectedMenu == 3:
+          if cloudProviders.len > 0 and cloudFilesIdx < cloudProviders.len:
+            let c = cloudProviders[cloudFilesIdx]
+            editingCloudId = ""
+            cloudFormValues = [c.name & "_copy", c.provider_type, decryptCredentials(c.encrypted_credentials), c.metadata]
+            isAddingCloud = true
       elif k.code == kcChar and (k.rune == Rune('d'.ord) or k.rune == Rune(
           'D'.ord)):
         if selectedMenu == 0:
@@ -392,6 +493,10 @@ proc runTui*(initialConf: ExtractorConfig = ExtractorConfig()) =
         elif selectedMenu == 2 and inFocus == 0:
           isCloudModalOpen = true
           cloudDumpIdx = 0
+        elif selectedMenu == 3:
+          if cloudProviders.len > 0 and cloudFilesIdx < cloudProviders.len:
+            deleteCloudProvider(cloudProviders[cloudFilesIdx].id)
+            statusMsg = "STATUS: Cloud Provider deleted."
       elif k.code == kcChar and (k.rune == Rune('u'.ord) or k.rune == Rune(
           'U'.ord)):
         if selectedMenu == 2 and inFocus == 0 and dumps.len > 0:

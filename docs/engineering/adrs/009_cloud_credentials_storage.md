@@ -1,5 +1,6 @@
 # 009 - Storage Flexível e Seguro de Credenciais Cloud
 
+**Status**: Implementado
 ## Contexto
 
 O usuário aprovou o fluxo de UX para gerenciamento de configurações de provedores Cloud no Cambalhota. A arquitetura precisa suportar uma lista crescente e heterogênea de provedores, como AWS, MinIO, R2, Git, Google Drive, Dropbox, OneDrive e Apple Cloud. Cada provedor possui mecanismos de autenticação distintos: provedores S3-like exigem *Access Keys*, enquanto provedores baseados em drives virtuais ou Git geralmente utilizam *OAuth Tokens* ou chaves SSH/PATs. Adicionalmente, essas credenciais são altamente sensíveis e devem ser persistidas no ambiente local de forma unificada e segura.
