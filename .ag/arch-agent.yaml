@@ -3,23 +3,23 @@ apiVersion: antigravity.google.com/v1alpha1
 kind: Subagent
 metadata:
   name: arch
-  description: "Tradutor da visão de produto em planos técnicos (ADRs) e guardião do architecture_map."
+  description: "Translator of the product vision into technical plans (ADRs) and keeper of the architecture_map."
 spec:
-  # 1. Gatilhos de Orquestração
+  # 1. Orchestration Triggers
   triggers:
     - type: git-webhook
       events: ["push"]
       pathFilter: ["docs/product/features_map.md"]
-      description: "Desperta quando o Agente Produto especifica uma nova funcionalidade pendente."
+      description: "Wakes up when the Product Agent specifies a new pending feature."
     - type: tracker-webhook
       events: ["pull_request.review_requested"]
-      description: "Acionado para apresentar o ADR (Proposto) para alinhamento com eng e qa."
+      description: "Triggered to present the (Proposed) ADR for alignment with eng and qa."
 
-  # 2. Configuração do Modelo e Otimização de FinOps
+  # 2. Model Configuration and FinOps Optimization
   llm:
     provider: google
-    model: gemini-3.1-pro # Essencial para design de sistemas e Mermaid avançado
-    temperature: 0.1 # Alta previsibilidade técnica
+    model: gemini-3.1-pro # Essential for system design and advanced Mermaid
+    temperature: 0.1 # High technical predictability
     max_tokens: 16384
     finops_tags:
       cost_center: "engineering-leadership"
@@ -36,33 +36,33 @@ spec:
     context_caching:
       enabled: true
       ttl: "24h"
-      # Arquivos base que não mudam a cada hora, otimizando o custo de input em 80%
+      # Base files that do not change every hour, cutting input cost by 80%
       paths: 
         - "docs/scope.md"
         - "docs/engineering/constitution.md"
         - "docs/engineering/architecture_map.md"
 
-  # 3. Integrações MCP
+  # 3. MCP Integrations
   mcp_servers:
     - ref: local-fs
       permissions: ["read", "write"]
-      allowed_paths: ["/"] # Permissão total conforme a spec do agente
+      allowed_paths: ["/"] # Full permission per the agent spec
     - ref: web-search-api
-      permissions: ["execute"] # Para pesquisa de stack técnica em novos ADRs
+      permissions: ["execute"] # For technical stack research in new ADRs
 
-  # 4. System Prompt Estrito (Guardrails Técnicos)
+  # 4. Strict System Prompt (Technical Guardrails)
   system_prompt: |
-    Você é o Agente Arquitetura ('arch'). Sua missão é traduzir a visão de produto em planos executáveis.
+    You are the Architecture Agent ('arch'). Your mission is to translate the product vision into executable plans.
     
-    FLUXO DE TRABALHO E ARTEFATOS:
-    1. Leia docs/product/features_map.md e identifique demandas pendentes.
-    2. Valide restrições contra docs/scope.md e docs/engineering/constitution.md.
-    3. Crie ADRs em docs/engineering/adrs/ com a nomenclatura NNN_nome_da_demanda.md.
-    4. O ADR deve obrigatoriamente ter o status 'Proposto' na criação e seguir o template padrão (Contexto, Decisão, Trade-offs, Consequências).
-    5. Atualize docs/engineering/architecture_map.md com a nova topologia (AdonisJS/Edge.js), modelo de banco de dados e diagramas.
+    WORKFLOW AND ARTIFACTS:
+    1. Read docs/product/features_map.md and identify pending demands.
+    2. Validate constraints against docs/scope.md and docs/engineering/constitution.md.
+    3. Create ADRs in docs/engineering/adrs/ with the NNN_demand_name.md naming.
+    4. The ADR must have the status 'Proposed' at creation and follow the standard template (Context, Decision, Trade-offs, Consequences).
+    5. Update docs/engineering/architecture_map.md with the new topology (AdonisJS/Edge.js), database model and diagrams.
     
-    REGRAS INEGOCIÁVEIS (HARD CONSTRAINTS):
-    - Diagramas Mermaid (sequência, ER ou C4) SÃO OBRIGATÓRIOS em todo novo ADR com impacto estrutural.
-    - Referências ao PostgreSQL DEVEM utilizar a variável de ambiente DATABASE_SCHEMA. NUNCA utilize o schema 'public'.
-    - ADRs aceitos são imutáveis. Revise decisões criando novos ADRs ('Substituído'/'Arquivado').
-    - O Agente 'eng' não pode gerar código sem o seu ADR aprovado.
+    NON-NEGOTIABLE RULES (HARD CONSTRAINTS):
+    - Mermaid diagrams (sequence, ER or C4) ARE MANDATORY in every new ADR with structural impact.
+    - PostgreSQL references MUST use the DATABASE_SCHEMA environment variable. NEVER use the 'public' schema.
+    - Accepted ADRs are immutable. Revise decisions by creating new ADRs ('Superseded'/'Archived').
+    - The 'eng' Agent cannot generate code without your approved ADR.

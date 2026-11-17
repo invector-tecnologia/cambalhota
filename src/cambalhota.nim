@@ -48,6 +48,6 @@ when isMainModule:
   )
 
   if not checkExtractor(dbType):
-    quit("Erro: extractor tool nao encontrado no sistema.", 1)
+    quit("Error: extractor tool not found on the system.", 1)
   
   runTui(conf)

@@ -1,45 +1,45 @@
 # ADR 010: QA Resilience Mitigations
 
-**Status**: Implementado
-## Contexto
-O Agente QA executou uma bateria sofisticada de testes de segurança, performance e concorrência no Cambalhota. Foram identificados 4 pontos críticos (Blind Spots) que podem levar a instabilidade, travamento ou vulnerabilidades no sistema:
-1. **Buffer overflow na TUI**: Injeção de caracteres excessivos ou maliciosos em campos de input.
-2. **Pânico na Worker Thread**: Falhas na descriptografia de arquivos corrompidos derrubam a thread ao invés de tratarem o erro de forma isolada.
-3. **Deadlock de rede no Módulo Cloud S3**: Travamento da comunicação devido ao uso de `httpclient` sem configuração de timeout estrito em situações de rede intermitente.
-4. **Picos de alocação de memória**: Envio excessivo de mensagens de progresso via Channels entre as threads, causando alta alocação (sem *debouncing*).
+**Status**: Implemented
+## Context
+The QA Agent ran a sophisticated battery of security, performance and concurrency tests on Cambalhota. It found 4 critical points (Blind Spots) that can lead to instability, lockups or vulnerabilities in the system:
+1. **Buffer overflow in the TUI**: Injection of excessive or malicious characters into input fields.
+2. **Worker Thread panic**: Decryption failures on corrupted files bring the thread down instead of handling the error in isolation.
+3. **Network deadlock in the Cloud S3 Module**: Communication hangs because `httpclient` is used without a strict timeout configuration under intermittent network conditions.
+4. **Memory allocation spikes**: Excessive progress messages sent through Channels between threads, causing high allocation (no *debouncing*).
 
-## Decisão Técnica e Implementação (Nim)
+## Technical Decision and Implementation (Nim)
 
-### 1. Prevenção de Buffer Overflow na TUI (`src/tui/app.nim` e similares)
-- **Implementação**: Limitar rigorosamente o tamanho das strings nos campos de input do *Tatui* / *Illwill*. 
-- **Detalhes**:
-  - Validar o `len` da string de input antes de concatenar novos caracteres. Se exceder um `MAX_INPUT_LENGTH` (ex: 256 caracteres para caminhos ou senhas), o input extra deve ser descartado.
-  - Sanitizar a entrada para ignorar caracteres de controle não permitidos.
+### 1. Buffer Overflow Prevention in the TUI (`src/tui/app.nim` and similar)
+- **Implementation**: Strictly limit the length of strings in *Tatui* / *Illwill* input fields. 
+- **Details**:
+  - Validate the input string `len` before appending new characters. If it exceeds a `MAX_INPUT_LENGTH` (e.g., 256 characters for paths or passwords), the extra input must be discarded.
+  - Sanitize input to ignore disallowed control characters.
 
-### 2. Tolerância a Falhas na Worker Thread (`src/core/restore.nim` ou `src/core/crypto.nim`)
-- **Implementação**: Substituir chamadas que podem gerar pânico (como acesso indevido ou falha criptográfica) por blocos `try ... except CatchableError`.
-- **Detalhes**:
-  - Quando o módulo de criptografia detectar corrupção de arquivo (falha de autenticação GCM ou padding inválido), a worker thread não deve falhar criticamente (`panic`).
-  - O erro deve ser empacotado em uma estrutura de mensagem (`BackupEvent` ou similar) com status de Erro e enviado de volta à Main Thread via Channel, permitindo que a TUI exiba a falha graciosamente e continue operando.
+### 2. Fault Tolerance in the Worker Thread (`src/core/restore.nim` or `src/core/crypto.nim`)
+- **Implementation**: Replace calls that can cause a panic (such as invalid access or a cryptographic failure) with `try ... except CatchableError` blocks.
+- **Details**:
+  - When the cryptography module detects file corruption (GCM authentication failure or invalid padding), the worker thread must not fail critically (`panic`).
+  - The error must be wrapped in a message structure (`BackupEvent` or similar) with an Error status and sent back to the Main Thread through the Channel, letting the TUI show the failure gracefully and keep running.
 
-### 3. Timeout Estrito e Resiliência de Rede (`src/core/cloud.nim`)
-- **Implementação**: Configurar timeouts explícitos no cliente HTTP e implementar *Retries*.
-- **Detalhes**:
-  - Ao instanciar `newHttpClient()` ou `newAsyncHttpClient()`, definir obrigatoriamente o parâmetro `timeout` (ex: 15000 a 30000 ms).
-  - Envolver as chamadas de rede para o S3 em blocos de tentativa com *Exponential Backoff*. Caso ocorra um `TimeoutError`, o sistema retenta até um limite máximo antes de falhar a operação de forma segura (notificando via Channel).
+### 3. Strict Timeout and Network Resilience (`src/core/cloud.nim`)
+- **Implementation**: Configure explicit timeouts on the HTTP client and implement *Retries*.
+- **Details**:
+  - When instantiating `newHttpClient()` or `newAsyncHttpClient()`, the `timeout` parameter must always be set (e.g., 15000 to 30000 ms).
+  - Wrap network calls to S3 in retry blocks with *Exponential Backoff*. If a `TimeoutError` occurs, the system retries up to a maximum limit before failing the operation safely (notifying through the Channel).
 
-### 4. *Debouncing* de Mensagens em Channels (`src/core/worker.nim` / `src/core/progress.nim`)
-- **Implementação**: Agrupar (*batching*) ou aplicar *debouncing* no envio de atualizações de progresso para a Main Thread.
-- **Detalhes**:
-  - Em invés de enviar uma string para o `Channel` a cada byte lido ou bloco pequeno transferido, o worker deve armazenar o tempo da última atualização (usando `std/times` e `cpuTime`).
-  - Enviar mensagens de atualização apenas se a diferença de tempo superar um limiar (ex: 100ms) ou se a transferência for concluída.
-  - O conteúdo da mensagem não deve ser uma `string` montada a cada iteração, mas sim um objeto/tupla leve (`tuple[bytesRead: int, totalBytes: int]`), deixando a formatação de string (`"50% concluído"`) para a Main Thread (TUI), o que elimina as alocações repetitivas no worker.
+### 4. Message *Debouncing* in Channels (`src/core/worker.nim` / `src/core/progress.nim`)
+- **Implementation**: Group (*batching*) or apply *debouncing* to progress updates sent to the Main Thread.
+- **Details**:
+  - Instead of sending a string to the `Channel` for every byte read or small block transferred, the worker must store the time of the last update (using `std/times` and `cpuTime`).
+  - Send update messages only if the time difference exceeds a threshold (e.g., 100ms) or if the transfer is complete.
+  - The message content must not be a `string` built on every iteration, but a lightweight object/tuple (`tuple[bytesRead: int, totalBytes: int]`), leaving string formatting (`"50% complete"`) to the Main Thread (TUI), which removes repeated allocations in the worker.
 
-## Consequências e Trade-offs
-- **Positivas**: 
-  - Maior resiliência e estabilidade do aplicativo.
-  - Redução drástica do consumo de CPU e RAM durante operações pesadas devido à mitigação de overhead do Channel.
-  - TUI à prova de quebras por "Fat Fingers" ou inputs mal-intencionados.
-- **Negativas / Trade-offs**: 
-  - A TUI perderá uma precisão microscópica nas barras de progresso (atualizando a cada 100ms em vez de continuamente), o que é imperceptível para o usuário humano, mas muda a granularidade real.
-  - A complexidade do código de rede aumentará levemente devido à lógica de *retry* e *backoff*.
+## Consequences and Trade-offs
+- **Positive**: 
+  - Greater application resilience and stability.
+  - Drastic reduction of CPU and RAM consumption during heavy operations by mitigating Channel overhead.
+  - A TUI that does not break from "Fat Fingers" or malicious input.
+- **Negative / Trade-offs**: 
+  - The TUI will lose microscopic precision in progress bars (updating every 100ms instead of continuously), which is imperceptible to a human user but changes the actual granularity.
+  - Network code complexity will increase slightly because of the *retry* and *backoff* logic.

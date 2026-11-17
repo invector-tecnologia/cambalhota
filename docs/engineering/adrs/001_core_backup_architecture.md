@@ -1,28 +1,28 @@
-# ADR-001: Arquitetura Core de Conexão e Extração (Backup)
+# ADR-001: Core Connection and Extraction Architecture (Backup)
 
-- **Status:** Implementado
-- **Data:** 2026-07-17
+- **Status:** Implemented
+- **Date:** 2026-07-17
 
-## Contexto
-O projeto **Cambalhota** tem como premissa central o gerenciamento de backups e restaurações de schemas de banco de dados de maneira totalmente *fail-safe* (objetiva, transparente e segura). Para os Épicos 1 (Configuração e Conexão) e 2 (Extração e Persistência), precisamos definir a tecnologia base e a arquitetura pela qual a aplicação, rodando via Terminal User Interface (TUI), se comunicará de forma segura com o PostgreSQL alvo, extrairá os dados e fará o envio para armazenamento remoto seguro (CDN/S3-compatible). O sistema não pode interromper ou degradar a performance do banco durante a extração, especialmente em horários de pico.
+## Context
+The core premise of the **Cambalhota** project is to manage backups and restores of database schemas in a fully *fail-safe* way (objective, transparent and secure). For Epics 1 (Configuration and Connection) and 2 (Extraction and Persistence), we need to define the base technology and the architecture through which the application, running as a Terminal User Interface (TUI), will communicate securely with the target PostgreSQL, extract the data and send it to secure remote storage (CDN/S3-compatible). The system must not interrupt or degrade database performance during extraction, especially at peak hours.
 
-## Decisão Técnica
-1. **Linguagem Base e TUI:** A aplicação será construída inteiramente em **Nim**, utilizando a biblioteca **Tatuí** para a interface de terminal. O Nim foi escolhido por gerar binários nativos, rápidos, com baixo consumo de memória (overhead mínimo) e por ser estaticamente tipado, garantindo segurança em runtime.
-2. **Conexão Segura:** Utilizaremos drivers nativos em Nim para conexão via protocolo PostgreSQL (TCP/IP), com suporte obrigatório a SSL/TLS para proteção dos dados em trânsito.
-3. **Extração de Dados (Backup):** A extração não será feita por *selects* manuais no código Nim (que seriam lentos e consumiriam muita memória da aplicação). O Cambalhota orquestrará a execução da ferramenta nativa `pg_dump` via `os.execProcess` (ou equivalente seguro), transmitindo o binário resultante via *streams* (para não estourar a RAM) diretamente para o destino.
-4. **Persistência Remota:** Os *streams* originados pela extração serão criptografados em trânsito e enviados em chunks para o repositório remoto (ex: API compatível com S3) utilizando requisições HTTP seguras assíncronas.
+## Technical Decision
+1. **Base Language and TUI:** The application will be built entirely in **Nim**, using the **Tatuí** library for the terminal interface. Nim was chosen because it produces fast native binaries with low memory usage (minimal overhead) and because it is statically typed, ensuring runtime safety.
+2. **Secure Connection:** We will use native Nim drivers to connect over the PostgreSQL protocol (TCP/IP), with mandatory SSL/TLS support to protect data in transit.
+3. **Data Extraction (Backup):** Extraction will not be done through manual *selects* in the Nim code (which would be slow and consume a lot of application memory). Cambalhota will orchestrate the execution of the native `pg_dump` tool via `os.execProcess` (or a safe equivalent), streaming the resulting binary output (so RAM does not blow up) directly to the destination.
+4. **Remote Persistence:** The *streams* produced by the extraction will be encrypted in transit and sent in chunks to the remote repository (e.g., an S3-compatible API) using secure asynchronous HTTP requests.
 
-## Trade-offs Considerados
-- **Implementar o dump na própria linguagem vs Usar `pg_dump`:** 
-  - *Fazer via Nim:* Daria mais controle sobre as estruturas granulares, mas o custo de desenvolvimento, manutenção e consumo de memória (carregar dados para a RAM para depois salvar) é altíssimo.
-  - *Usar `pg_dump`:* Perde-se a granularidade fina de interceptar linha a linha nativamente na linguagem, mas ganha-se a estabilidade, compressão e eficiência testada há décadas do utilitário oficial do PostgreSQL. **Decisão:** `pg_dump`.
-- **Binário único vs Scripting (Python/Bash):** A distribuição de uma aplicação TUI interativa para sysadmins/DBAs em Bash ou Python exigiria setup complexo de dependências. Compilando com Nim, fornecemos um binário estático e pronto para execução (*standalone*).
+## Trade-offs Considered
+- **Implementing the dump in the language itself vs. using `pg_dump`:** 
+  - *Doing it in Nim:* Would give more control over granular structures, but the cost of development, maintenance and memory usage (loading data into RAM and then saving it) is very high.
+  - *Using `pg_dump`:* Loses the fine granularity of intercepting row by row natively in the language, but gains the stability, compression and decades-tested efficiency of the official PostgreSQL utility. **Decision:** `pg_dump`.
+- **Single binary vs. Scripting (Python/Bash):** Distributing an interactive TUI application to sysadmins/DBAs in Bash or Python would require complex dependency setup. By compiling with Nim, we ship a static, ready-to-run (*standalone*) binary.
 
-## Consequências
-- **Positivas:** O binário gerado pelo Nim será leve e extremamente rápido. O uso do `pg_dump` garantirá backups nativamente consistentes sem sobrecarga absurda da aplicação. A TUI via Tatuí permitirá interações fluídas, passando uma sensação imediata de "operação transparente e fail-safe".
-- **Negativas/Desafios:** O sistema operacional onde o Cambalhota rodará precisará ter o binário do `pg_dump` (cliente PostgreSQL) instalado e acessível no PATH do usuário. Precisaremos implementar validações severas de sistema (ex: verificar presença do `pg_dump` e da sua versão) logo na inicialização da aplicação (Pre-flight checks).
+## Consequences
+- **Positive:** The binary produced by Nim will be lightweight and extremely fast. Using `pg_dump` will ensure natively consistent backups without absurd application overhead. The Tatuí TUI will allow smooth interactions, giving an immediate sense of a "transparent and fail-safe operation".
+- **Negative/Challenges:** The operating system where Cambalhota runs will need the `pg_dump` binary (PostgreSQL client) installed and available in the user's PATH. We will need strict system validations (e.g., checking that `pg_dump` is present and its version) right at application startup (Pre-flight checks).
 
-## Referências
-- Documentação do Nim: https://nim-lang.org/
-- Biblioteca Tatuí: Framework TUI adotado para a visão objetiva.
-- Features Map & Roadmap v1.0 (Épicos 1 e 2).
+## References
+- Nim documentation: https://nim-lang.org/
+- Tatuí library: TUI framework adopted for the objective view.
+- Features Map & Roadmap v1.0 (Epics 1 and 2).

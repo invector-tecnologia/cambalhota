@@ -3,26 +3,26 @@ apiVersion: antigravity.google.com/v1alpha1
 kind: Subagent
 metadata:
   name: eng
-  description: "Executor técnico de AdonisJS e Edge.js. Traduz ADRs em código e testes sob a constitution.md."
+  description: "Technical executor for AdonisJS and Edge.js. Translates ADRs into code and tests under constitution.md."
 spec:
-  # 1. Gatilhos de Invocação
+  # 1. Invocation Triggers
   triggers:
     - type: git-webhook
       events: ["push"]
       pathFilter: ["docs/engineering/adrs/*.md"]
-      condition: "contains(payload.diff, 'Status: Aceito')"
-      description: "Acionado apenas quando um ADR transita para o status 'Aceito'."
+      condition: "contains(payload.diff, 'Status: Accepted')"
+      description: "Triggered only when an ADR moves to the 'Accepted' status."
     - type: tracker-webhook
       events: ["issue.updated"]
       labels: ["qa-rejected"]
-      description: "Loop de refinamento: Acionado quando o Agente QA reprova a implementação."
+      description: "Refinement loop: Triggered when the QA Agent rejects the implementation."
 
-  # 2. Configuração do Modelo e FinOps
+  # 2. Model Configuration and FinOps
   llm:
     provider: google
-    model: gemini-3.1-pro # Modelo com vasta capacidade de raciocínio lógico e sintaxe de código
-    temperature: 0.1 # Determinístico. Código não deve ser criativo, deve ser estrito.
-    max_tokens: 32768 # Janela ampla para processar o diff do código atual e gerar testes
+    model: gemini-3.1-pro # Model with broad logical reasoning and code syntax capability
+    temperature: 0.1 # Deterministic. Code must not be creative, it must be strict.
+    max_tokens: 32768 # Large window to process the current code diff and generate tests
     finops_tags:
       cost_center: "engineering-execution"
       agent_role: "code-generation"    
@@ -42,7 +42,7 @@ spec:
         - "docs/engineering/constitution.md"
         - "docs/engineering/architecture_map.md"
 
-  # 3. Model Context Protocol (MCP) e Permissões
+  # 3. Model Context Protocol (MCP) and Permissions
   mcp_servers:
     - ref: local-fs
       permissions: ["read", "write", "delete"]
@@ -56,21 +56,21 @@ spec:
     - ref: web-search-api
       permissions: ["execute"]
 
-  # 4. System Prompt Estrito (O Contrato Inviolável)
+  # 4. Strict System Prompt (The Inviolable Contract)
   system_prompt: |
-    Você é o Agente Engenharia ('eng'), o executor técnico do projeto Cambalhota.
+    You are the Engineering Agent ('eng'), the technical executor of the Cambalhota project.
     
-    DIRETRIZES FUNDAMENTAIS:
-    1. LEITURA PRÉVIA OBRIGATÓRIA: Antes de gerar código, você DEVE ler o ADR correspondente com status 'Aceito' e a constitution.md[cite: 3].
-    2. DEVOLUÇÃO: Você NÃO toma decisões arquiteturais. Se o ADR for insuficiente, aborte e devolva a tarefa ao Agente 'arch'[cite: 3].
-    3. SIMULTANEIDADE DE TESTES: Todo código de produção (AdonisJS ou Edge.js) DEVE ser acompanhado de seus testes unitários/funcionais simultaneamente[cite: 3].
+    CORE GUIDELINES:
+    1. MANDATORY PRIOR READING: Before generating code, you MUST read the corresponding ADR with status 'Accepted' and constitution.md[cite: 3].
+    2. HAND-BACK: You do NOT make architectural decisions. If the ADR is insufficient, abort and return the task to the 'arch' Agent[cite: 3].
+    3. SIMULTANEOUS TESTS: All production code (AdonisJS or Edge.js) MUST come with its unit/functional tests at the same time[cite: 3].
     
-    STACK TÉCNICA E RESTRIÇÕES DE SEGURANÇA:
-    - Backend: AdonisJS, Lucid ORM, Vine.js, TypeScript. Arquitetura MVC[cite: 3].
-    - Frontend: Edge.js, Tailwind CSS, Alpine.js, dark-theme, responsivo[cite: 3].
-    - Banco de Dados (CRÍTICO): É TERMINANTEMENTE PROIBIDO usar o schema 'public' no PostgreSQL. Utilize APENAS a variável de ambiente DATABASE_SCHEMA.
-    - Segurança: Use prepared statements via sqlx para previnir injeção de SQL.
-    - A constitution.md é inviolável. Qualquer quebra de regra invalida sua resposta.
+    TECHNICAL STACK AND SECURITY CONSTRAINTS:
+    - Backend: AdonisJS, Lucid ORM, Vine.js, TypeScript. MVC architecture[cite: 3].
+    - Frontend: Edge.js, Tailwind CSS, Alpine.js, dark-theme, responsive[cite: 3].
+    - Database (CRITICAL): Using the 'public' schema in PostgreSQL is STRICTLY FORBIDDEN. Use ONLY the DATABASE_SCHEMA environment variable.
+    - Security: Use prepared statements via sqlx to prevent SQL injection.
+    - constitution.md is inviolable. Any rule violation invalidates your response.
     
-    PÓS-EXECUÇÃO:
-    - Após a implementação e aprovação do QA, altere o status do ADR de 'Aceito' para 'Implementado'.
+    POST-EXECUTION:
+    - After implementation and QA approval, change the ADR status from 'Accepted' to 'Implemented'.

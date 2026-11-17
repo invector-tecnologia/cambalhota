@@ -1,18 +1,18 @@
 import unittest, os, std/json
 import ../src/db/storage
 
-suite "Gerenciamento Seguro de Credenciais Cloud":
+suite "Secure Cloud Credentials Management":
   setup:
     # Use a temporary DB for tests
     putEnv("HOME", getTempDir())
     initDb()
 
-  test "Criação de um novo provedor S3 com sucesso pela TUI (Banco/Logica)":
+  test "Creates a new S3 provider from the TUI (storage/logic)":
     var credsJson = %*{"access_key_id": "Access Key", "secret_access_key": "Secret Key"}
-    var metaJson = %*{"region": "us-east-1", "bucket": "meubucket"}
+    var metaJson = %*{"region": "us-east-1", "bucket": "my-bucket"}
     
     var rec = CloudProviderRecord(
-      name: "Meu Bucket AWS",
+      name: "My AWS Bucket",
       provider_type: "s3",
       encrypted_credentials: $credsJson,
       metadata: $metaJson
@@ -22,11 +22,11 @@ suite "Gerenciamento Seguro de Credenciais Cloud":
     
     let provs = listCloudProviders()
     check provs.len == 1
-    check provs[0].name == "Meu Bucket AWS"
+    check provs[0].name == "My AWS Bucket"
     check provs[0].encrypted_credentials != $credsJson # Must be encrypted
     check decryptCredentials(provs[0].encrypted_credentials) == $credsJson
     
-  test "Atualização das credenciais de um provedor Cloud":
+  test "Updates the credentials of a cloud provider":
     var provs = listCloudProviders()
     var rec = provs[0]
     
@@ -38,7 +38,7 @@ suite "Gerenciamento Seguro de Credenciais Cloud":
     let updatedProvs = listCloudProviders()
     check decryptCredentials(updatedProvs[0].encrypted_credentials) == $newCreds
     
-  test "Exclusão de um provedor Cloud":
+  test "Deletes a cloud provider":
     var provs = listCloudProviders()
     deleteCloudProvider(provs[0].id)
     

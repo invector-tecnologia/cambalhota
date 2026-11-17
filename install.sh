@@ -2,13 +2,13 @@
 set -e
 
 echo "================================================="
-echo " 🚀 Instalando o Cambalhota v1.0 (Migration Engine) "
+echo " 🚀 Installing Cambalhota v1.0 (Migration Engine) "
 echo "================================================="
 
 OS="$(uname -s)"
 ARCH="$(uname -m)"
 
-echo "Detectando sistema: $OS ($ARCH)"
+echo "Detecting system: $OS ($ARCH)"
 
 INSTALL_DIR="/usr/local/bin"
 BIN_NAME="cambalhota"
@@ -16,16 +16,16 @@ BIN_NAME="cambalhota"
 REPO="invector-tecnologia/cambalhota"
 DOWNLOAD_URL="https://github.com/$REPO/releases/download/v1.0.0/cambalhota"
 
-echo "Baixando o binário..."
+echo "Downloading the binary..."
 curl -sSL -o "$BIN_NAME" "$DOWNLOAD_URL"
 
-echo "Dando permissão de execução..."
+echo "Granting execute permission..."
 chmod +x "$BIN_NAME"
 
-echo "Instalando em $INSTALL_DIR (pode exigir senha root)..."
+echo "Installing to $INSTALL_DIR (may require the root password)..."
 sudo mv "$BIN_NAME" "$INSTALL_DIR/"
 
 echo "================================================="
-echo " ✅ Instalação concluída com sucesso! "
-echo " Execute 'cambalhota' no seu terminal para abrir a TUI."
+echo " ✅ Installation completed successfully! "
+echo " Run 'cambalhota' in your terminal to open the TUI."
 echo "================================================="

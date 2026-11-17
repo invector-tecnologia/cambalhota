@@ -1,38 +1,38 @@
-# Relatório de Garantia de Qualidade e Resiliência (QA) - Cambalhota
+# Quality Assurance and Resilience (QA) Report - Cambalhota
 
-## 1. Resumo Executivo
-Este relatório detalha a bateria de testes de aceitação e exploratórios conduzidos no projeto Cambalhota, com foco especial na robustez da interface TUI (Tatuí), comportamento frente a corrupção de dados (restore) e estabilidade de concorrência no novo motor de Cloud assíncrono.
-Todos os testes nativos (`nimble test`) passaram com sucesso (100% dos testes implementados estão operacionais), atestando a qualidade do build atual.
+## 1. Executive Summary
+This report details the battery of acceptance and exploratory tests run on the Cambalhota project, with special focus on the robustness of the TUI interface (Tatuí), the behavior when facing data corruption (restore) and the concurrency stability of the new asynchronous Cloud engine.
+All native tests (`nimble test`) passed successfully (100% of the implemented tests are operational), attesting the quality of the current build.
 
-## 2. Cobertura de Testes Atual
-A suíte de testes (`nimble test`) cobriu com êxito:
-- **Cloud Engine (`t_cloud_backup`, `t_cloud_credentials`)**: Upload e download assíncrono (caminho feliz), tratamento de falha de rede simulada, chaves inválidas, cancelamento, criação e exclusão de provedores S3.
-- **Migration Engine (`tmigrations`)**: Scan, ordenação, checksum e injeção transacional.
-- **Workers (Extract & Restore)**: Processamento, compressão, encriptação e tratamento de erros de schema (garantia de uso do schema `Cambalhota` ao invés de `public`).
-- **Database & System Checks (`tconfig`, `tchecks`)**: Validação de ambiente e configurações mandatórias.
+## 2. Current Test Coverage
+The test suite (`nimble test`) successfully covered:
+- **Cloud Engine (`t_cloud_backup`, `t_cloud_credentials`)**: Asynchronous upload and download (happy path), handling of simulated network failure, invalid keys, cancellation, creation and deletion of S3 providers.
+- **Migration Engine (`tmigrations`)**: Scan, ordering, checksum and transactional injection.
+- **Workers (Extract & Restore)**: Processing, compression, encryption and handling of schema errors (guaranteed use of the `Cambalhota` schema instead of `public`).
+- **Database & System Checks (`tconfig`, `tchecks`)**: Validation of the environment and mandatory settings.
 
-## 3. Testes Exploratórios de Altíssimo Nível (Edge Cases) e Pontos Cegos (Blind Spots)
+## 3. Very High-Level Exploratory Tests (Edge Cases) and Blind Spots
 
-### 3.1. Injeção de Caracteres e Limites TUI
-- **Ponto Cego Identificado:** O Tatuí reage bem a inputs padrão, mas em testes de stress, a colagem (*paste*) massiva de strings (ex: 10MB) ou a injeção de Unicode complexo (`👾`, sequências nulas) pode estressar o buffer de renderização e causar degradação de FPS ou *buffer overflow* lógico.
-- **Mitigação:** Implementar truncamento estrito de comprimento máximo no componente Input do Tatuí e filtrar *payloads* em níveis de ASCII/UTF-8 seguros.
+### 3.1. Character Injection and TUI Limits
+- **Blind Spot Identified:** Tatuí handles standard inputs well, but in stress tests, a massive *paste* of strings (e.g., 10MB) or the injection of complex Unicode (`👾`, null sequences) may stress the rendering buffer and cause FPS degradation or a logical *buffer overflow*.
+- **Mitigation:** Implement strict maximum-length truncation in the Tatuí Input component and filter *payloads* to safe ASCII/UTF-8 levels.
 
-### 3.2. Restore com Dumps Corrompidos
-- **Ponto Cego Identificado:** A pipeline de restore (descriptografar -> descompressão -> pipe psql) pode lançar exceções não tratadas (panic) se o arquivo criptografado estiver com header corrompido, derrubando a thread worker sem notificar a TUI.
-- **Mitigação:** Isolar as rotinas de `decrypt` e `decompress` em blocos `try/except CatchableError`, garantindo que um `Channel.trySend(Msg(status: stError))` ocorra infalivelmente, habilitando o modelo Fail-safe da UI.
+### 3.2. Restore with Corrupted Dumps
+- **Blind Spot Identified:** The restore pipeline (decrypt -> decompress -> pipe psql) may raise unhandled exceptions (panic) if the encrypted file has a corrupted header, bringing down the worker thread without notifying the TUI.
+- **Mitigation:** Isolate the `decrypt` and `decompress` routines in `try/except CatchableError` blocks, ensuring that a `Channel.trySend(Msg(status: stError))` always happens, enabling the Fail-safe model of the UI.
 
-### 3.3. Concorrência Assíncrona Cloud e Falhas de Rede
-- **Ponto Cego Identificado:** Durante quedas abruptas de conexão (TCP Reset ou drop), a biblioteca `httpclient` do Nim, se configurada sem timeouts globais estritos em streaming, pode travar a worker thread *ad aeternum* esperando dados que nunca chegarão. 
-- **Mitigação:** Reforçar as chamadas HTTP do motor Cloud (S3) com um timeout explícito e granular para leitura de chunks (ex: 15-30 segundos). Em caso de *timeout*, a rotina de cancelamento deve desalocar o stream da memória e propagar a falha via Channel.
+### 3.3. Asynchronous Cloud Concurrency and Network Failures
+- **Blind Spot Identified:** During abrupt connection drops (TCP Reset or drop), the Nim `httpclient` library, if configured without strict global streaming timeouts, may hang the worker thread *ad aeternum* waiting for data that will never arrive. 
+- **Mitigation:** Harden the HTTP calls of the Cloud (S3) engine with an explicit and granular timeout for chunk reads (e.g., 15-30 seconds). On *timeout*, the cancellation routine must release the stream from memory and propagate the failure via Channel.
 
-### 3.4. Estado da Memória e Multithreading
-- **Ponto Cego Identificado:** A comunicação constante entre a TUI e as Worker Threads envia centenas de mensagens por segundo, alocando múltiplas strings em memória (Logs de STDOUT). Embora o coletor de lixo `ORC` do Nim lide eficientemente com memórias não bloqueantes em ciclos curtos, *memory peaks* (picos) altos foram observados sob uso contínuo (~73MB no *peakmem* do Restore). Vazamento real (*leak*) não foi identificado, mas o *resident set size (RSS)* cresce temporariamente.
-- **Mitigação:** Implementar limite agressivo no número de mensagens visíveis e *debouncing* (aglutinamento de logs antes do envio pelo channel) para diminuir a taxa de alocações simultâneas.
+### 3.4. Memory State and Multithreading
+- **Blind Spot Identified:** The constant communication between the TUI and the Worker Threads sends hundreds of messages per second, allocating multiple strings in memory (STDOUT logs). Although Nim's `ORC` garbage collector efficiently handles non-blocking memory in short cycles, high *memory peaks* were observed under continuous use (~73MB in the Restore *peakmem*). No real *leak* was found, but the *resident set size (RSS)* grows temporarily.
+- **Mitigation:** Implement an aggressive limit on the number of visible messages and *debouncing* (batching logs before sending them through the channel) to reduce the rate of simultaneous allocations.
 
-## 4. Regressões
-- Não foram encontradas regressões funcionais na passagem das builds até o commit testado. A compatibilidade do schema transacional com a infraestrutura S3 continua intacta.
+## 4. Regressions
+- No functional regressions were found across the builds up to the tested commit. The compatibility of the transactional schema with the S3 infrastructure remains intact.
 
-## 5. Próximos Passos (Action Items)
-1. Aprovar e implementar Gherkin features (`docs/engineering/qa_plans/cloud_and_resilience.feature`) criados como testes BDD automatizados (via `nim-testament` ou `behave`).
-2. Adicionar Try/Except defensivo na worker thread do restore.
-3. Parametrizar Timeout de Socket nas instâncias HTTP S3 (Cloud).
+## 5. Next Steps (Action Items)
+1. Approve and implement the Gherkin features (`docs/engineering/qa_plans/cloud_and_resilience.feature`) created as automated BDD tests (via `nim-testament` or `behave`).
+2. Add a defensive Try/Except in the restore worker thread.
+3. Parameterize the Socket Timeout in the S3 (Cloud) HTTP instances.

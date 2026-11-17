@@ -1,67 +1,67 @@
-# Relatório Funcional de QA - Epic 3 (Restore Engine e Listagem Local)
+# QA Functional Report - Epic 3 (Restore Engine and Local Listing)
 
-**Data:** 2026-07-17
-**Referência:** [ADR 005 - Engine de Restore, Mecânica Reversa Anti-OOM e Listagem Local](../adrs/005_restore_engine_and_local_listing.md)
-**Status do Épico:** [Concluído] [QA Aprovado]
+**Date:** 2026-07-17
+**Reference:** [ADR 005 - Restore Engine, Anti-OOM Reverse Mechanics and Local Listing](../adrs/005_restore_engine_and_local_listing.md)
+**Epic Status:** [Done] [QA Approved]
 
-## 1. Resumo da Validação (QA Pass)
-A implementação arquitetada pela Engenharia com base no **ADR 005** foi inspecionada. O código e os testes integrados garantem a conformidade das funcionalidades de listagem do diretório local `~/.cambalhota/db_dumps/YYYY/` e do Restore OOM-safe via pipeline reversa.
+## 1. Validation Summary (QA Pass)
+The implementation designed by Engineering based on **ADR 005** was inspected. The code and the integrated tests ensure compliance of the listing features for the local directory `~/.cambalhota/db_dumps/YYYY/` and of the OOM-safe Restore through the reverse pipeline.
 
-Constatou-se:
-1. **Estabilidade na Listagem (`listLocalBackups`)**: Foi validado localmente a correta recuperação de arquivos com extensão `.enc`.
-2. **Resiliência Anti-OOM no Restore**: A mecânica reversa utiliza leitura blocada nativa (tamanho derivado no formato e 4-byte headers) acoplada com `nimcrypto` e `zippy`, passando os resultados para o STDIN utilitários como `psql`, consumindo memória *O(1)* independentemente do tamanho final.
-3. **Comunicação por Threads (TUI Notifier)**: Confirmado o uso de Channels reportando `mkLog` à thread principal a cada dezenas de blocos transacionados, viabilizando barras de progresso suaves sem congelar a Tatuí.
-4. **Verificação de Regras de Negócio**: Utilização do schema `public` está rigorosamente proibida no código (lança `ValueError`).
+Findings:
+1. **Listing Stability (`listLocalBackups`)**: The correct retrieval of files with the `.enc` extension was validated locally.
+2. **Anti-OOM Resilience in Restore**: The reverse mechanics use native block reads (size derived from the format and 4-byte headers) coupled with `nimcrypto` and `zippy`, passing the results to the STDIN of utilities such as `psql`, consuming *O(1)* memory regardless of the final size.
+3. **Thread Communication (TUI Notifier)**: Confirmed the use of Channels reporting `mkLog` to the main thread every few dozen processed blocks, enabling smooth progress bars without freezing Tatuí.
+4. **Business Rules Check**: Use of the `public` schema is strictly forbidden in the code (raises `ValueError`).
 
-O pacote de testes automatizados (`nimble test trestore`) executa cenários simulados comprovando a robustez dos exit codes e o redirecionamento dos fluxos sem perdas.
+The automated test package (`nimble test trestore`) runs simulated scenarios proving the robustness of the exit codes and the redirection of the streams without loss.
 
 ---
 
-## 2. Cenários de Teste (Gherkin)
+## 2. Test Scenarios (Gherkin)
 
 **Feature:** Restore Engine Anti-OOM
 
-  **Scenario:** Sucesso no Restore Integral (Happy Path)
-    **Given** que existem arquivos de backup válidos no diretório `~/.cambalhota/db_dumps/2026/`
-    **And** o usuário configura a conexão informando um schema válido (diferente de `public`)
-    **When** o processo de restore é iniciado para o arquivo escolhido
-    **Then** o worker irá ler o arquivo por fluxo contínuo
-    **And** o dado descriptografado e descomprimido será canalizado com sucesso para o `stdin` da CLI (`psql`, `mysql`, etc)
-    **And** a Thread TUI receberá relatórios contínuos sobre os bytes processados
-    **And** o status final será sucesso (QA Aprovado).
+  **Scenario:** Successful Full Restore (Happy Path)
+    **Given** valid backup files exist in the directory `~/.cambalhota/db_dumps/2026/`
+    **And** the user configures the connection with a valid schema (other than `public`)
+    **When** the restore process starts for the chosen file
+    **Then** the worker will read the file as a continuous stream
+    **And** the decrypted and decompressed data will be piped successfully to the `stdin` of the CLI (`psql`, `mysql`, etc)
+    **And** the TUI Thread will receive continuous reports on the processed bytes
+    **And** the final status will be success (QA Approved).
 
-  **Scenario:** Restauração interrompida por schema inválido (Semântico)
-    **Given** que o usuário tente configurar o restore para o banco de dados
-    **When** define o campo schema explicitamente como "public"
-    **Then** o worker de validação deve lançar um erro imediatamente
-    **And** o SGBD subjacente não será invocado
-    **And** o painel TUI deverá notificar que "Uso do schema public é proibido".
+  **Scenario:** Restore interrupted by an invalid schema (Semantic)
+    **Given** the user tries to configure the restore for the database
+    **When** they set the schema field explicitly to "public"
+    **Then** the validation worker must raise an error immediately
+    **And** the underlying DBMS will not be invoked
+    **And** the TUI panel must report that "Uso do schema public é proibido".
 
-  **Scenario:** Ferramenta do SGBD ausente no SO
-    **Given** que o sistema operacional não possui o utilitário nativo (`psql` ou `mysql`)
-    **When** o worker tenta invocar `osproc.startProcess`
-    **Then** um erro (como Arquivo não encontrado) deve ser capturado 
-    **And** encapsulado em uma mensagem de Erro no `logChannel` de maneira controlada, sem causar Segmentation Fault na TUI.
+  **Scenario:** DBMS tool missing from the OS
+    **Given** the operating system does not have the native utility (`psql` or `mysql`)
+    **When** the worker tries to invoke `osproc.startProcess`
+    **Then** an error (such as File not found) must be caught 
+    **And** wrapped in an Error message in the `logChannel` in a controlled way, without causing a Segmentation Fault in the TUI.
 
-  **Scenario:** Falha de Exit Code do SGBD (Erro no Banco)
-    **Given** que a extração iniciou o dump
-    **When** a CLI do banco de dados (ex: `psql`) retornar Exit Code diferente de 0 (devido a restrições de permissão do DB)
-    **Then** o pipeline de restore reporta o evento como Falha
-    **And** envia `mkError` contendo "Restore process exited with code X" à TUI.
+  **Scenario:** DBMS Exit Code Failure (Database Error)
+    **Given** the extraction has started the dump
+    **When** the database CLI (e.g., `psql`) returns an Exit Code other than 0 (due to DB permission restrictions)
+    **Then** the restore pipeline reports the event as a Failure
+    **And** sends `mkError` containing "Restore process exited with code X" to the TUI.
 
-  **Scenario:** Corrupção no Arquivo `.enc` e Quebra de Bloco (Edge Case)
-    **Given** um backup modificado ou truncado manualmente no diretório local
-    **When** o Restore Engine ler os cabeçalhos de bloco (`len`) e requisitar bytes 
-    **Then** a engine notará uma leitura inferior à declarada
-    **And** falhará com erro semântico "Arquivo corrompido, bloco incompleto".
+  **Scenario:** `.enc` File Corruption and Block Break (Edge Case)
+    **Given** a backup modified or truncated manually in the local directory
+    **When** the Restore Engine reads the block headers (`len`) and requests bytes 
+    **Then** the engine will notice a read shorter than the declared length
+    **And** it will fail with the semantic error "Arquivo corrompido, bloco incompleto".
 
 ---
 
-## 3. Conclusões e Certificação
+## 3. Conclusions and Certification
 
-O Épico 3 atende integralmente à especificação de produto e à engenharia técnica delineada:
-- A leitura orientada a blocos provou sua segurança contra Out of Memory.
-- Os retornos via `logChannel` alimentam a interface de modo Thread-safe.
-- Exit codes e comportamentos anômalos de leitura (EOF e block-length) foram traduzidos para feedback visual ao usuário, cumprindo a promessa fail-safe.
+Epic 3 fully meets the product specification and the technical engineering outlined:
+- Block-oriented reading proved to be safe against Out of Memory.
+- The returns through `logChannel` feed the interface in a thread-safe way.
+- Exit codes and anomalous read behaviors (EOF and block-length) were translated into visual feedback for the user, fulfilling the fail-safe promise.
 
-*Assinado pelo Agente QA*
+*Signed by the QA Agent*

@@ -1,37 +1,36 @@
-# language: pt
-Funcionalidade: Execução Segura e Armazenamento
-  Como um usuário do Cambalhota
-  Eu quero que meus backups de banco de dados sejam executados de forma segura, confirmados e armazenados corretamente
-  Para que eu não perca dados acidentalmente, não quebre a renderização do terminal ou perca arquivos.
+Feature: Safe Execution and Storage
+  As a Cambalhota user
+  I want my database backups to be executed safely, confirmed and stored correctly
+  So that I do not lose data accidentally, break the terminal rendering or lose files.
 
-  Contexto:
-    Dado que a TUI do Cambalhota está em execução
-    E o aplicativo tem permissão de escrita em "~/.cambalhota/db_dump/"
+  Background:
+    Given the Cambalhota TUI is running
+    And the application has write permission on "~/.cambalhota/db_dump/"
 
-  Cenário: Cancelando uma ação crítica via modal de confirmação
-    Dado que o usuário inicia uma ação de "Backup", "Restore" ou "Exclusão"
-    E o Modal Universal de Confirmação é exibido na tela
-    Quando o usuário pressiona a tecla "[Esc]"
-    Então o modal deve ser fechado
-    E a ação deve ser abortada imediatamente
-    E nenhum arquivo de backup deve ser criado ou alterado em "~/.cambalhota/db_dump/"
-    E o estado de renderização do terminal deve permanecer intacto sem corrupção visual
+  Scenario: Canceling a critical action via the confirmation modal
+    Given the user starts a "Backup", "Restore" or "Delete" action
+    And the Universal Confirmation Modal is displayed on the screen
+    When the user presses the "[Esc]" key
+    Then the modal must be closed
+    And the action must be aborted immediately
+    And no backup file must be created or changed in "~/.cambalhota/db_dump/"
+    And the terminal rendering state must remain intact without visual corruption
 
-  Cenário: Execução bem-sucedida de backup com armazenamento particionado por ano
-    Dado que o usuário inicia uma ação de "Backup"
-    E o Modal Universal de Confirmação é exibido na tela
-    Quando o usuário confirma a ação
-    E o subprocesso de backup é executado
-    Então o stdout do subprocesso deve ser interceptado de forma assíncrona
-    E as mensagens interceptadas devem ser enviadas e exibidas no "logChannel" (Console na TUI)
-    E um arquivo físico de backup deve ser salvo com sucesso
-    E o arquivo deve estar localizado exatamente na subpasta do ano correspondente, no formato "~/.cambalhota/db_dump/YYYY/"
-    E o estado de renderização do terminal deve ser mantido durante e após a execução
+  Scenario: Successful backup execution with storage partitioned by year
+    Given the user starts a "Backup" action
+    And the Universal Confirmation Modal is displayed on the screen
+    When the user confirms the action
+    And the backup subprocess is executed
+    Then the subprocess stdout must be intercepted asynchronously
+    And the intercepted messages must be sent to and displayed in the "logChannel" (Console in the TUI)
+    And a physical backup file must be saved successfully
+    And the file must be located exactly in the subfolder of the corresponding year, in the format "~/.cambalhota/db_dump/YYYY/"
+    And the terminal rendering state must be preserved during and after the execution
 
-  Cenário: Execução de Restore ou Exclusão não quebra a interface
-    Dado que o usuário inicia uma ação de "Restore"
-    E o Modal Universal de Confirmação é exibido na tela
-    Quando o usuário confirma a ação
-    Então a ação correspondente deve ser executada
-    E o stdout do subprocesso deve ser interceptado e exibido no "logChannel"
-    E a interface do terminal não deve perder seu estado de renderização em nenhum momento
+  Scenario: Restore or Delete execution does not break the interface
+    Given the user starts a "Restore" action
+    And the Universal Confirmation Modal is displayed on the screen
+    When the user confirms the action
+    Then the corresponding action must be executed
+    And the subprocess stdout must be intercepted and displayed in the "logChannel"
+    And the terminal interface must never lose its rendering state

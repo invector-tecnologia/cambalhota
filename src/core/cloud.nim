@@ -34,7 +34,7 @@ proc cloudWorker*(args: CloudTaskArgs) {.thread.} =
   try:
     if args.config.accessKey == "invalid" or args.config.accessKey == "":
       msg.state = stError
-      msg.errorMsg = "Erro de autenticação: Verifique suas credenciais S3"
+      msg.errorMsg = "Authentication error: check your S3 credentials"
       discard args.chanPtr[].trySend(msg)
       return
 
@@ -57,7 +57,7 @@ proc cloudWorker*(args: CloudTaskArgs) {.thread.} =
         for i in 1..chunks:
           if args.cancelPtr[].load():
             msg.state = stError
-            msg.errorMsg = "Operação cancelada pelo usuário"
+            msg.errorMsg = "Operation canceled by the user"
             discard args.chanPtr[].trySend(msg)
             return
           
@@ -89,7 +89,7 @@ proc cloudWorker*(args: CloudTaskArgs) {.thread.} =
       
   except IOError:
     msg.state = stError
-    msg.errorMsg = "Erro de conexão de rede"
+    msg.errorMsg = "Network connection error"
     discard args.chanPtr[].trySend(msg)
   except Exception as e:
     msg.state = stError

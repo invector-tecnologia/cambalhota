@@ -1,17 +1,17 @@
 # ADR 005: UX/QoL and Audit Trail for Restore Operations
 
-## 1. Contexto
-O Produto definiu três novas obrigações de UX e Qualidade de Vida (QoL) com foco em Governança para o Cambalhota v1.1.0:
-1. **Histórico de Restores**: Manter um registro local de todos os backups restaurados.
-2. **Listagem de Conexões Intuitiva**: Formatar a exibição de conexões na TUI de forma mais legível.
-3. **Localização de Backups**: Indicar a origem dos arquivos de dump listados na TUI.
+## 1. Context
+Product defined three new UX and Quality of Life (QoL) requirements, focused on Governance, for Cambalhota v1.1.0:
+1. **Restore History**: Keep a local record of every restored backup.
+2. **Intuitive Connection Listing**: Format the connection display in the TUI to be more readable.
+3. **Backup Location**: Show the origin of the dump files listed in the TUI.
 
-## 2. Decisão Técnica
+## 2. Technical Decision
 
-Para atender a esses requisitos, as seguintes mudanças arquiteturais e de código devem ser implementadas:
+To meet these requirements, the following architecture and code changes must be implemented:
 
-### 2.1. Estrutura do Histórico de Restores (`src/db/storage.nim`)
-Devemos adicionar uma nova tabela `restore_history` ao banco de dados SQLite local na função `initDb()`. A query de criação será:
+### 2.1. Restore History Structure (`src/db/storage.nim`)
+We must add a new `restore_history` table to the local SQLite database in the `initDb()` function. The creation query will be:
 
 ```sql
 CREATE TABLE IF NOT EXISTS restore_history (
@@ -24,27 +24,27 @@ CREATE TABLE IF NOT EXISTS restore_history (
 );
 ```
 
-> **Nota Arquitetural**: Conforme as regras de governança de esquema do PostgreSQL, o esquema padrão ou de referência deve ser sempre `Cambalhota` e nunca `public`.
+> **Architecture Note**: According to the PostgreSQL schema governance rules, the default or reference schema must always be `Cambalhota` and never `public`.
 
-### 2.2. Formatação e Layout da TUI (`src/tui/app.nim`)
-1. **Listagem de Conexões**: A renderização da string do `ListItem` para as conexões passará de uma string concatenada bruta para o formato intuitivo:
+### 2.2. TUI Formatting and Layout (`src/tui/app.nim`)
+1. **Connection Listing**: The `ListItem` string rendering for connections will change from a raw concatenated string to the intuitive format:
    ```nim
    "[ " & toUpperAscii(c.engine) & " ] DB: " & c.dbname & " | SCHEMA: " & c.schema
    ```
-   *(Exemplo renderizado: `[ PG ] DB: meu_banco | SCHEMA: Cambalhota`)*
+   *(Rendered example: `[ PG ] DB: my_database | SCHEMA: Cambalhota`)*
 
-2. **Localização de Backups**: A listagem de dumps (arquivos de backup) será formatada para incluir o identificador físico de origem local:
+2. **Backup Location**: The listing of dumps (backup files) will be formatted to include the physical local-origin identifier:
    ```nim
    "[LOCAL] " & d.extractFilename()
    ```
 
-3. **Nova Aba de Histórico**: O histórico de restores será exibido em uma nova aba no menu superior. Atualizaremos a lista de abas (tabs) para incluir:
+3. **New History Tab**: The restore history will be shown in a new tab in the top menu. We will update the tab list to include:
    ```nim
    let menuItems = @[" 1. Config ", " 2. Backup ", " 3. Restore ", " 4. History "]
    ```
-   A navegação e a lógica de renderização em `app.nim` (variável `selectedMenu == 3`) devem exibir um novo componente de lista `listStHistory` carregando os registros da tabela `restore_history`.
+   The navigation and rendering logic in `app.nim` (variable `selectedMenu == 3`) must show a new list component, `listStHistory`, loading the records from the `restore_history` table.
 
-### 2.3. Diagrama de Relacionamento de Entidades (ER)
+### 2.3. Entity Relationship (ER) Diagram
 
 ```mermaid
 erDiagram
@@ -69,17 +69,17 @@ erDiagram
         datetime restored_at
     }
     
-    CONNECTIONS ||--o{ RESTORE_HISTORY : "recebe restores (lógico)"
+    CONNECTIONS ||--o{ RESTORE_HISTORY : "receives restores (logical)"
 ```
 
 ## 3. Trade-offs
-- **Armazenamento Local**: O uso do SQLite local no diretório `~/.cambalhota/` mantém o registro atrelado à máquina em que o comando foi executado. Restores feitos em máquinas diferentes não compartilharão histórico.
-- **Acoplamento na TUI**: Adicionar uma nova aba aumenta ligeiramente a complexidade do loop de eventos principal em `app.nim`.
+- **Local Storage**: Using the local SQLite database in the `~/.cambalhota/` directory keeps the record tied to the machine where the command ran. Restores done on different machines will not share history.
+- **TUI Coupling**: Adding a new tab slightly increases the complexity of the main event loop in `app.nim`.
 
-## 4. Consequências
-- Os usuários terão rastreabilidade imediata do que foi restaurado e quando.
-- A interface de usuário será muito mais limpa com a formatação padronizada para conexões e origem de backups.
-- Facilidade em auditorias locais sobre quem conectou e restaurou backups em quais bancos e esquemas (ex: `Cambalhota`).
+## 4. Consequences
+- Users will have immediate traceability of what was restored and when.
+- The user interface will be much cleaner with the standardized formatting for connections and backup origin.
+- Easier local audits of who connected and restored backups into which databases and schemas (e.g., `Cambalhota`).
 
 ## 5. Status
-**Aprovado** - Pronto para execução tática.
+**Approved** - Ready for tactical execution.

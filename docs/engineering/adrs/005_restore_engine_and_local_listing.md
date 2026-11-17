@@ -1,30 +1,30 @@
-# ADR 005: Engine de Restore, Mecânica Reversa Anti-OOM e Listagem Local
+# ADR 005: Restore Engine, Anti-OOM Reverse Mechanics and Local Listing
 
-## Contexto
-No escopo do Épico 3 (Restore), o Cambalhota necessita apresentar ao usuário a lista de backups previamente extraídos e gerenciar o processo de restauração para os bancos de dados de destino.
-Os arquivos de extração encontram-se localmente criptografados sob o diretório `~/.cambalhota/db_dumps/YYYY/`.
-O fluxo de restauração deve ser projetado para garantir que a interface do usuário (TUI - Tatuí) permaneça fluida durante a listagem e que a injeção do arquivo de backup no banco de dados ocorra de maneira totalmente otimizada (Anti-OOM), utilizando processamento de dados por fluxo (streaming) em vez de carregar arquivos imensos em memória.
+## Context
+Within the scope of Epic 3 (Restore), Cambalhota needs to show the user the list of previously extracted backups and manage the restore process into the target databases.
+The extraction files are stored locally, encrypted, under the `~/.cambalhota/db_dumps/YYYY/` directory.
+The restore flow must be designed so the user interface (TUI - Tatuí) stays fluid during listing and so the backup file is injected into the database in a fully optimized way (Anti-OOM), using streaming data processing instead of loading huge files into memory.
 
-## Decisão Técnica
-Para atender aos requisitos técnicos na linguagem Nim, foi definida a seguinte arquitetura:
+## Technical Decision
+To meet the technical requirements in the Nim language, the following architecture was defined:
 
-### 1. Listagem Local (TUI Tatuí)
-- A varredura dos diretórios de backup em `~/.cambalhota/db_dumps/YYYY/` deverá ocorrer de forma **assíncrona**.
-- Utilizaremos a biblioteca de I/O assíncrona adotada pelo projeto (como `chronos` ou o módulo padrão `asyncdispatch` em conjunto com workers) para realizar leituras em background sem bloquear o render loop da TUI (Nim/Illwill, por exemplo).
-- Para evitar interrupções, os resultados serão cacheados/paginados caso haja um número excessivamente elevado de arquivos.
+### 1. Local Listing (Tatuí TUI)
+- Scanning the backup directories in `~/.cambalhota/db_dumps/YYYY/` must happen **asynchronously**.
+- We will use the asynchronous I/O library adopted by the project (such as `chronos` or the standard `asyncdispatch` module together with workers) to read in the background without blocking the TUI render loop (Nim/Illwill, for example).
+- To avoid interruptions, results will be cached/paginated when there is an excessively large number of files.
 
-### 2. Mecânica Reversa (Restore Engine Anti-OOM)
-Para que seja possível ler arquivos grandes e restaurá-los sem causar Out of Memory (OOM), utilizaremos uma abordagem de pipeline orientada a blocos:
+### 2. Reverse Mechanics (Anti-OOM Restore Engine)
+To read large files and restore them without causing Out of Memory (OOM), we will use a block-oriented pipeline approach:
 
-- **Factory de Execução:** Uma vez que o usuário escolhe o arquivo `.enc`, a aplicação identifica o motor de banco de dados (por meio do mapeamento arquitetural) e invoca um Factory para gerar o comando apropriado (ex: `psql`, `mysql`, `mongorestore`). O processo é instanciado via módulo `osproc` do Nim, com o redirecionamento dos fluxos, especialmente configurando a entrada padrão (`stdin`) para leitura contínua.
-- **Pipeline de Chunking:** O arquivo `.enc` é lido do disco através de buffers de tamanho fixo.
-- **Descriptografia e Descompressão por Fluxo:** Cada bloco (chunk) lido passa pelas seguintes etapas consecutivas em memória:
-  1. Passagem pelo motor `nimcrypto` para realizar a decifragem do bloco.
-  2. Passagem pelo motor `zippy` para descompressão.
-- **Injeção em `stdin`:** O resultado em texto claro (plain text) desse chunk é então injetado diretamente no fluxo da entrada padrão do processo de restore instanciado anteriormente.
-- **Telemetria Responsiva:** A cada iteração deste loop de processamento de chunk, uma notificação contendo o progresso atual em bytes será enviada (através de channels) à thread principal/TUI, permitindo a exibição de uma barra de progresso suave e imediata.
+- **Execution Factory:** Once the user picks the `.enc` file, the application identifies the database engine (through the architecture mapping) and calls a Factory to build the appropriate command (e.g., `psql`, `mysql`, `mongorestore`). The process is instantiated through Nim's `osproc` module with stream redirection, in particular configuring standard input (`stdin`) for continuous reading.
+- **Chunking Pipeline:** The `.enc` file is read from disk through fixed-size buffers.
+- **Streaming Decryption and Decompression:** Each chunk read goes through the following consecutive in-memory steps:
+  1. The `nimcrypto` engine, to decrypt the block.
+  2. The `zippy` engine, for decompression.
+- **Injection into `stdin`:** The plain text result of this chunk is then injected directly into the standard input stream of the restore process instantiated earlier.
+- **Responsive Telemetry:** On each iteration of this chunk processing loop, a notification with the current progress in bytes will be sent (through channels) to the main thread/TUI, allowing a smooth, immediate progress bar.
 
-### Diagrama Arquitetural (Mecânica Reversa)
+### Architecture Diagram (Reverse Mechanics)
 
 ```mermaid
 sequenceDiagram
@@ -35,35 +35,35 @@ sequenceDiagram
     participant ZP as zippy
     participant DB as DB Process (psql, etc)
 
-    TUI->>RE: Iniciar Restore (arquivo.enc)
+    TUI->>RE: Start Restore (file.enc)
     RE->>DB: osproc.startProcess(stdin: PIPE)
     
-    loop Até EOF
-        RE->>FS: Ler Bloco/Chunk
-        FS-->>RE: Chunk Criptografado
+    loop Until EOF
+        RE->>FS: Read Block/Chunk
+        FS-->>RE: Encrypted Chunk
         
-        RE->>NC: Descriptografar
-        NC-->>RE: Chunk Comprimido
+        RE->>NC: Decrypt
+        NC-->>RE: Compressed Chunk
         
-        RE->>ZP: Descomprimir
-        ZP-->>RE: Chunk Plaintext (SQL/BSON)
+        RE->>ZP: Decompress
+        ZP-->>RE: Plaintext Chunk (SQL/BSON)
         
-        RE->>DB: Escrever em stdin
-        RE-->>TUI: Channel.send(progresso bytes)
+        RE->>DB: Write to stdin
+        RE-->>TUI: Channel.send(progress bytes)
     end
     
-    RE->>DB: Fechar stdin e aguardar
+    RE->>DB: Close stdin and wait
     DB-->>RE: Exit Code
-    RE-->>TUI: Status Final (Sucesso/Erro)
+    RE-->>TUI: Final Status (Success/Error)
 ```
 
 ## Trade-offs
-- **Complexidade do Streaming Zippy:** Fazer a descompressão de streaming (chunk a chunk) sem falhas exige controle cuidadoso das bordas de leitura do pacote `zippy`. Pode ser necessário manter pequenos buffers residuais para tratar chunks onde o byte comprimido se dividiu.
-- **Suporte de Processos para Ingestão `stdin`:** Certos utilitários e drivers comportam-se diferentemente quando a entrada é injetada por `stdin`. Exigirá tuning fino nas flags dos comandos dependendo da Engine (ex: ignorar prompts de password ou forçar modo de batch no mysql).
+- **Zippy Streaming Complexity:** Doing streaming decompression (chunk by chunk) without failures requires careful control of the `zippy` package read boundaries. Small residual buffers may be needed to handle chunks where the compressed byte was split.
+- **Process Support for `stdin` Ingestion:** Some utilities and drivers behave differently when input is injected via `stdin`. This will require fine tuning of command flags depending on the Engine (e.g., ignoring password prompts or forcing batch mode in mysql).
 
-## Consequências
-- A memória consumida permanece achatada O(1), estritamente limitada ao tamanho do buffer de chunk alocado, independentemente de o arquivo .enc ter 100MB ou 500GB.
-- A experiência de usuário com a barra de progresso na TUI será altamente responsiva e confiável.
+## Consequences
+- Memory consumption stays flat at O(1), strictly limited to the size of the allocated chunk buffer, whether the .enc file is 100MB or 500GB.
+- The user experience with the progress bar in the TUI will be highly responsive and reliable.
 
 ## Status
-Implementado
+Implemented

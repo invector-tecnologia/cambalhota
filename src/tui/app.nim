@@ -195,7 +195,7 @@ proc runTui*(initialConf: ExtractorConfig = ExtractorConfig()) =
         elif msg.state == stSuccess:
           isCloudOpActive = false
           joinThread(cloudThread)
-          statusMsg = "STATUS: [Green] Operação concluída com sucesso"
+          statusMsg = "STATUS: [Green] Operation completed successfully"
         elif msg.state == stError:
           isCloudOpActive = false
           joinThread(cloudThread)

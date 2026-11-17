@@ -1,57 +1,55 @@
-# language: pt
+Feature: Asynchronous Cloud Backup Synchronization (S3)
+  As a Cambalhota user
+  I want to upload and download backup files to and from the cloud asynchronously
+  So that the terminal user interface (TUI) does not freeze during network operations (heavy I/O)
 
-Funcionalidade: Sincronização Assíncrona de Backups na Nuvem (S3)
-  Como um usuário do Cambalhota
-  Eu quero enviar (upload) e baixar (download) arquivos de backup para a nuvem de forma assíncrona
-  Para que a interface gráfica do terminal (TUI) não congele durante operações de rede (I/O pesadas)
+  Scenario: Successful asynchronous backup upload (Happy Path)
+    Given the user has configured valid S3 credentials
+    And a valid local backup file exists
+    When the user triggers the Upload command in the TUI "[U]"
+    Then the system must start a Worker Thread for the HTTP Streaming transfer
+    And the TUI must keep running (rendering not blocked)
+    And the system must update the progress (bytes sent/total) through the Channel communicating with the main thread
+    And at the end of the transfer, the TUI must display "Upload completed successfully"
+    And the corresponding file must be present in the S3 bucket
 
-  Cenário: Upload assíncrono de backup com sucesso (Caminho Feliz)
-    Dado que o usuário configurou credenciais S3 válidas
-    E existe um arquivo de backup local válido
-    Quando o usuário aciona o comando de Upload na TUI "[U]"
-    Então o sistema deve iniciar uma Worker Thread para a transferência HTTP Streaming
-    E a TUI deve continuar rodando (renderização não bloqueada)
-    E o sistema deve atualizar o progresso (bytes enviados/total) através do Channel comunicando com a thread principal
-    E ao final da transferência, a TUI deve exibir "Upload concluído com sucesso"
-    E o arquivo correspondente deve constar no bucket S3
+  Scenario: Successful asynchronous backup download (Happy Path)
+    Given the user has configured valid S3 credentials
+    And a valid backup file exists in the remote S3 bucket
+    When the user triggers the Download command in the TUI "[D]"
+    Then the system must start a Worker Thread to perform the operation
+    And the TUI must stay responsive, allowing navigation
+    And the download progress must be updated in real time in the TUI via Channel messages (`tryRecv`)
+    And at the end of the operation, the TUI must display "Download completed successfully"
+    And the downloaded file must be intact on the local disk
 
-  Cenário: Download assíncrono de backup com sucesso (Caminho Feliz)
-    Dado que o usuário configurou credenciais S3 válidas
-    E existe um arquivo de backup válido no bucket S3 remoto
-    Quando o usuário aciona o comando de Download na TUI "[D]"
-    Então o sistema deve iniciar uma Worker Thread para realizar a operação
-    E a TUI deve continuar responsiva permitindo navegação
-    E o progresso do download deve ser atualizado em tempo real na TUI via mensagens do Channel (`tryRecv`)
-    E ao final da operação, a TUI deve exibir "Download concluído com sucesso"
-    E o arquivo baixado deve estar íntegro no disco local
+  Scenario: Handling a network failure during transfer (Edge Case / Error Path)
+    Given the user has started a backup Upload or Download
+    But the network connection drops abruptly during the transfer of a chunk
+    Then the Worker Thread must catch the exception or timeout failure
+    And send an error message (`stError`) through the Channel back to the main thread
+    And the TUI must notify the user with "Network connection error"
+    And the TUI must not freeze or suffer a fatal failure (crash) during the network timeout
 
-  Cenário: Tratamento de falha de rede durante transferência (Edge Case / Caminho de Erro)
-    Dado que o usuário iniciou um Upload ou Download de backup
-    Mas ocorre uma queda abrupta de conexão de rede durante a transferência de um chunk
-    Então a Worker Thread deve capturar a exceção ou falha de timeout
-    E enviar uma mensagem de erro (`stError`) pelo Channel de volta para a thread principal
-    E a TUI deve notificar o usuário com "Erro de conexão de rede"
-    E a TUI não deve sofrer congelamento ou falha fatal (crash) durante o timeout da rede
+  Scenario: Using invalid S3 keys (Edge Case / Error Path)
+    Given the user has configured invalid S3 credentials or keys (AWS Signature V4)
+    When the user triggers a cloud operation (Upload or Download)
+    Then the remote service must reject the HTTP request (e.g., 403 Forbidden)
+    And the Worker Thread must catch this error response
+    And notify the TUI main thread via Channel
+    And the TUI must display the message "Authentication error: check your S3 credentials"
+    And the TUI must remain responsive
 
-  Cenário: Uso de chaves S3 inválidas (Edge Case / Caminho de Erro)
-    Dado que o usuário configurou credenciais ou chaves S3 (AWS Signature V4) inválidas
-    Quando o usuário aciona uma operação na nuvem (Upload ou Download)
-    Então o serviço remoto deve rejeitar a requisição HTTP (ex: 403 Forbidden)
-    E a Worker Thread deve capturar esse retorno de erro
-    E notificar a thread principal da TUI via Channel
-    E a TUI deve exibir a mensagem "Erro de autenticação: Verifique suas credenciais S3"
-    E a TUI deve permanecer responsiva
-
-  Cenário: Validação de Isolamento de Thread - TUI sem congelamento (Validação Técnica)
-    Dado que um Upload de um backup grande (ex: 1 GB) está em progresso
-    Quando o usuário realizar interações na TUI como navegação, redimensionamento ou pressionar teclas
-    Então a interface deve continuar renderizando a no mínimo 60fps
-    E não deve ocorrer atraso no input lag provocado pela comunicação de rede (isolamento de thread funcional)
+  Scenario: Thread Isolation Validation - TUI without freezing (Technical Validation)
+    Given an Upload of a large backup (e.g., 1 GB) is in progress
+    When the user interacts with the TUI by navigating, resizing or pressing keys
+    Then the interface must keep rendering at a minimum of 60fps
+    And there must be no input lag caused by network communication (functional thread isolation)
     
-  Cenário: Cancelamento de um envio em andamento (Caminho Alternativo)
-    Dado que o usuário iniciou um Upload ou Download
-    E a transferência ainda está em andamento (ex: 50%)
-    Quando o usuário pressionar um comando para cancelar a operação
-    Então a thread principal da TUI deve sinalizar a Worker Thread de rede (via boolean atômico ou token de cancelamento)
-    E a Worker Thread deve abortar o chunk atual e encerrar a conexão graciosamente
-    E a TUI deve informar "Operação cancelada pelo usuário" sem travar
+  Scenario: Canceling a transfer in progress (Alternative Path)
+    Given the user has started an Upload or Download
+    And the transfer is still in progress (e.g., 50%)
+    When the user presses a command to cancel the operation
+    Then the TUI main thread must signal the network Worker Thread (via atomic boolean or cancellation token)
+    And the Worker Thread must abort the current chunk and close the connection gracefully
+    And the TUI must report "Operation canceled by the user" without hanging

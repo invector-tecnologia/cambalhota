@@ -1,66 +1,66 @@
-# Mapa de Funcionalidades (Features Map) - Cambalhota
+# Features Map - Cambalhota
 
-Este documento detalha todos os Épicos e Features do produto Cambalhota, atuando como um mapa rastreável a partir do Escopo Estratégico (PRD) e das decisões arquiteturais tomadas pela engenharia.
+This document details all Epics and Features of the Cambalhota product, acting as a traceable map from the Strategic Scope (PRD) and the architectural decisions made by engineering.
 
-## Epic 1: Configuração do Sistema e Conexão
-- **Feature 1.1: Gerenciamento de Conexões** `[Concluído] [QA Aprovado]` `(v1.0)`
-  - Configuração segura de credenciais via URL de conexão com suporte multi-engine agnóstico (PostgreSQL, Oracle, MSSQL, MySQL, SQLite, SPANNER, INDEDB, VECTORDB, BigQuery, CouchDB, MongoDB, etc).
-  - Bloqueio contra armazenamento de credenciais em texto pleno no código-fonte.
-  - Identificação e listagem dinâmica dos schemas disponíveis no banco para seleção.
-- **Feature 1.2: Integração de Repositório/CDN** `[A Fazer]` `(v2.0)`
-  - Vinculação de uma "CDN" ou Repositório Git (S3, GCP Buckets, Cloudflare R2, Google Drive, Dropbox, OneDrive, ou NAS) para atuar como central de espelhamento e upload em nuvem.
-- **Feature 1.3: Preferências de Projeto** `[A Fazer]` `(v1.0)`
-  - Configuração sobre o formato da geração e exportação de arquivos, como as migrations (Plain text ou SQL puro).
-- **Feature 1.4: Gerenciamento Visual de Múltiplas Conexões** `[A Fazer]` `(v1.0.1)`
-  - Eliminação de variáveis de ambiente para conexão, adotando configuração exclusiva via TUI.
-  - Gravação local em SQLite criptografado (AES) para persistência segura de múltiplas credenciais.
+## Epic 1: System Configuration and Connection
+- **Feature 1.1: Connection Management** `[Done] [QA Approved]` `(v1.0)`
+  - Secure credential configuration via connection URL with agnostic multi-engine support (PostgreSQL, Oracle, MSSQL, MySQL, SQLite, SPANNER, INDEDB, VECTORDB, BigQuery, CouchDB, MongoDB, etc).
+  - Blocking of credential storage in plain text in the source code.
+  - Dynamic identification and listing of the schemas available in the database for selection.
+- **Feature 1.2: Repository/CDN Integration** `[To Do]` `(v2.0)`
+  - Linking a "CDN" or Git Repository (S3, GCP Buckets, Cloudflare R2, Google Drive, Dropbox, OneDrive, or NAS) to act as the central hub for cloud mirroring and upload.
+- **Feature 1.3: Project Preferences** `[To Do]` `(v1.0)`
+  - Configuration of the file generation and export format, such as migrations (Plain text or pure SQL).
+- **Feature 1.4: Visual Management of Multiple Connections** `[To Do]` `(v1.0.1)`
+  - Elimination of environment variables for connections, adopting configuration exclusively via the TUI.
+  - Local storage in encrypted (AES) SQLite for secure persistence of multiple credentials.
 
-## Epic 2: Extração (Backup) e Persistência
-- **Feature 2.1: Extração Estruturada** `[Concluído] [QA Aprovado]` `(v1.0)`
-  - Processamento e dump unificado de metadados e dados utilizando de forma agnóstica as CLIs padrão de cada engine suportada (ex: pg_dump para PostgreSQL, expdp para Oracle, sqlcmd/bcp para MSSQL, mysqldump para MySQL, sqlite3 para SQLite, bq extract para BigQuery, mongodump para MongoDB, gcloud spanner para SPANNER, etc).
-  - Padronização automatizada da nomenclatura de artefatos de saída (ex: `yyyy-mm-dd_HhMM_schema_dump-db.sql`).
-- **Feature 2.2: Persistência Remota** `[A Fazer]` `(v2.0)`
-  - Upload automático dos dumps e artefatos extraídos para a CDN ou Repositório Git configurado no Epic 1, garantindo redundância em nuvem dos backups.
+## Epic 2: Extraction (Backup) and Persistence
+- **Feature 2.1: Structured Extraction** `[Done] [QA Approved]` `(v1.0)`
+  - Unified processing and dump of metadata and data, agnostically using the standard CLIs of each supported engine (e.g., pg_dump for PostgreSQL, expdp for Oracle, sqlcmd/bcp for MSSQL, mysqldump for MySQL, sqlite3 for SQLite, bq extract for BigQuery, mongodump for MongoDB, gcloud spanner for SPANNER, etc).
+  - Automated standardization of output artifact naming (e.g., `yyyy-mm-dd_HhMM_schema_dump-db.sql`).
+- **Feature 2.2: Remote Persistence** `[To Do]` `(v2.0)`
+  - Automatic upload of the extracted dumps and artifacts to the CDN or Git Repository configured in Epic 1, ensuring cloud redundancy for the backups.
 
-## Epic 3: Restauração (Restore)
-- **Feature 3.1: Listagem e Histórico Local** `[Concluído] [QA Aprovado]` `(v1.0)`
-  - Leitura e exibição visual de todos os arquivos e versões de backup criptografados existentes no diretório local `~/.cambalhota/db_dumps/YYYY/`.
-- **Feature 3.2: Restore Integral** `[Concluído] [QA Aprovado]` `(v1.0)`
-  - Restauração de ponta-a-ponta (esquemas estruturais, tabelas e seus dados) no banco de dados a partir de um backup específico escolhido pelo usuário no terminal.
+## Epic 3: Restore
+- **Feature 3.1: Local Listing and History** `[Done] [QA Approved]` `(v1.0)`
+  - Reading and visual display of all encrypted backup files and versions in the local directory `~/.cambalhota/db_dumps/YYYY/`.
+- **Feature 3.2: Full Restore** `[Done] [QA Approved]` `(v1.0)`
+  - End-to-end restore (structural schemas, tables and their data) into the database from a specific backup chosen by the user in the terminal.
 
-## Epic 4: Migration Engine (Controle de Versão Estrutural)
-- **Feature 4.1: Sistema de Migrations Flyway-like** `[Concluído] [QA Aprovado]` `(v1.0)`
-  - Geração de arquivos físicos com scripts de transição (`up` / `V...__desc.sql`) e reversão (`down` / `U...__desc.sql`), seguindo um versionamento semântico ou baseado em timestamp.
-- **Feature 4.2: Diffing Estrutural** `[A Fazer]` `(v2.0)`
-  - Comparação autônoma de metadados entre dois estados diferentes do banco de dados (tabelas, índices, constraints).
-  - Auto-geração e proposição de scripts de migration preenchendo as diferenças detectadas antes da execução.
-- **Feature 4.3: Execução Transacional e Proteção contra Concorrência** `[Concluído] [QA Aprovado]` `(v1.0)`
-  - Mecanismo de Locking (ex: `pg_advisory_lock`) bloqueando execuções conflitantes de outras instâncias simultâneas.
-  - Englobamento de execuções DDL em bloco transacional onde os SGBDs suportarem (`BEGIN`/`COMMIT`).
-- **Feature 4.4: Auditoria de Integridade e Histórico** `[Concluído] [QA Aprovado]` `(v1.0)`
-  - Manutenção e rastreio via tabela reservada `cambalhota_schema_history`.
-  - Validação de checksum dos scripts físicos contra as execuções anteriores registradas, impedindo manipulações posteriores perigosas.
-  - Registro pormenorizado do tempo, autoria e sucesso da instalação na tabela de auditoria e exposição nos relatórios.
+## Epic 4: Migration Engine (Structural Version Control)
+- **Feature 4.1: Flyway-like Migration System** `[Done] [QA Approved]` `(v1.0)`
+  - Generation of physical files with transition (`up` / `V...__desc.sql`) and rollback (`down` / `U...__desc.sql`) scripts, following semantic or timestamp-based versioning.
+- **Feature 4.2: Structural Diffing** `[To Do]` `(v2.0)`
+  - Autonomous metadata comparison between two different database states (tables, indexes, constraints).
+  - Auto-generation and proposal of migration scripts that fill in the detected differences before execution.
+- **Feature 4.3: Transactional Execution and Concurrency Protection** `[Done] [QA Approved]` `(v1.0)`
+  - Locking mechanism (e.g., `pg_advisory_lock`) blocking conflicting executions from other simultaneous instances.
+  - Wrapping of DDL executions in a transactional block where the DBMSs support it (`BEGIN`/`COMMIT`).
+- **Feature 4.4: Integrity and History Audit** `[Done] [QA Approved]` `(v1.0)`
+  - Maintenance and tracking via the reserved `cambalhota_schema_history` table.
+  - Checksum validation of the physical scripts against previously recorded executions, preventing dangerous later tampering.
+  - Detailed recording of the time, author and success of the installation in the audit table and exposure in the reports.
 
-## Epic 5: Interface de Usuário no Terminal (TUI)
-- **Feature 5.1: Experiência TUI Padronizada** `[Concluído] [QA Aprovado]` `(v1.0)`
-  - Navegação visual através de abas e painéis implementada sobre a tecnologia base (Tatuí).
-  - Padronização orientada ao Design System: Dark mode, tipografia `Monoid`, layout fluido com bordas arredondadas e destaques por cores lógicas (sucesso, alerta, informação).
-  - Exibição de painéis ricos para as saídas de relatórios de migration, auditorias e listagens locais de restore.
-- **Feature 5.2: Identidade Visual e Fluxo Cruzado** `[A Fazer]` `(v1.0.1)`
-  - Renderização de Logo Retrowave em ASCII Art no canto superior esquerdo.
-  - Seleção independente de bancos de Origem e Destino para viabilizar backup e restore cruzado de forma intuitiva.
+## Epic 5: Terminal User Interface (TUI)
+- **Feature 5.1: Standardized TUI Experience** `[Done] [QA Approved]` `(v1.0)`
+  - Visual navigation through tabs and panels implemented on top of the base technology (Tatuí).
+  - Design System-driven standardization: Dark mode, `Monoid` typography, fluid layout with rounded borders and highlights in logical colors (success, alert, information).
+  - Display of rich panels for migration report output, audits and local restore listings.
+- **Feature 5.2: Visual Identity and Cross Flow** `[To Do]` `(v1.0.1)`
+  - Rendering of a Retrowave ASCII Art Logo in the top-left corner.
+  - Independent selection of Source and Target databases to enable cross backup and restore intuitively.
 
-## Epic 6: Documentação e Utilitários Técnicos
-- **Feature 6.1: Documentação DDL Automática** `[A Fazer]` `(v2.0)`
-  - Autogeração do Dicionário de Dados do esquema estrutural no formato Markdown voltado à engenharia.
-- **Feature 6.2: Mock e Teste** `[A Fazer]` `(v2.0)`
-  - Extração focada de DDL/DML para ambientes de testes locais (fixtures e seeders).
-- **Feature 6.3: Visualização Arquitetural** `[A Fazer]` `(v2.0)`
-  - Geração de representações gráficas exportáveis demonstrando o relacionamento visual e relacional do esquema extraído.
+## Epic 6: Documentation and Technical Utilities
+- **Feature 6.1: Automatic DDL Documentation** `[To Do]` `(v2.0)`
+  - Auto-generation of the structural schema's Data Dictionary in Markdown format, aimed at engineering.
+- **Feature 6.2: Mock and Test** `[To Do]` `(v2.0)`
+  - Focused DDL/DML extraction for local test environments (fixtures and seeders).
+- **Feature 6.3: Architectural Visualization** `[To Do]` `(v2.0)`
+  - Generation of exportable graphical representations showing the visual and relational structure of the extracted schema.
 
-## Epic 7: Segurança e Otimização de Payload
-- **Feature 7.1: Criptografia de Disco Padrão** `[Concluído] [QA Aprovado]` `(v1.0)`
-  - Criptografia dos artefatos de backup por padrão (ex: AES-256) persistidos no diretório local `~/.cambalhota/db_dumps/YYYY/`, garantindo segurança at-rest na máquina host.
-- **Feature 7.2: Compressão de Streams** `[Concluído] [QA Aprovado]` `(v2.0)`
-  - Compressão on-the-fly (ex: GZIP ou ZSTD) para envio futuro à CDN, reduzindo consumo de banda e custos de storage.
+## Epic 7: Security and Payload Optimization
+- **Feature 7.1: Default Disk Encryption** `[Done] [QA Approved]` `(v1.0)`
+  - Encryption of backup artifacts by default (e.g., AES-256) persisted in the local directory `~/.cambalhota/db_dumps/YYYY/`, ensuring at-rest security on the host machine.
+- **Feature 7.2: Stream Compression** `[Done] [QA Approved]` `(v2.0)`
+  - On-the-fly compression (e.g., GZIP or ZSTD) for future upload to the CDN, reducing bandwidth consumption and storage costs.

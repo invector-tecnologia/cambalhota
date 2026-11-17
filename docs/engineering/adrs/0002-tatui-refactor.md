@@ -1,22 +1,22 @@
-# ADR 0002: Refatoração da TUI - Substituição do Illwill pelo Tatuí
+# ADR 0002: TUI Refactoring - Replacing Illwill with Tatuí
 
 ## Status
-Proposto
+Proposed
 
-## Data
+## Date
 2026-07-16
 
-## Contexto
-Atualmente, o projeto Cambalhota utiliza a biblioteca `illwill` para renderizar a interface de linha de comando (TUI). O `illwill` funciona através de um modelo "immediate mode", no qual os buffers de terminal são desenhados diretamente via coordenadas (X, Y). Isso traz dificuldades para manter um layout responsivo, componentizado e de fácil manutenção, especialmente à medida que a complexidade da ferramenta de Migration Engine aumenta.
+## Context
+The Cambalhota project currently uses the `illwill` library to render the command-line interface (TUI). `illwill` works with an "immediate mode" model, in which terminal buffers are drawn directly through coordinates (X, Y). This makes it hard to keep a responsive, componentized and easy-to-maintain layout, especially as the complexity of the Migration Engine tool grows.
 
-Para resolver essas limitações, foi solicitada a substituição da biblioteca `illwill` pela biblioteca `tatui` (uma solução proprietária inspirada no `ratatui` do ecossistema Rust), que introduz o conceito de layouts flexíveis, widgets declarativos e renderização baseada em constraints.
+To remove these limitations, the replacement of the `illwill` library by the `tatui` library (a proprietary solution inspired by `ratatui` from the Rust ecosystem) was requested. It introduces flexible layouts, declarative widgets and constraint-based rendering.
 
-## Decisão
+## Decision
 
-A reescrita do arquivo `src/main.nim` e da lógica de apresentação será feita mapeando as chamadas atuais do `illwill` para o paradigma de widgets do `tatui`.
+The rewrite of the `src/main.nim` file and of the presentation logic will map the current `illwill` calls to the `tatui` widget paradigm.
 
-### 1. Inicialização e Loop Principal
-Em vez de usar `illwillInit`, `hideCursor` e gerenciar um `TerminalBuffer` manualmente, utilizaremos a abstração de `Backend` e `Terminal` do `tatui`:
+### 1. Initialization and Main Loop
+Instead of using `illwillInit`, `hideCursor` and managing a `TerminalBuffer` manually, we will use the `tatui` `Backend` and `Terminal` abstractions:
 
 ```nim
 import tatui
@@ -26,53 +26,53 @@ term.setup()
 defer: term.restore()
 ```
 
-### 2. Gerenciamento de Layout (Grid)
-Os cálculos manuais de coordenadas (`histX`, `histY`, `viewW`, etc.) serão substituídos pelo sistema de layout declarativo (Constraint Solver) baseado no `split`:
+### 2. Layout Management (Grid)
+Manual coordinate calculations (`histX`, `histY`, `viewW`, etc.) will be replaced by the declarative layout system (Constraint Solver) based on `split`:
 
 ```nim
 term.draw proc(f: var Frame) =
-  # Divisão Vertical (Topo, Corpo, Rodapé)
+  # Vertical split (Header, Body, Footer)
   let vChunks = f.area.split(Vertical, @[length(1), fill(1), length(3)])
   let headerRect = vChunks[0]
   let bodyRect = vChunks[1]
   let statusRect = vChunks[2]
 
-  # Divisão Horizontal no Corpo (Histórico e Visualizador)
+  # Horizontal split in the Body (History and Viewer)
   let hChunks = bodyRect.split(Horizontal, @[pct(33), pct(67)])
   let histRect = hChunks[0]
   let viewRect = hChunks[1]
 ```
 
-### 3. Mapeamento de Widgets
+### 3. Widget Mapping
 
-1. **Menu de Navegação:**
-   - **De:** `drawMenu` customizado iterando sobre um array e modificando cores na tela.
-   - **Para:** Utilização do widget `tabs`, passando a lista de strings e o índice selecionado, com estilo de highlight automático.
+1. **Navigation Menu:**
+   - **From:** Custom `drawMenu` iterating over an array and changing colors on screen.
+   - **To:** The `tabs` widget, receiving the list of strings and the selected index, with automatic highlight styling.
 
-2. **Painel de Histórico / Ações:**
-   - **De:** `tb.drawRect` mais iteração em `files` para imprimir as linhas e destacar a selecionada alterando as cores de background.
-   - **Para:** Widget `list` em conjunto com `ListState` (`renderStateful`). O painel recebe uma borda com `initBlock(title = " HISTORY / ACTIONS ", borders = AllBorders)`. O item selecionado é mantido em uma variável `st: ListState`.
+2. **History / Actions Panel:**
+   - **From:** `tb.drawRect` plus iteration over `files` to print the lines and highlight the selected one by changing background colors.
+   - **To:** The `list` widget together with `ListState` (`renderStateful`). The panel gets a border with `initBlock(title = " HISTORY / ACTIONS ", borders = AllBorders)`. The selected item is kept in an `st: ListState` variable.
 
-3. **Visualizador de Código:**
-   - **De:** Leitura de arquivo e impressão linha por linha com controle de quebra (truncamento manual).
-   - **Para:** Widget `paragraph` englobando o texto do arquivo, que trata word wrap e layout automaticamente dentro do seu bloco (`initBlock`).
+3. **Code Viewer:**
+   - **From:** Reading the file and printing it line by line with wrapping control (manual truncation).
+   - **To:** The `paragraph` widget wrapping the file text, which handles word wrap and layout automatically inside its block (`initBlock`).
 
-4. **Painel de Status:**
-   - **De:** Impressão de retângulo inferior com a string cortada ao `viewW`.
-   - **Para:** Widget `paragraph` com `initBlock` encapsulando a `statusMsg`.
+4. **Status Panel:**
+   - **From:** Printing a bottom rectangle with the string cut at `viewW`.
+   - **To:** The `paragraph` widget with `initBlock` wrapping `statusMsg`.
 
-### 4. Entradas do Usuário
-- **De:** `getKey()`
-- **Para:** `pollEvent(100)`. Com os códigos de teclas (`kcChar`, `kcEsc`, `kcLeft`, `kcRight`, `kcUp`, `kcDown`, `kcEnter`) sendo obtidos através do evento `evKey`.
+### 4. User Input
+- **From:** `getKey()`
+- **To:** `pollEvent(100)`, with the key codes (`kcChar`, `kcEsc`, `kcLeft`, `kcRight`, `kcUp`, `kcDown`, `kcEnter`) obtained through the `evKey` event.
 
-## Consequências
+## Consequences
 
-### Positivas
-- **Manutenibilidade:** O código de UI deixará de lidar com cálculos complexos de coordenadas, reduzindo bugs de sobreposição em terminais redimensionados.
-- **Responsividade:** O `tatui` adapta os tamanhos de blocos automaticamente com as resoluções flexíveis (`fill`, `pct`).
-- **Padrão de Projeto:** A componentização das views permite um modelo focado no estado (`Model-View-Update`), isolando a interface da lógica da execução de migrations.
+### Positive
+- **Maintainability:** The UI code will no longer deal with complex coordinate calculations, reducing overlap bugs in resized terminals.
+- **Responsiveness:** `tatui` adapts block sizes automatically with flexible resolutions (`fill`, `pct`).
+- **Design Pattern:** Componentized views enable a state-focused model (`Model-View-Update`), isolating the interface from the migration execution logic.
 
-### Desafios / Pontos de Atenção
-- Curva de aprendizado da equipe no framework declarativo `tatui`.
-- Transição da lógica "imediata" de entrada (`Key`) para a abstração de `pollEvent`.
-- Tratar eventos de repintura durante execuções demoradas das migrations, uma vez que não controlamos mais o buffer diretamente sem envolver uma estrutura de render assíncrono.
+### Challenges / Points of Attention
+- The team's learning curve with the declarative `tatui` framework.
+- Moving the "immediate" input logic (`Key`) to the `pollEvent` abstraction.
+- Handling repaint events during long migration runs, since we no longer control the buffer directly without involving an asynchronous render structure.

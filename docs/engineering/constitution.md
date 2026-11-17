@@ -1,19 +1,19 @@
-# Constituição de Engenharia — Cambalhota
+# Engineering Constitution — Cambalhota
 
-> **Contrato inviolável.** Este documento é a lei suprema de engenharia do projeto Cambalhota. Todo agente, desenvolvedor ou pipeline de CI/CD **DEVE** obedecer às regras aqui listadas.
+> **Inviolable contract.** This document is the supreme engineering law of the Cambalhota project. Every agent, developer or CI/CD pipeline **MUST** obey the rules listed here.
 
-## 1. Regras de Banco de Dados e Armazenamento
+## 1. Database and Storage Rules
 
-| # | Regra | Nível |
+| # | Rule | Level |
 |---|-------|-------|
-| DB-01 | ⛔ Credenciais de banco e CDN **NUNCA** devem existir no código-fonte em texto plano. | ⛔ Forbidden |
-| DB-02 | ✅ Suporte obrigatório a Múltiplos Motores Relacionais: PostgreSQL, MySQL e SQL Server. | ✅ Obrigatório |
-| DB-03 | ✅ Todo dump extraído deve ser persistido remotamente (CDN ou Git) e listado de forma auditável. | ✅ Obrigatório |
+| DB-01 | ⛔ Database and CDN credentials must **NEVER** exist in the source code in plain text. | ⛔ Forbidden |
+| DB-02 | ✅ Mandatory support for Multiple Relational Engines: PostgreSQL, MySQL and SQL Server. | ✅ Mandatory |
+| DB-03 | ✅ Every extracted dump must be persisted remotely (CDN or Git) and listed in an auditable way. | ✅ Mandatory |
 
-## 2. Regras de Arquitetura e Código
+## 2. Architecture and Code Rules
 
-| # | Regra | Nível |
+| # | Rule | Level |
 |---|-------|-------|
-| ARQ-01 | ✅ O Backend/CLI DEVE ser escrito em **Nim** com priorização de estabilidade e I/O rápido. | ✅ Obrigatório |
-| ARQ-02 | ✅ O Frontend DEVE ser uma interface TUI (Terminal User Interface) baseada no framework **Tatuí**. | ✅ Obrigatório |
-| ARQ-03 | ✅ Migrations (Up/Down) devem seguir os padrões de versão comparáveis ao Flyway e Liquibase. | ✅ Obrigatório |
+| ARQ-01 | ✅ The Backend/CLI MUST be written in **Nim**, prioritizing stability and fast I/O. | ✅ Mandatory |
+| ARQ-02 | ✅ The Frontend MUST be a TUI (Terminal User Interface) based on the **Tatuí** framework. | ✅ Mandatory |
+| ARQ-03 | ✅ Migrations (Up/Down) must follow versioning standards comparable to Flyway and Liquibase. | ✅ Mandatory |

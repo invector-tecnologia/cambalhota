@@ -23,25 +23,25 @@ pipeline:
                   name: Antigravity CLI Execution
                   identifier: ag_cli_exec
                   spec:
-                    # Imagem efêmera contendo a CLI e ferramentas básicas (node, npm, docker)
+                    # Ephemeral image containing the CLI and basic tools (node, npm, docker)
                     connectorRef: org.docker_registry
                     image: antigravity/runner:latest
                     envVariables:
-                      # Telemetria: Injeta o ID da execução do Harness como Correlation ID para o AI Gateway
+                      # Telemetry: Injects the Harness execution ID as the Correlation ID for the AI Gateway
                       AG_TELEMETRY_TRACE_ID: <+pipeline.executionId>
                       AG_TELEMETRY_ENDPOINT: "https://ai-gateway.internal:4317"
                       
-                      # Secrets: Injetados via Harness Vault para uso dos servidores MCP
+                      # Secrets: Injected via Harness Vault for use by the MCP servers
                       GITHUB_TOKEN: <+secrets.getValue("github_token_ag")>
                       GEMINI_API_KEY: <+secrets.getValue("gemini_api_key_prod")>
                       SEARCH_API_KEY: <+secrets.getValue("google_search_api")>
                       
                     command: |
-                      # 1. Recupera o payload JSON bruto do webhook que acionou o pipeline
+                      # 1. Retrieves the raw JSON payload of the webhook that triggered the pipeline
                       WEBHOOK_PAYLOAD_PATH="/tmp/webhook_payload.json"
                       echo '<+trigger.payload>' > $WEBHOOK_PAYLOAD_PATH
                       
-                      # 2. Executa a CLI em modo de orquestração automática.
-                      # A CLI lerá os manifestos em .ag/agents/, cruzará os triggers com o arquivo payload
-                      # e executará apenas o agente correspondente (com cache de contexto habilitado).
+                      # 2. Runs the CLI in automatic orchestration mode.
+                      # The CLI will read the manifests in .ag/agents/, match the triggers against the payload file
+                      # and run only the matching agent (with context caching enabled).
                       ag agent dispatch --payload-file $WEBHOOK_PAYLOAD_PATH --apply-limits

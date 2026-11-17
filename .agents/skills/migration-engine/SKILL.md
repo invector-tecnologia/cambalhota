@@ -1,2 +1,2 @@
-# Gestão de Migrations
-- Seguir benchmarks rigorosos como Flyway/Liquibase. Versões sequenciais.
+# Migration Management
+- Follow strict benchmarks such as Flyway/Liquibase. Sequential versions.

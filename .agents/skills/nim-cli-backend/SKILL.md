@@ -1,2 +1,2 @@
-# Padrões Nim (Backend & CLI)
-- Priorizar bibliotecas nativas de db. Usar compilação com ORC. Foco em estabilidade e performance de I/O.
+# Nim Standards (Backend & CLI)
+- Prefer native database libraries. Compile with ORC. Focus on stability and I/O performance.

@@ -1,7 +1,7 @@
 {
   "hooks": {
     "constitution-guard": {
-      "description": "Bloqueia referências ao schema 'public' em código escrito no projeto.",
+      "description": "Blocks references to the 'public' schema in code written in the project.",
       "trigger": {
         "event": "PreToolUse",
         "toolNames": ["write_to_file", "replace_file_content"]
@@ -12,7 +12,7 @@
       }
     },
     "adr-prerequisite": {
-      "description": "Verifica existência de ADR aprovado antes de criar arquivos em backend/ ou frontend/.",
+      "description": "Checks that an approved ADR exists before creating files in backend/ or frontend/.",
       "trigger": {
         "event": "PreToolUse",
         "toolNames": ["write_to_file"]
