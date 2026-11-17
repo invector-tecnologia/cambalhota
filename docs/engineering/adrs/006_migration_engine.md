@@ -1,26 +1,26 @@
 # ADR 006: Migration Engine Core Architecture
 
-## 1. Contexto
-Com a aprovação do Épico 4, surge a necessidade de estabelecer a arquitetura base da *Migration Engine* no sistema Cambalhota. O Cambalhota atuará como um controle de versão estrutural para bancos de dados, orquestrando a evolução de esquemas de forma determinística e segura. Sendo construído em Nim, precisamos definir como os scripts são versionados, como garantimos atomicidade nas aplicações e como auditamos o histórico de mudanças, prevenindo corrupção estrutural devido a execuções concorrentes ou scripts adulterados.
+## 1. Context
+With the approval of Epic 4, we need to establish the base architecture of the *Migration Engine* in the Cambalhota system. Cambalhota will act as structural version control for databases, orchestrating schema evolution in a deterministic and safe way. Since it is built in Nim, we need to define how scripts are versioned, how we ensure atomicity when applying them and how we audit the change history, preventing structural corruption caused by concurrent executions or tampered scripts.
 
-## 2. Decisão Técnica
+## 2. Technical Decision
 
-### 4.1. Formato dos Artefatos
-Os scripts de migração seguirão uma nomenclatura rígida para garantir ordenação cronológica e identificação clara.
-O padrão adotado é: `V<timestamp>__<descricao>.[up|down].sql`
-- **Exemplos:**
+### 4.1. Artifact Format
+Migration scripts will follow a strict naming convention to ensure chronological ordering and clear identification.
+The adopted pattern is: `V<timestamp>__<description>.[up|down].sql`
+- **Examples:**
   - `V20260717162000__create_users_table.up.sql`
   - `V20260717162000__create_users_table.down.sql`
-- **Justificativa:** O uso de *timestamps* (formato `YYYYMMDDHHMMSS`) minimiza severamente colisões em ambientes de desenvolvimento concorrente, em contraste com numeração sequencial simples. Os sufixos `.up.sql` e `.down.sql` separam inequivocamente as lógicas de aplicação e reversão.
+- **Rationale:** Using *timestamps* (format `YYYYMMDDHHMMSS`) greatly minimizes collisions in concurrent development environments, unlike simple sequential numbering. The `.up.sql` and `.down.sql` suffixes unambiguously separate the apply and rollback logic.
 
-### 4.3. Mecanismos Transacionais e Concorrência
-- **Escopo Transacional Agnostico:** Cada script estrutural (`.up.sql` ou `.down.sql`) será envolvido dinamicamente pela *Engine* em blocos transacionais (injetando `BEGIN` e `COMMIT`). Se ocorrer qualquer erro durante a execução, a *Engine* acionará um `ROLLBACK`, assegurando que o banco não permaneça em estado inconsistente. Ferramentas analíticas e DDLs que não suportam transações nativas no SGBD deverão ser tratadas de forma customizada (ex: diretiva no topo do arquivo).
-- **Locking e Concorrência:** Para prevenir que duas instâncias do Tatuí (CLI) ou execuções via CI/CD tentem aplicar migrações simultaneamente (o que corromperia a topologia), implementaremos um sistema de *Locking*. Em PostgreSQL, faremos uso de *Advisory Locks* a nível de sessão ou inserções em uma tabela de *lock* global garantindo exclusividade de execução durante o fluxo de migração.
+### 4.3. Transactional Mechanisms and Concurrency
+- **Agnostic Transactional Scope:** Each structural script (`.up.sql` or `.down.sql`) will be dynamically wrapped by the *Engine* in transaction blocks (injecting `BEGIN` and `COMMIT`). If any error happens during execution, the *Engine* will trigger a `ROLLBACK`, ensuring the database is not left in an inconsistent state. Analytical tools and DDLs that do not support native transactions in the DBMS must be handled in a custom way (e.g., a directive at the top of the file).
+- **Locking and Concurrency:** To prevent two Tatuí (CLI) instances or CI/CD runs from applying migrations at the same time (which would corrupt the topology), we will implement a *Locking* system. On PostgreSQL, we will use session-level *Advisory Locks* or inserts into a global *lock* table, ensuring exclusive execution during the migration flow.
 
-### 4.4. Tabela de Auditoria e Integridade (Checksumming)
-A engine fará o rastreio rigoroso do estado do banco através de uma tabela de metadados.
-- **Tabela:** `Cambalhota.cambalhota_schema_history`
-- **Estrutura (DDL Lógica):**
+### 4.4. Audit and Integrity Table (Checksumming)
+The engine will strictly track the database state through a metadata table.
+- **Table:** `Cambalhota.cambalhota_schema_history`
+- **Structure (Logical DDL):**
   ```sql
   CREATE SCHEMA IF NOT EXISTS Cambalhota;
 
@@ -37,15 +37,15 @@ A engine fará o rastreio rigoroso do estado do banco através de uma tabela de 
       success BOOLEAN NOT NULL
   );
   ```
-- **Checksumming:** No momento em que um script é lido localmente para ser aplicado, a *Engine* calcula o *hash* criptográfico (ex: SHA-256) do conteúdo exato do arquivo. Antes de executar qualquer migração nova, o sistema valida todos os scripts já instalados contra os *checksums* armazenados em `cambalhota_schema_history`. Se um script que já foi aplicado no banco sofrer alteração física no sistema de arquivos, a validação falhará e a engine bloqueará a execução alertando o desvio, garantindo imunidade contra adulterações retroativas.
+- **Checksumming:** When a script is read locally to be applied, the *Engine* computes the cryptographic *hash* (e.g., SHA-256) of the exact file content. Before running any new migration, the system validates all already-installed scripts against the *checksums* stored in `cambalhota_schema_history`. If a script that was already applied to the database is physically changed in the file system, validation fails and the engine blocks the execution, reporting the drift and ensuring immunity against retroactive tampering.
 
-## 3. Diagrama do Processo (Migrate Up)
+## 3. Process Diagram (Migrate Up)
 
 ```mermaid
 sequenceDiagram
     participant User as CLI (Tatuí)
     participant Engine as Migration Engine
-    participant DB as SGBD (PostgreSQL)
+    participant DB as DBMS (PostgreSQL)
 
     User->>Engine: run migrate up
     Engine->>DB: Acquire Migration Lock
@@ -82,10 +82,10 @@ sequenceDiagram
     end
 ```
 
-## 4. Trade-offs e Consequências
-- **Positivos:** Alto grau de segurança no versionamento; prevenção de condições de corrida; e auditoria imutável dos metadados.
-- **Negativos:** Falhas de *checksum* em ambientes de desenvolvimento (quando devs costumam iterar no mesmo arquivo local) exigirão um comando explícito para re-calcular (ex: `repair`). 
-- **Consequência:** A Engenharia (desenvolvimento em Nim) precisará abstrair a interface de conexão para suportar injeções limpas do controle transacional ao interpretar os scripts locais.
+## 4. Trade-offs and Consequences
+- **Positive:** High level of safety in versioning; prevention of race conditions; and immutable metadata auditing.
+- **Negative:** *Checksum* failures in development environments (where devs often iterate on the same local file) will require an explicit command to recompute (e.g., `repair`). 
+- **Consequence:** Engineering (Nim development) will need to abstract the connection interface to support clean injection of transaction control when interpreting local scripts.
 
 ## 5. Status
-**Status:** Implementado
+**Status:** Implemented

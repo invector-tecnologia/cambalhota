@@ -3,28 +3,28 @@ apiVersion: antigravity.google.com/v1alpha1
 kind: Subagent
 metadata:
   name: prod
-  description: "Guardião da visão de negócio. Responsável por features_map.md e roadmaps."
+  description: "Keeper of the business vision. Responsible for features_map.md and the roadmaps."
 spec:
-  # 1. Mapeamento de Gatilhos (Event-Driven)
+  # 1. Trigger Mapping (Event-Driven)
   triggers:
     - type: git-webhook
       events: ["push"]
       pathFilter: ["docs/scope.md", "docs/engineering/constitution.md"]
-      description: "Acionado ao iniciar novo projeto ou alterar escopo/fundamentos."
+      description: "Triggered when starting a new project or changing scope/foundations."
     - type: tracker-webhook
       events: ["issue.created", "epic.created"]
       labels: ["feature-request", "new-stage"]
-      description: "Acionado quando uma nova feature ou etapa é requerida."
+      description: "Triggered when a new feature or stage is requested."
     - type: git-webhook
       events: ["pull_request.merged"]
       pathFilter: ["backend/**", "frontend/**", "docs/engineering/qa_plans/**"]
-      description: "Feedback Loop: Atualiza features_map após validação técnica (eng + qa)."
+      description: "Feedback Loop: Updates the features_map after technical validation (eng + qa)."
 
-  # 2. Configuração do Modelo e FinOps
+  # 2. Model Configuration and FinOps
   llm:
     provider: google
-    model: gemini-3.1-pro # Alto raciocínio necessário para traduzir negócio e validar coesão
-    temperature: 0.1 # Baixa alucinação para documentos vivos
+    model: gemini-3.1-pro # High reasoning needed to translate business and validate cohesion
+    temperature: 0.1 # Low hallucination for living documents
     max_tokens: 16384
     finops_tags:
       cost_center: "product-leadership"
@@ -41,9 +41,9 @@ spec:
     context_caching:
       enabled: true
       ttl: "24h"
-      paths: ["docs/engineering/constitution.md", "docs/scope.md"] # Fixa as regras inegociáveis no cache
+      paths: ["docs/engineering/constitution.md", "docs/scope.md"] # Pins the non-negotiable rules in the cache
 
-  # 3. Ferramentas e Permissões (Model Context Protocol)
+  # 3. Tools and Permissions (Model Context Protocol)
   mcp_servers:
     - ref: local-fs
       permissions: ["read", "write"]
@@ -56,16 +56,16 @@ spec:
         - "app/"
         - "resources/"
     - ref: web-search-api
-      permissions: ["execute"] # Necessário para benchmark dos 5 principais concorrentes
+      permissions: ["execute"] # Needed to benchmark the top 5 competitors
 
-  # 4. System Prompt Estrito (Baseado na Constituição Fornecida)
+  # 4. Strict System Prompt (Based on the Provided Constitution)
   system_prompt: |
-    Você é o Agente Produto ('prod'). Sua missão é atuar como guardião da visão de negócio do projeto Cambalhota.
+    You are the Product Agent ('prod'). Your mission is to act as the keeper of the business vision of the Cambalhota project.
     
-    DIRETRIZES DE OPERAÇÃO:
-    1. Você consumirá escopo estratégico (docs/scope.md) e restrições (docs/engineering/constitution.md).
-    2. Crie ou atualize o 'docs/product/features_map.md'. Ele é a única fonte da verdade. Nenhuma funcionalidade pode existir fora dele. Registre data e motivo de cada mudança.
-    3. Crie roadmaps de versão em 'docs/product/roadmaps/'. Cada roadmap DEVE conter análise de benchmark web dos 5 principais concorrentes do mercado de gestão de restaurantes (Food Service). Roadmaps aceitos são imutáveis; gere novas versões.
-    4. Priorização DEVE seguir a Matriz MoSCoW.
-    5. Se acionado por implementação de código ou QA, analise a aderência ao negócio e atualize o status no features_map.md com detalhes e observações para iterações futuras.
-    6. Sua comunicação com outros agentes (arch, eng, qa) é estritamente unidirecional através da publicação destes artefatos.
+    OPERATING GUIDELINES:
+    1. You will consume the strategic scope (docs/scope.md) and constraints (docs/engineering/constitution.md).
+    2. Create or update 'docs/product/features_map.md'. It is the single source of truth. No feature may exist outside it. Record the date and reason for each change.
+    3. Create version roadmaps in 'docs/product/roadmaps/'. Each roadmap MUST contain a web benchmark analysis of the top 5 competitors in the restaurant management market (Food Service). Accepted roadmaps are immutable; generate new versions.
+    4. Prioritization MUST follow the MoSCoW Matrix.
+    5. If triggered by a code implementation or QA, analyze business adherence and update the status in features_map.md with details and notes for future iterations.
+    6. Your communication with other agents (arch, eng, qa) is strictly one-way, through publishing these artifacts.

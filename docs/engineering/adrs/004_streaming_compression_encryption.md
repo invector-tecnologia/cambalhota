@@ -1,69 +1,69 @@
-# ADR 004: Streaming, Compressão e Criptografia On-the-fly de Dumps
+# ADR 004: On-the-fly Streaming, Compression and Encryption of Dumps
 
-## 1. Contexto
+## 1. Context
 
-A geração de backups estruturais ou dumps completos de bancos de dados pode resultar em arquivos na ordem de gigabytes ou terabytes. Caso o motor do Cambalhota tente carregar todo o dump do banco de dados na memória RAM antes de processá-lo ou gravá-lo no disco, a aplicação ficará altamente suscetível a falhas do tipo Out-Of-Memory (OOM).
+Generating structural backups or full database dumps can produce files in the gigabyte or terabyte range. If the Cambalhota engine tries to load the whole database dump into RAM before processing it or writing it to disk, the application becomes highly prone to Out-Of-Memory (OOM) failures.
 
-Além da restrição de memória, dumps contêm dados sensíveis e ocupam grande espaço em disco e largura de banda quando enviados para o armazenamento remoto (S3, Git, etc.). Sendo assim, é necessário aplicar tanto a compressão quanto a criptografia no payload de saída, sem comprometer a estabilidade do sistema ou travar a interface do usuário (TUI).
+Besides the memory constraint, dumps contain sensitive data and take up a lot of disk space and bandwidth when sent to remote storage (S3, Git, etc.). Therefore, both compression and encryption must be applied to the output payload, without compromising system stability or locking the user interface (TUI).
 
-## 2. Decisão Técnica
+## 2. Technical Decision
 
-Para endereçar a questão do limite de RAM e os requisitos de segurança, definimos que o processo de extração do banco operará sob o padrão de **Streaming com Processamento em Pipeline (On-the-fly)**. 
+To address the RAM limit and the security requirements, we define that the database extraction process will run under the **Streaming with Pipeline Processing (On-the-fly)** pattern. 
 
-### 2.1. Interceptação e Leitura em Chunks via Extractor Adapter / Factory
-A arquitetura não deve estar acoplada a um único utilitário de banco de dados. Para suportar de forma transparente múltiplos SGDBs (PostgreSQL, Oracle, MSSQL, MySQL, SQLite, SPANNER, MongoDB, BigQuery, etc.), utilizaremos o **Extractor Adapter / Factory Pattern**.
-O motor em Nim resolverá dinamicamente, baseado na conexão (connection string) ou flags do CLI, qual motor instanciar no `osproc` (seja `pg_dump`, `mysqldump`, `mongodump`, ou outro binário).
-Em vez de esperar o término do processo ou ler a saída completa, o pipeline interceptará a saída padrão universal (`stdout`) do processo filho e efetuará a leitura de forma contínua, utilizando buffers fixos (chunks/streams). Isso garante que o uso de memória permaneça constante e o fluxo permaneça agnóstico ao banco de dados.
+### 2.1. Interception and Chunked Reads via Extractor Adapter / Factory
+The architecture must not be coupled to a single database utility. To transparently support multiple DBMSs (PostgreSQL, Oracle, MSSQL, MySQL, SQLite, SPANNER, MongoDB, BigQuery, etc.), we will use the **Extractor Adapter / Factory Pattern**.
+The Nim engine will dynamically resolve, based on the connection (connection string) or CLI flags, which engine to instantiate in `osproc` (`pg_dump`, `mysqldump`, `mongodump` or another binary).
+Instead of waiting for the process to finish or reading the full output, the pipeline will intercept the universal standard output (`stdout`) of the child process and read it continuously, using fixed buffers (chunks/streams). This keeps memory usage constant and the flow agnostic to the database.
 
-### 2.2. Compressão On-the-fly
-O stream interceptado será comprimido em tempo real. A ferramenta utilizará a biblioteca nativa `std/zlib` (ou biblioteca equivalente como `zstd` via binding) para realizar a compressão (ex: algoritmo GZIP ou Deflate) a cada chunk lido, reduzindo drasticamente o tamanho do dado em memória antes de ser passado para o próximo estágio.
+### 2.2. On-the-fly Compression
+The intercepted stream will be compressed in real time. The tool will use the native `std/zlib` library (or an equivalent library such as `zstd` via binding) to compress (e.g., GZIP or Deflate algorithm) each chunk read, drastically reducing the size of the data in memory before it is passed to the next stage.
 
-### 2.3. Criptografia E2E
-Após a compressão do chunk, os dados passarão por um estágio de criptografia on-the-fly. Utilizaremos a biblioteca `nimcrypto`, aplicando o algoritmo padrão **AES-256** no modo de operação **CTR** (Counter Mode) ou **CBC** (com padding adequado). O modo CTR é fortemente recomendado por permitir criptografia perfeitamente alinhada com o comportamento de streams (bloco a bloco), sem a necessidade de acumular dados para preencher blocos inteiros (padding) antes de cifrar, otimizando o fluxo.
+### 2.3. E2E Encryption
+After the chunk is compressed, the data will go through an on-the-fly encryption stage. We will use the `nimcrypto` library, applying the standard **AES-256** algorithm in **CTR** (Counter Mode) or **CBC** (with proper padding) mode. CTR mode is strongly recommended because it allows encryption perfectly aligned with stream behavior (block by block), with no need to accumulate data to fill whole blocks (padding) before encrypting, which optimizes the flow.
 
-### 2.4. Comunicação e Progresso Visual (TUI)
-Todo esse pipeline pesado (Leitura -> Compressão -> Criptografia -> Gravação no Disco/Nuvem) rodará em uma *worker thread* separada da interface. A cada `N` blocos processados, a thread enviará mensagens estruturadas (ex: bytes lidos/processados) através de `Channel[Msg]` para a thread principal.
-A TUI Tatuí consumirá essas mensagens sem bloqueios (usando `tryRecv`) e atualizará fluidamente componentes visuais, como barras de progresso contínuas, oferecendo feedback responsivo da extração.
+### 2.4. Communication and Visual Progress (TUI)
+This whole heavy pipeline (Read -> Compression -> Encryption -> Write to Disk/Cloud) will run in a *worker thread* separate from the interface. Every `N` processed blocks, the thread will send structured messages (e.g., bytes read/processed) through `Channel[Msg]` to the main thread.
+The Tatuí TUI will consume these messages without blocking (using `tryRecv`) and smoothly update visual components, such as continuous progress bars, providing responsive extraction feedback.
 
 ## 3. Trade-offs
 
-- **Positivos:**
-  - Uso de memória `O(1)` em relação ao tamanho do banco de dados, impossibilitando erros de OOM.
-  - Segurança aprimorada (Criptografia E2E).
-  - Economia substancial de I/O de rede e espaço de armazenamento (Compressão on-the-fly).
-- **Negativos:**
-  - Sobrecarga computacional (CPU) adicional dividida entre o banco de dados (que faz o dump), a compressão e a criptografia.
-  - Maior complexidade arquitetural ao lidar com a orquestração de streams e threads concorrentes.
+- **Positive:**
+  - `O(1)` memory usage relative to the database size, making OOM errors impossible.
+  - Improved security (E2E encryption).
+  - Substantial savings in network I/O and storage space (on-the-fly compression).
+- **Negative:**
+  - Additional computational (CPU) overhead split among the database (which produces the dump), compression and encryption.
+  - Greater architectural complexity when orchestrating streams and concurrent threads.
 
-## 4. Consequências
+## 4. Consequences
 
-- Será necessário desenvolver e testar rigorosamente o pipeline de streams para certificar que nenhum dado se perca nos limites dos chunks.
-- Chaves de criptografia precisarão ser gerenciadas e fornecidas via variáveis de ambiente, configurações seguras ou prompts seguros na TUI.
-- Nenhum código de extração poderá ser aprovado caso faça leitura integral da `stdout` (ex: uso de métodos como `readAll()`). O code review deve vetar abordagens que desrespeitem o streaming.
+- The stream pipeline must be developed and rigorously tested to make sure no data is lost at chunk boundaries.
+- Encryption keys will need to be managed and provided through environment variables, secure settings or secure prompts in the TUI.
+- No extraction code may be approved if it reads `stdout` in full (e.g., using methods such as `readAll()`). Code review must veto approaches that break streaming.
 
 ## 5. Status
 
-**Implementado**
+**Implemented**
 
-## 6. Diagrama de Fluxo
+## 6. Flow Diagram
 
 ```mermaid
 sequenceDiagram
     participant Fac as Extractor Factory
-    participant DB as SGDB Alvo (Postgres, MySQL, Mongo...)
+    participant DB as Target DBMS (Postgres, MySQL, Mongo...)
     participant Proc as osproc (pg_dump, mysqldump, mongodump)
-    participant Pipe as Motor Nim (Stream Pipeline)
-    participant TUI as Interface Tatuí
-    participant Disk as Arquivo/Cloud
+    participant Pipe as Nim Engine (Stream Pipeline)
+    participant TUI as Tatuí Interface
+    participant Disk as File/Cloud
 
-    Fac->>Proc: Instancia motor utilitário correto
+    Fac->>Proc: Instantiates the correct utility engine
     DB->>Proc: Dump Data
-    loop A cada Chunk (Ex: 64KB)
-        Proc->>Pipe: stdout stream universal
-        Pipe->>Pipe: Compressão (std/zlib)
-        Pipe->>Pipe: Criptografia (nimcrypto AES-256-CTR)
-        Pipe->>Disk: Escreve Bloco
-        Pipe->>TUI: Channel.send(progresso)
-        TUI->>TUI: Atualiza Barra de Progresso
+    loop For each Chunk (e.g., 64KB)
+        Proc->>Pipe: universal stdout stream
+        Pipe->>Pipe: Compression (std/zlib)
+        Pipe->>Pipe: Encryption (nimcrypto AES-256-CTR)
+        Pipe->>Disk: Writes Block
+        Pipe->>TUI: Channel.send(progress)
+        TUI->>TUI: Updates Progress Bar
     end
 ```

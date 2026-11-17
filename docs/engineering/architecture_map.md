@@ -1,35 +1,35 @@
-# Mapa Arquitetural — Cambalhota
+# Architecture Map — Cambalhota
 
-## Visão Geral
-O **Cambalhota** é uma ferramenta CLI/TUI nativa compilada em **Nim** (com gestão de memória via ORC), focada no controle de versão estrutural de bancos de dados relacionais e rotinas de extração/restauração (dumps e backups). O design foi projetado para assegurar robustez de I/O, previsibilidade transacional em migrações e uma experiência visual interativa diretamente no terminal.
+## Overview
+**Cambalhota** is a native CLI/TUI tool compiled in **Nim** (with ORC memory management), focused on structural version control of relational databases and on extraction/restore routines (dumps and backups). The design aims to ensure robust I/O, transactional predictability in migrations and an interactive visual experience directly in the terminal.
 
-## Diagrama de Blocos Arquiteturais
+## Architecture Block Diagram
 
 ```mermaid
 flowchart TD
     subgraph UI ["Frontend / CLI"]
-        TUI[Interface Tatuí (com Menu Side-by-side e Logo ASCII)]
-        CLI[Comandos CLI e Automação]
+        TUI[Tatuí Interface (with Side-by-side Menu and ASCII Logo)]
+        CLI[CLI Commands and Automation]
     end
 
-    subgraph Core ["Motor em Nim (Core Engine)"]
-        AsyncIO[Camada de IO Assíncrono]
-        DBCore[db_core.nim - Adaptadores RDBMS]
+    subgraph Core ["Nim Engine (Core Engine)"]
+        AsyncIO[Asynchronous IO Layer]
+        DBCore[db_core.nim - RDBMS Adapters]
         MigEngine[Migration Engine]
         ExtAdapter[Extractor Adapter / Factory]
         DumpRest[Dump & Restore Engine (Cross-Database via osproc)]
-        StreamPipe[Pipeline de Streaming & Criptografia]
+        StreamPipe[Streaming & Encryption Pipeline]
         ConfigManager[Configuration Manager]
     end
 
-    subgraph Persistence ["Armazenamento e Persistência"]
+    subgraph Persistence ["Storage and Persistence"]
         CDN[CDN / Git / Cloud Buckets]
-        Local[Sistema de Arquivos Local (Dumps)]
-        SQLite[(Local SQLite DB - Conexões e Histórico)]
+        Local[Local File System (Dumps)]
+        SQLite[(Local SQLite DB - Connections and History)]
         Keyring{OS Keyring}
     end
 
-    subgraph DB ["Banco de Dados Alvo"]
+    subgraph DB ["Target Database"]
         TargetDB[(PostgreSQL, MySQL, SQL Server)]
         AuditTable[Cambalhota.cambalhota_schema_history]
     end
@@ -52,51 +52,51 @@ flowchart TD
     TUI <--> ConfigManager
 ```
 
-## Detalhamento dos Componentes Técnicos
+## Technical Component Details
 
-### 1. Camada de UI (Frontend / CLI)
-- **TUI Tatuí:** Provê toda a experiência visual rica via terminal para interatividade humana.
-  - Implementa um Design System unificado (Dark mode, fontes monoespaçadas, destaques semânticos de cores, Logo Retrowave ASCII global).
-  - Organiza funcionalidades complexas em abas intuitivas (Configuração, Backup, Restauração, Histórico, Migrations).
-  - Emprega layouts "side-by-side" (como na aba de Cross-Restore) para segmentação cognitiva (Origem vs. Destino).
-  - Proteção contra *Buffer Overflow* e injeção de caracteres: limitação rigorosa de `len` e sanitização em todos os campos de input, garantindo estabilidade e segurança.
-  - **Console Visual Integrado:** Abolição de `term.restore()` em prol de modais overlay e logs reativos (`logChannel`) em um Console que evita o travamento da thread de UI (ADR-011).
-- **CLI Utilities:** Interface programática *headless* para orquestração (via CI/CD) e disparo automatizado de comandos.
-  - Utiliza `parseopt` para validação rigorosa de parâmetros, implementando um *Hard Block* ativo que aborta a extração (ex: barrando o schema `public`) e injeta estados de erro (`stError`) na thread da UI para feedback imediato ao usuário.
+### 1. UI Layer (Frontend / CLI)
+- **Tatuí TUI:** Provides the whole rich visual experience in the terminal for human interaction.
+  - Implements a unified Design System (dark mode, monospaced fonts, semantic color highlights, global Retrowave ASCII logo).
+  - Organizes complex features into intuitive tabs (Configuration, Backup, Restore, History, Migrations).
+  - Uses "side-by-side" layouts (as in the Cross-Restore tab) for cognitive segmentation (Source vs. Target).
+  - Protection against *Buffer Overflow* and character injection: strict `len` limits and sanitization on every input field, ensuring stability and security.
+  - **Integrated Visual Console:** Removal of `term.restore()` in favor of overlay modals and reactive logs (`logChannel`) in a Console that avoids blocking the UI thread (ADR-011).
+- **CLI Utilities:** A *headless* programmatic interface for orchestration (via CI/CD) and automated command triggering.
+  - Uses `parseopt` for strict parameter validation, implementing an active *Hard Block* that aborts the extraction (e.g., blocking the `public` schema) and injects error states (`stError`) into the UI thread for immediate user feedback.
 
-### 2. Motor em Nim (Backend / Core Engine)
-Construído com gestão `ORC` para maximizar a previsibilidade e diminuir a latência do garbage collector, lidando de modo eficiente com volumes altos de leitura/escrita e redes.
+### 2. Nim Engine (Backend / Core Engine)
+Built with `ORC` memory management to maximize predictability and reduce garbage collector latency, efficiently handling high read/write and network volumes.
 
-#### Camada de IO Assíncrono (Processos em Background)
-- Desacopla execuções pesadas (como o streaming do `pg_dump` e chamadas OS via `osproc`) da Thread Principal através de Threads e Canais (`Channel[Msg]`).
-- Captura de forma assíncrona (via streams/pipes em worker threads) o `stdout`/`stderr` de subprocessos, gerando mensagens em tempo real no `logChannel` para renderização fluida no Console da TUI (ADR-011).
-- Assegura que a UI Tatuí nunca congele durante I/O, repassando status e logs em tempo real (Promessa Fail-safe).
+#### Asynchronous IO Layer (Background Processes)
+- Decouples heavy executions (such as `pg_dump` streaming and OS calls via `osproc`) from the Main Thread through Threads and Channels (`Channel[Msg]`).
+- Asynchronously captures (via streams/pipes in worker threads) the `stdout`/`stderr` of subprocesses, producing real-time messages on `logChannel` for smooth rendering in the TUI Console (ADR-011).
+- Ensures the Tatuí UI never freezes during I/O, forwarding status and logs in real time (Fail-safe Promise).
 
-#### Configuration Manager & Governança Local
-- Gerencia o estado das conexões de banco de dados e as configurações de provedores de Cloud (S3, Git, Google Drive, etc) configuradas localmente pela TUI, além de manter auditoria de operações.
-- Elimina o uso de variáveis de ambiente (`.env`) em favor de um banco **SQLite** local criptografado (`connections.db`). A tabela `restore_history` armazena localmente o registro histórico detalhado, enquanto `cloud_providers` armazena as integrações de nuvem com flexibilidade de esquema via JSON.
-- Interage com o **OS Keyring** nativo (Secret Service, Keychain, Credential Locker) para armazenar de forma segura a chave mestra (Master Key), utilizada na encriptação e decriptação (AES-256 via `nimcrypto`) das senhas dos SGBDs e das credenciais de nuvem (Access Keys, OAuth Tokens, SSH Keys).
+#### Configuration Manager & Local Governance
+- Manages the state of database connections and the Cloud provider settings (S3, Git, Google Drive, etc.) configured locally through the TUI, and keeps an audit trail of operations.
+- Removes the use of environment variables (`.env`) in favor of an encrypted local **SQLite** database (`connections.db`). The `restore_history` table stores the detailed history record locally, while `cloud_providers` stores cloud integrations with schema flexibility through JSON.
+- Interacts with the native **OS Keyring** (Secret Service, Keychain, Credential Locker) to securely store the Master Key, used to encrypt and decrypt (AES-256 via `nimcrypto`) DBMS passwords and cloud credentials (Access Keys, OAuth Tokens, SSH Keys).
 
-#### `db_core.nim` (Camada de Acesso RDBMS)
-- Driver agnóstico que atua como tradutor de dialetos para PostgreSQL, MySQL e SQL Server.
-- Realiza consultas na `information_schema` e converte metadados (tipos, schemas e views) para a abstração interna do Cambalhota.
+#### `db_core.nim` (RDBMS Access Layer)
+- Agnostic driver that acts as a dialect translator for PostgreSQL, MySQL and SQL Server.
+- Queries `information_schema` and converts metadata (types, schemas and views) into Cambalhota's internal abstraction.
 
 #### Migration Engine
-Uma implementação Flyway-like responsável pela evolução contínua da estrutura do banco.
-- **Integração de Conexões (Nova):** Consome credenciais diretamente das conexões salvas e decriptadas pelo `Configuration Manager` (SQLite + Keyring), abandonando o uso de variáveis de ambiente. As execuções geram logs e status reportados via `logChannel` para a TUI unificada (ADR-012).
-- **Nomenclatura Semântica:** Lê do disco os arquivos de versão estruturados (`V{Timestamp}__{Desc}.up.sql` para Up e `V{Timestamp}__{Desc}.down.sql` para Rollback).
-- **Controle Concorrente e Transacional:** Aplica Lockings (ex: `pg_advisory_lock` ou lock table) para evitar corridas ao atualizar o schema, blindando as execuções dentro de blocos transacionais explícitos (`BEGIN/COMMIT`) em bancos suportados.
-- **Rastreio e Auditoria:** Registra a evolução em `Cambalhota.cambalhota_schema_history`, registrando timestamps, durações, autoria e os respectivos *checksums* anti-adulteração de arquivos.
-- **Automação de Diffing:** Extrai as assinaturas de tabelas, índices e *constraints* de dois estados do banco e sugere proativamente as migrações (Up/Down) do *delta* das diferenças.
+A Flyway-like implementation responsible for the continuous evolution of the database structure.
+- **Connection Integration (New):** Consumes credentials directly from the connections saved and decrypted by the `Configuration Manager` (SQLite + Keyring), dropping the use of environment variables. Executions produce logs and status reported via `logChannel` to the unified TUI (ADR-012).
+- **Semantic Naming:** Reads the structured version files from disk (`V{Timestamp}__{Desc}.up.sql` for Up and `V{Timestamp}__{Desc}.down.sql` for Rollback).
+- **Concurrency and Transaction Control:** Applies locks (e.g., `pg_advisory_lock` or a lock table) to prevent races when updating the schema, shielding executions inside explicit transaction blocks (`BEGIN/COMMIT`) on supported databases.
+- **Tracking and Auditing:** Records the evolution in `Cambalhota.cambalhota_schema_history`, storing timestamps, durations, authorship and the corresponding anti-tampering file *checksums*.
+- **Diffing Automation:** Extracts the signatures of tables, indexes and *constraints* from two database states and proactively suggests migrations (Up/Down) for the *delta* of the differences.
 
 #### Dump & Restore Engine
-- Orquestra extrações unificadas e estruturadas em arquivos padrão (`yyyy-mm-dd_..._dump-db.sql`).
-- **Política Estrita do FileSystem:** Os dumps locais são obrigatoriamente armazenados particionados por ano em `~/.cambalhota/db_dump/YYYY/`, assegurando listagens performáticas na aba Restore sem gargalos ao lidar com milhares de arquivos acumulados (ADR-011).
-- Executa rotinas completas de *restore* do banco, permitindo inclusive o mock e a carga de fixtures localmente, assim como migrações cruzadas (**Cross-Database Restore**) onde o Dump é aplicado em uma conexão Destino via acionamento de CLI nativo em `osproc`.
-- **Extractor Adapter / Factory Pattern:** Resolve e instancia dinamicamente o utilitário nativo de dump compatível com o banco alvo (ex: `pg_dump`, `mysqldump`, `mongodump`), tornando a arquitetura agnóstica ao motor de dados. A injeção de credenciais decriptadas é feita por arquivos temporários ou variáveis seguras injetadas no subset OSProc.
-- **Segurança e Otimização:** Delega processamento pesado ao *Pipeline de Streaming & Criptografia* (ADR-004), interceptando a saída universal do utilitário instanciado (`stdout`) e operando em pedaços contínuos. A compressão (`std/zlib`) e a criptografia E2E (`nimcrypto` AES-256) ocorrem on-the-fly por blocos, blindando a memória contra falhas OOM. O pipeline possui tolerância a falhas na Worker Thread (ADR-010): erros de descriptografia de arquivos corrompidos não geram pânico, mas são isolados por `try/except` e repassados como status de erro à TUI. Em paralelo, a *worker thread* alimenta a interface com o status dos blocos processados via canais (`Channel`).
+- Orchestrates unified, structured extractions into standard files (`yyyy-mm-dd_..._dump-db.sql`).
+- **Strict FileSystem Policy:** Local dumps must be stored partitioned by year in `~/.cambalhota/db_dump/YYYY/`, ensuring fast listings in the Restore tab without bottlenecks when handling thousands of accumulated files (ADR-011).
+- Runs full database *restore* routines, including local mocking and fixture loading, as well as cross migrations (**Cross-Database Restore**) where the Dump is applied to a Target connection by invoking the native CLI through `osproc`.
+- **Extractor Adapter / Factory Pattern:** Dynamically resolves and instantiates the native dump utility compatible with the target database (e.g., `pg_dump`, `mysqldump`, `mongodump`), making the architecture agnostic to the data engine. Decrypted credentials are injected through temporary files or secure variables injected into the OSProc subset.
+- **Security and Optimization:** Delegates heavy processing to the *Streaming & Encryption Pipeline* (ADR-004), intercepting the universal output of the instantiated utility (`stdout`) and operating on continuous chunks. Compression (`std/zlib`) and E2E encryption (`nimcrypto` AES-256) happen on the fly per block, shielding memory against OOM failures. The pipeline is fault tolerant in the Worker Thread (ADR-010): decryption errors from corrupted files do not cause a panic; they are isolated by `try/except` and forwarded as an error status to the TUI. In parallel, the *worker thread* feeds the interface with the status of processed blocks through channels (`Channel`).
 
-### 3. Integração Remota (Persistência Off-Site)
-- **S3 / Cloud Connectors:** Adaptador responsável pelo offload autônomo dos dumps massivos gerados no Core para serviços de Cloud Storage (AWS S3, MinIO, Cloudflare R2). Garante resiliência de rede (ADR-010) com configuração estrita de timeout (evitando *deadlocks* em conexões instáveis), implementação de *retries* e *exponential backoff*.
-- **Multithreading e Non-blocking I/O:** O envio e recebimento dos arquivos é feito estritamente através de **Worker Threads** segregadas. O status de progresso (Upload/Download) é transmitido à TUI principal através de `Channel[T]`, garantindo uma UI (`app.nim`) 100% responsiva sem congelamentos durante os gargalos de rede. Para evitar picos de alocação de memória (ADR-010), implementa-se *debouncing* e *batching* no envio de atualizações (ex: de 100 em 100ms em vez de atualizar a cada *byte* transferido), trafegando tipos de dados leves pelo canal.
-- **Protocolo Agnóstico:** Emprega a biblioteca padrão `httpclient` (ou ecosistema Nim HTTP) para orquestração de APIs REST via AWS Signature V4 em vez de caros SDKs pesados, mantendo o executável extremamente leve e focado no protocolo.
+### 3. Remote Integration (Off-Site Persistence)
+- **S3 / Cloud Connectors:** Adapter responsible for the autonomous offload of the massive dumps produced in the Core to Cloud Storage services (AWS S3, MinIO, Cloudflare R2). Ensures network resilience (ADR-010) with a strict timeout configuration (avoiding *deadlocks* on unstable connections), *retries* and *exponential backoff*.
+- **Multithreading and Non-blocking I/O:** File upload and download run strictly in segregated **Worker Threads**. Progress status (Upload/Download) is sent to the main TUI through `Channel[T]`, keeping the UI (`app.nim`) 100% responsive with no freezes during network bottlenecks. To avoid memory allocation spikes (ADR-010), update delivery uses *debouncing* and *batching* (e.g., every 100ms instead of on every transferred *byte*), sending lightweight data types through the channel.
+- **Agnostic Protocol:** Uses the standard `httpclient` library (or the Nim HTTP ecosystem) to orchestrate REST APIs via AWS Signature V4 instead of expensive, heavy SDKs, keeping the executable extremely lightweight and focused on the protocol.

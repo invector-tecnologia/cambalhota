@@ -7,103 +7,103 @@
   ████   ██   ██  ██     ██  ██████   ██   ██  ███████  ██   ██   ██████      ██     ██   ██ 
 </pre>
   <h3>The Database Swiss Army Knife</h3>
-  <p>Controle de versão de banco de dados nativo, ultra-rápido, criptografado e orientado à interface de terminal (TUI).</p>
+  <p>Native, ultra-fast, encrypted, terminal-UI-driven (TUI) database version control.</p>
 </div>
 
 <br />
 
-O **Cambalhota** não é apenas mais um gerenciador de banco de dados; é uma plataforma completa construída em **Nim** que abstrai o caos do gerenciamento de *dumps*, *restores* e *migrations*. Ele foca em segurança local em estado de repouso (at-rest), tolerância a gargalos de RAM e uma experiência visual *Retrowave* direto no seu terminal.
+**Cambalhota** is not just another database manager; it is a complete platform built in **Nim** that abstracts away the chaos of managing *dumps*, *restores* and *migrations*. It focuses on local at-rest security, tolerance to RAM bottlenecks and a *Retrowave* visual experience right in your terminal.
 
-## 🌟 Principais Features (v1.0.1)
+## 🌟 Key Features (v1.0.1)
 
-### 1. 🛡️ Segurança Local-First (Epic 7)
-Nunca mais deixe um dump legível na sua máquina. O Cambalhota exporta e salva arquivos localmente na pasta `~/.cambalhota/db_dumps/YYYY/`.
-Antes de tocar no disco, todo byte é comprimido *on-the-fly* via **Zippy** e blindado em criptografia de nível militar **AES-256 CTR** utilizando `nimcrypto`. Seus dados em repouso estão 100% protegidos contra extrações indevidas.
+### 1. 🛡️ Local-First Security (Epic 7)
+Never again leave a readable dump on your machine. Cambalhota exports and saves files locally in the `~/.cambalhota/db_dumps/YYYY/` folder.
+Before touching the disk, every byte is compressed *on-the-fly* via **Zippy** and shielded with military-grade **AES-256 CTR** encryption using `nimcrypto`. Your data at rest is 100% protected against unauthorized extraction.
 
-### 2. 🌊 Restore Engine & Mecânica Reversa Anti-OOM (Epic 3)
-Fazer o restore de um banco de centenas de gigabytes não precisa congelar sua máquina.
-O Cambalhota opera com injeção direta de blocos (`stdin`) consumindo pouquíssima RAM (*O(1)*). Ele decripta os blocos, infla e encaminha a saída limpa de forma ininterrupta para CLIs como `psql` e `mysql`, enquanto reporta os *Megabytes* injetados. Além disso, regras estritas impedem a injeção acidental por cima do schema `public` (Fail-Safe Ativo).
+### 2. 🌊 Restore Engine & Anti-OOM Reverse Mechanics (Epic 3)
+Restoring a database of hundreds of gigabytes does not have to freeze your machine.
+Cambalhota works by injecting blocks directly (`stdin`) while consuming very little RAM (*O(1)*). It decrypts the blocks, inflates them and streams the clean output uninterruptedly to CLIs such as `psql` and `mysql`, while reporting the *Megabytes* injected. In addition, strict rules prevent accidental injection over the `public` schema (Active Fail-Safe).
 
-### 3. 📜 Migration Engine Transacional (Epic 4)
-O núcleo do Cambalhota atua de maneira semelhante ao *Flyway* ou *Liquibase*, validando scripts de migração (`up/down` com padrão de nomenclatura `VYYYYMMDDHHMM__slug.sql`):
-- **Checksumming (SHA-256):** O motor valida a integridade lógica comparando o HASH do arquivo atual contra a tabela local (`Cambalhota.cambalhota_schema_history`). Se uma vírgula foi alterada num arquivo já aplicado, o processo sofre abordo total.
-- **Isolamento Transacional:** Todo script executado no seu banco de dados é automaticamente envelopado por um invólucro de `BEGIN` e `COMMIT`. Se um erro sintático ocorrer na linha 40, o script inteiro sofre Rollback e a consistência do SGBD é mantida (nas engines suportadas).
+### 3. 📜 Transactional Migration Engine (Epic 4)
+The Cambalhota core works much like *Flyway* or *Liquibase*, validating migration scripts (`up/down` with the `VYYYYMMDDHHMM__slug.sql` naming pattern):
+- **Checksumming (SHA-256):** The engine validates logical integrity by comparing the HASH of the current file against the local table (`Cambalhota.cambalhota_schema_history`). If a single comma changed in an already applied file, the process is fully aborted.
+- **Transactional Isolation:** Every script executed on your database is automatically wrapped in a `BEGIN` and `COMMIT` envelope. If a syntax error occurs on line 40, the whole script is rolled back and the DBMS consistency is preserved (on supported engines).
 
 ### 4. 📺 Tatuí TUI (Epic 5)
-Chega de olhar para telas de log subindo descontroladamente ou congeladas. O *Cambalhota* implementa a biblioteca **Tatuí** para te dar um ambiente Multithread responsivo:
-- Abas e painéis isolados de configurações, backups locais, histórico e File Viewer.
-- Navegue nos seus scripts locais, leia todo o código na TUI e aplique suas migrações apertando `Enter`. 
-- Log não-bloqueante via *Channels*, provendo barras de progresso contínuas e imunes ao peso do processamento I/O do disco/banco.
+No more staring at log screens scrolling out of control or frozen. *Cambalhota* uses the **Tatuí** library to give you a responsive multithreaded environment:
+- Isolated tabs and panels for settings, local backups, history and File Viewer.
+- Browse your local scripts, read all the code in the TUI and apply your migrations by pressing `Enter`. 
+- Non-blocking logging via *Channels*, providing continuous progress bars immune to the weight of disk/database I/O processing.
 
-### 5. 🗄️ Multi-Conexões Seguras & Cross-Restore (v1.0.1)
-Acabou a bagunça de `.env`! O Cambalhota gerencia múltiplas conexões de banco de dados diretamente na interface, armazenando as senhas encriptadas com AES em um banco SQLite invisível (`~/.cambalhota/connections.db`).
-Graças à aba `Restore` com layout *side-by-side*, você pode pegar o dump de um servidor local e mandar restaurar direto num banco remoto na nuvem cruzando pontas com o mínimo de cliques.
+### 5. 🗄️ Secure Multi-Connections & Cross-Restore (v1.0.1)
+No more `.env` mess! Cambalhota manages multiple database connections directly in the interface, storing AES-encrypted passwords in a hidden SQLite database (`~/.cambalhota/connections.db`).
+Thanks to the `Restore` tab with a *side-by-side* layout, you can take the dump of a local server and restore it straight into a remote cloud database, bridging both ends with minimal clicks.
 
 ---
 
-## 🚀 Instalação (One-Liner)
+## 🚀 Installation (One-Liner)
 
-Se você já quer saltar para a ação e instalar o utilitário nativo na sua máquina, execute:
+If you want to jump straight into action and install the native utility on your machine, run:
 
 ```bash
 curl -sSL https://github.com/invector-tecnologia/cambalhota/releases/download/v1.0.0/install.sh | bash
 ```
 
-*Nota: O script baixará o binário recém-compilado da nossa página de [Releases](https://github.com/invector-tecnologia/cambalhota/releases) e aplicará a configuração em `/usr/local/bin`.*
+*Note: The script downloads the freshly compiled binary from our [Releases](https://github.com/invector-tecnologia/cambalhota/releases) page and installs it in `/usr/local/bin`.*
 
 ---
 
-## 📖 Como Usar (Guia Definitivo)
+## 📖 How to Use (Definitive Guide)
 
-### 1. Invocando o Motor
-Basta chamar `cambalhota` de dentro do diretório do seu projeto onde os seus arquivos de configuração ou a pasta `migrations/up/` habitam.
+### 1. Invoking the Engine
+Just call `cambalhota` from inside your project directory, where your configuration files or the `migrations/up/` folder live.
 ```bash
 cambalhota
 ```
 
-### 2. Gestão de Conexões (TUI SQLite)
-Diferente dos tradicionais utilitários, não exigimos preenchimento de variáveis de ambiente.
-Ao iniciar a aplicação, vá até a aba **Config**, pressione o comando para adicionar e insira os dados do banco (Host, Porta, Engine, Credenciais).
-- Todas as senhas digitadas são blindadas e criptografadas em AES antes de tocar no disco.
-- Você pode cadastrar dezenas de conexões e, na hora do Backup ou Restore, o painel interativo pedirá para você apontar o servidor de Origem e Destino com um simples clique de setas!
+### 2. Connection Management (TUI SQLite)
+Unlike traditional utilities, we do not require environment variables to be set.
+When the application starts, go to the **Config** tab, press the add command and enter the database details (Host, Port, Engine, Credentials).
+- Every password you type is shielded and AES-encrypted before touching the disk.
+- You can register dozens of connections and, at Backup or Restore time, the interactive panel asks you to pick the Source and Target server with a simple arrow-key press!
 
-### 3. Navegação (Keybinds)
-- `Esquerda / Direita`: Altera as abas no topo da aplicação (Config -> Backup -> Restore / Migrations).
-- `Cima / Baixo`: Seleciona um arquivo listado no painel de *History / Actions*.
-- `Enter`: Executa uma ação primária sobre o arquivo (Por exemplo, ler o script SQL e disparar o Motor de Migrações).
-- `Ctrl + Q`: Encerra o utilitário graciosamente abortando processos zumbis.
+### 3. Navigation (Keybinds)
+- `Left / Right`: Switches the tabs at the top of the application (Config -> Backup -> Restore / Migrations).
+- `Up / Down`: Selects a file listed in the *History / Actions* panel.
+- `Enter`: Runs a primary action on the file (for example, reading the SQL script and firing the Migration Engine).
+- `Ctrl + Q`: Gracefully exits the utility, aborting zombie processes.
 
-### 4. Estruturando suas Migrações Locais
-O motor (Epic 4) escaneia os arquivos SQL em `migrations/up/`. A regra de nomenclatura deve ser seguida para que a ferramenta compreenda a cronologia universal:
+### 4. Structuring Your Local Migrations
+The engine (Epic 4) scans the SQL files in `migrations/up/`. The naming rule must be followed so the tool understands the universal chronology:
 ```
 V20260717164800__create_users_table.up.sql
 V20260717170000__add_tenant_id_to_users.up.sql
 ```
-- A letra `V` seguida pelo Timestamp é vital (Garante ordem e *sorting* matemático).
-- O caractere duplo `__` separa a versão do slug.
+- The letter `V` followed by the Timestamp is vital (it guarantees order and mathematical *sorting*).
+- The double `__` character separates the version from the slug.
 
 ---
 
-## 🛠️ Para Desenvolvedores (Compilando Localmente)
-O Cambalhota foi construído integralmente em [Nim](https://nim-lang.org/). Se você quiser brincar com a arquitetura e injetar seus próprios ADRs:
+## 🛠️ For Developers (Building Locally)
+Cambalhota is built entirely in [Nim](https://nim-lang.org/). If you want to play with the architecture and inject your own ADRs:
 
-1. Assegure-se de ter o `nim` e o `nimble` (gerenciador de pacotes) instalados:
+1. Make sure `nim` and `nimble` (package manager) are installed:
    ```bash
    curl https://nim-lang.org/choosenim/init.sh -sSf | sh
    ```
-2. Clone o repositório:
+2. Clone the repository:
    ```bash
    git clone https://github.com/invector-tecnologia/cambalhota.git
    cd cambalhota
    ```
-3. Compile a aplicação na flag mais agressiva de liberação (Release C Backend):
+3. Build the application with the most aggressive release flag (Release C Backend):
    ```bash
    nimble build -y -d:release
    ```
-4. Execute via:
+4. Run it with:
    ```bash
    ./cambalhota
    ```
 
 ---
-*Cambalhota - Porque gerenciar schemas e segurar os dados no tranco nunca precisou ser doloroso.*
+*Cambalhota - Because managing schemas and holding your data together never had to be painful.*

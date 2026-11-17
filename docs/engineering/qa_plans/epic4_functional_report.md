@@ -1,17 +1,17 @@
-# Dossiê de Homologação de Qualidade - Épico 4 (Migration Engine)
-**Status:** QA Aprovado ✅  
-**Data:** 2026-07-17
+# Quality Acceptance Dossier - Epic 4 (Migration Engine)
+**Status:** QA Approved ✅  
+**Date:** 2026-07-17
 
-## 1. Verificações de Base
-- [x] O código fonte foi submetido a build com sucesso (`nimble build`).
-- [x] A suíte de testes unitários foi processada e passou sem falhas (`nimble test tmigrations`).
-- [x] Avaliada a existência e a robustez da validação de checksum (SHA-256) (implementação da função `applyMigration`).
-- [x] O wrapper transacional `BEGIN/COMMIT` envolve corretamente a execução.
+## 1. Baseline Checks
+- [x] The source code was built successfully (`nimble build`).
+- [x] The unit test suite was run and passed without failures (`nimble test tmigrations`).
+- [x] Assessed the existence and robustness of the checksum validation (SHA-256) (implementation of the `applyMigration` function).
+- [x] The `BEGIN/COMMIT` transactional wrapper correctly wraps the execution.
 
-## 2. Cenários Gherkin
+## 2. Gherkin Scenarios
 
 ```gherkin
-Feature: Validação de Integridade por Checksumming
+Feature: Integrity Validation by Checksumming
   As an operational tool
   I want to ensure a migration file hasn't been altered after being installed
   So that I can guarantee structural consistency and prevent malicious or accidental corruption
@@ -33,7 +33,7 @@ Feature: Validação de Integridade por Checksumming
     And aborts execution immediately throwing a "MigrationError"
     And preventing any database state modification
 
-Feature: Mecanismos de Proteção Transacional
+Feature: Transactional Protection Mechanisms
   As a database engineer
   I want script executions to be wrapped in transactions
   So that incomplete scripts rollback entirely if there is an error
@@ -46,11 +46,11 @@ Feature: Mecanismos de Proteção Transacional
     And the state of the database remains completely unchanged
 ```
 
-## 3. Relatório da Intervenção QA
-Durante o processo de Quality Assurance (QA), foi constatado que, apesar da lógica atômica estar presente em `src/core/migrations.nim`, faltava a **orquestração efetiva da validação** (o comparativo do hash na base contra o script rodado) e a função não estava conectada ao CLI TUI (`main.nim`).
+## 3. QA Intervention Report
+During the Quality Assurance (QA) process, it was found that, although the atomic logic was present in `src/core/migrations.nim`, the **effective orchestration of the validation** (comparing the hash in the database against the script that ran) was missing and the function was not connected to the CLI TUI (`main.nim`).
 
-A equipe de QA interviu diretamente garantindo:
-1. Inserção de `applyMigration` com o fluxo de falha (Throw CatchableError) quando houver diferença de hash (`getInstalledChecksum` vs arquivo físico).
-2. Substituição no Controller (`src/main.nim`) apontando para o `applyMigration` utilizando o path real e conectando a restrição estrutural.
+The QA team intervened directly, ensuring:
+1. Insertion of `applyMigration` with the failure flow (Throw CatchableError) when there is a hash mismatch (`getInstalledChecksum` vs physical file).
+2. Replacement in the Controller (`src/main.nim`) pointing to `applyMigration` using the real path and wiring the structural constraint.
 
-O processo agora é Fail-Safe, confirmando a entrega das features 4.1, 4.3 e 4.4.
+The process is now Fail-Safe, confirming the delivery of features 4.1, 4.3 and 4.4.

@@ -20,7 +20,7 @@ proc getRestoreCommand*(conf: RestoreConfig): string =
   case conf.dbType
   of dbPostgres:
     if conf.schema == "public" or conf.schema.strip().len == 0:
-      raise newException(ValueError, "Uso do schema public é proibido")
+      raise newException(ValueError, "Use of the public schema is forbidden")
     return "psql -h " & conf.host & " -p " & $conf.port & " -U " & conf.user & " -d " & conf.database
   of dbMysql:
     return "mysql -h " & conf.host & " -P " & $conf.port & " -u " & conf.user & " " & conf.database
@@ -87,12 +87,12 @@ proc workerRestoreProc(conf: RestoreConfig) {.thread.} =
       littleEndian32(compLen.addr, compLenLE.addr)
       
       if compLen <= 0 or compLen > 100 * 1024 * 1024:
-        raise newException(ValueError, "Comprimento do bloco invalido")
+        raise newException(ValueError, "Invalid block length")
         
       var encryptedChunk = newString(compLen)
       let chunkRead = inFile.readBuffer(encryptedChunk[0].addr, compLen)
       if chunkRead < compLen:
-        raise newException(ValueError, "Arquivo corrompido, bloco incompleto")
+        raise newException(ValueError, "Corrupted file: incomplete block")
         
       var compressedChunk = newString(compLen)
       ctx.decrypt(cast[ptr byte](encryptedChunk[0].addr), cast[ptr byte](compressedChunk[0].addr), uint(compLen))

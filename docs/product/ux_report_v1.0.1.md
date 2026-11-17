@@ -1,25 +1,25 @@
-# UX Report - Transição Entre Bancos (v1.0.1)
+# UX Report - Switching Between Databases (v1.0.1)
 
-## Contexto
-Com a introdução de múltiplas conexões, a arquitetura de informação da TUI do Cambalhota exige um refatoramento focado na clareza do contexto ativo (Origem vs. Destino).
+## Context
+With the introduction of multiple connections, the information architecture of the Cambalhota TUI requires a refactoring focused on the clarity of the active context (Source vs. Target).
 
-## Modificações na Interface (Abas e Painéis)
+## Interface Changes (Tabs and Panels)
 
-1. **Header Fixo (Global):**
-   - O canto superior esquerdo consolida a identidade visual com a logo Retrowave ASCII.
-   - O canto superior direito deve servir como um "Status Bar", indicando quantidade de conexões cadastradas.
+1. **Fixed Header (Global):**
+   - The top-left corner consolidates the visual identity with the Retrowave ASCII logo.
+   - The top-right corner must serve as a "Status Bar", showing the number of registered connections.
 
-2. **Nova Aba "Conexões":**
-   - **Visualização:** Uma tabela clara mostrando: Nome, Engine (PG, MySql, etc) e Host.
-   - **Interação:** Formulários modais sobrepostos para inserção de novas credenciais, evitando a troca de telas abruptas.
+2. **New "Connections" Tab:**
+   - **View:** A clear table showing: Name, Engine (PG, MySql, etc) and Host.
+   - **Interaction:** Overlaid modal forms for entering new credentials, avoiding abrupt screen switches.
 
-3. **Fluxo na Aba "Backup":**
-   - Antes de iniciar a extração, o usuário é obrigado a focalizar e confirmar o "Banco de Origem".
-   - A quebra de fluxo com mensagens do tipo "Selecione uma Origem" previne extrações em bancos incorretos.
+3. **"Backup" Tab Flow:**
+   - Before starting the extraction, the user is required to focus and confirm the "Source Database".
+   - Interrupting the flow with messages such as "Select a Source" prevents extractions from the wrong databases.
 
-4. **Fluxo na Aba "Restore (Cruzado)":**
-   - **Separação Cognitiva:** O painel será dividido. Lado esquerdo: "O quê?" (Seleção de Dump). Lado direito: "Para Onde?" (Seleção do Banco Destino).
-   - Este formato "side-by-side" mapeia perfeitamente o modelo mental do restore cruzado.
+4. **"Restore (Cross)" Tab Flow:**
+   - **Cognitive Separation:** The panel will be split. Left side: "What?" (Dump Selection). Right side: "Where to?" (Target Database Selection).
+   - This "side-by-side" format maps perfectly onto the mental model of the cross restore.
 
-5. **Tratamento de Erros:**
-   - Em caso de falha de decriptação (AES) ou conexão rejeitada, modais de erro guiarão o usuário de volta à Aba Conexões para correção.
+5. **Error Handling:**
+   - In case of a decryption (AES) failure or a rejected connection, error modals will guide the user back to the Connections Tab for correction.

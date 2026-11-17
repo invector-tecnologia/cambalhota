@@ -24,7 +24,7 @@ proc getCommand*(conf: ExtractorConfig): string =
   case conf.dbType
   of dbPostgres:
     if conf.schema == "public" or conf.schema.strip().len == 0:
-      raise newException(ValueError, "Uso do schema public é proibido")
+      raise newException(ValueError, "Use of the public schema is forbidden")
     return "pg_dump -h " & conf.host & " -p " & $conf.port & " -U " & conf.user & " -n " & conf.schema & " " & conf.database
   of dbMysql:
     return "mysqldump -h " & conf.host & " -P " & $conf.port & " -u " & conf.user & " " & conf.database

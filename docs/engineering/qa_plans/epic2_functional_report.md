@@ -1,40 +1,40 @@
 # Epic 2: Functional Test Report (TUI & Concurrency)
 
-## Visão Geral
-Este relatório detalha os testes funcionais exploratórios conduzidos no executável `cambalhota` para validar a implementação da Interface de Terminal (TUI) e o isolamento de concorrência com o subprocesso, referenciados no **ADR-002**.
+## Overview
+This report details the exploratory functional tests run on the `cambalhota` executable to validate the implementation of the Terminal User Interface (TUI) and the concurrency isolation with the subprocess, referenced in **ADR-002**.
 
-## 1. Compilação e Testes Unitários
-- **Build (`nimble build`)**: Sucesso. O binário `./cambalhota` compila sem erros (backend C, multithreading habilitado).
-- **Unit Tests (`nimble test`)**: Sucesso. Todos os testes passam, confirmando a estabilidade base dos módulos de config, checks e worker de extração.
+## 1. Build and Unit Tests
+- **Build (`nimble build`)**: Success. The `./cambalhota` binary compiles without errors (C backend, multithreading enabled).
+- **Unit Tests (`nimble test`)**: Success. All tests pass, confirming the base stability of the config, checks and extraction worker modules.
 
-## 2. Testes de Fluxo e Resiliência da TUI
+## 2. TUI Flow and Resilience Tests
 
 ### 2.1 Happy Path (StSuccess)
-- **Ação:** Executar a aplicação TUI em um cenário válido de comando (atual _hardcoded_ `pg_dump --version`).
-- **Resultado:** A TUI (`tatui`) é instanciada corretamente e não bloqueia enquanto o subprocesso executa em _background_. A saída (STDOUT) flui via _channels_ e é renderizada em tempo real. O estado transita graciosamente para `stSuccess` ao término. 
+- **Action:** Run the TUI application in a valid command scenario (currently _hardcoded_ `pg_dump --version`).
+- **Result:** The TUI (`tatui`) is instantiated correctly and does not block while the subprocess runs in the _background_. The output (STDOUT) flows through _channels_ and is rendered in real time. The state transitions gracefully to `stSuccess` at the end. 
 - **Status:** **PASS** ✅
 
-### 2.2 Falha no Subprocesso (Fail-safe UI)
-- **Ação:** Executar a TUI forçando uma falha de binário (ex: invocando um executável inexistente).
-- **Resultado:** A thread trabalhadora intercepta a exceção e envia uma mensagem do tipo `mkError` via channel. A TUI recebe o evento, altera o título para `stError` (borda vermelha) e exibe o log de erro no painel. O loop principal não "crasha"; a interface continua operante esperando que o usuário pressione 'q'.
-- **Status:** **PASS** ✅ (Cumpre integralmente o comportamento _fail-safe_ visual descrito no ADR-002).
+### 2.2 Subprocess Failure (Fail-safe UI)
+- **Action:** Run the TUI forcing a binary failure (e.g., invoking a nonexistent executable).
+- **Result:** The worker thread intercepts the exception and sends an `mkError` message through the channel. The TUI receives the event, changes the title to `stError` (red border) and displays the error log in the panel. The main loop does not crash; the interface keeps working while it waits for the user to press 'q'.
+- **Status:** **PASS** ✅ (Fully meets the visual _fail-safe_ behavior described in ADR-002).
 
-## 3. Validação Semântica (Bugs Encontrados)
+## 3. Semantic Validation (Bugs Found)
 
-### 🚨 Falha: Ausência de Validação do Schema "public" na CLI
-- **Problema:** A especificação exige que: *"falhas (como tentar usar o schema public) lançam alertas visuais fail-safe"*. Atualmente, o executável `./cambalhota` não realiza parse de argumentos de linha de comando. Além disso, o arquivo `src/db/config.nim` possui apenas um comentário sobre a restrição do schema, mas nenhuma lógica em _runtime_ levanta erro se `schema == "public"` for configurado e passado à camada de extração.
-- **Impacto:** O utilitário corre risco de rodar queries não autorizadas no schema `public`.
-- **Sugestão de Correção (Engineering):** 
-  1. Implementar o parseamento de argumentos na CLI (`std/parseopt`).
-  2. Implementar a validação na função `initPgConfig` (ou no inicializador da CLI) que jogue um Erro Crítico antes da chamada ao banco, disparando o evento `stError` na TUI caso o schema solicitado seja o `public`.
-- **Status:** **PASS** ✅ (Bug fix aplicado e testado com sucesso)
+### 🚨 Failure: Missing Validation of the "public" Schema in the CLI
+- **Problem:** The specification requires that: *"failures (such as trying to use the public schema) raise fail-safe visual alerts"*. Currently, the `./cambalhota` executable does not parse command-line arguments. In addition, the `src/db/config.nim` file only has a comment about the schema restriction, but no _runtime_ logic raises an error if `schema == "public"` is configured and passed to the extraction layer.
+- **Impact:** The utility risks running unauthorized queries on the `public` schema.
+- **Suggested Fix (Engineering):** 
+  1. Implement argument parsing in the CLI (`std/parseopt`).
+  2. Implement the validation in the `initPgConfig` function (or in the CLI initializer) that throws a Critical Error before the database call, triggering the `stError` event in the TUI when the requested schema is `public`.
+- **Status:** **PASS** ✅ (Bug fix applied and tested successfully)
 
-### 3.1 Re-teste (Validação do Bug Fix ADR-003)
-- **Ação:** Executar a aplicação via CLI forçando a violação do schema com `./cambalhota --schema public` (e também omitindo `--schema` para testar o fallback).
-- **Resultado:** O executável agora suporta argumentos via CLI. Ao tentar utilizar o schema proibido, a validação de _Hard Block_ é acionada. A interface gráfica (TUI) inicia e imediatamente exibe o alerta de erro `stError` com a mensagem visual: `"ERROR: Uso do schema public é proibido"`. O processo em background aborta de forma segura sem disparar o `pg_dump`. O fallback caso `--schema` não seja providenciado foi ajustado para `"Cambalhota"`.
+### 3.1 Retest (Validation of the ADR-003 Bug Fix)
+- **Action:** Run the application through the CLI forcing the schema violation with `./cambalhota --schema public` (and also omitting `--schema` to test the fallback).
+- **Result:** The executable now supports CLI arguments. When trying to use the forbidden schema, the _Hard Block_ validation is triggered. The graphical interface (TUI) starts and immediately displays the `stError` error alert with the visual message: `"ERROR: Uso do schema public é proibido"`. The background process aborts safely without triggering `pg_dump`. The fallback when `--schema` is not provided was set to `"Cambalhota"`.
 - **Status:** **PASS** ✅
 
-## Conclusão
-A arquitetura base (TUI + Worker Threads com Channels) manteve sua estabilidade. O débito técnico referente ao _Hard Block_ do schema `public` foi integralmente solucionado através do parseamento dos parâmetros pela CLI e da regra preventiva acoplada à TUI. As blindagens _fail-safe_ estão validadas.
+## Conclusion
+The base architecture (TUI + Worker Threads with Channels) kept its stability. The technical debt related to the _Hard Block_ of the `public` schema was fully resolved through CLI parameter parsing and the preventive rule coupled to the TUI. The _fail-safe_ safeguards are validated.
 
-**Decisão QA:** Aprovado. O Épico 2 foi inspecionado, os requisitos de resiliência e bloqueio de schema proibido foram cumpridos com eficácia. **QA Pass**.
+**QA Decision:** Approved. Epic 2 was inspected; the resilience and forbidden-schema blocking requirements were met effectively. **QA Pass**.

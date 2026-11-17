@@ -1,23 +1,23 @@
 # 📦 Release Notes - Cambalhota v1.0.2
 
-Esta atualização traz um grande foco em **Quality of Life (QoL)**, entregando uma interface de terminal ainda mais amigável, fluxos otimizados e maior segurança estrutural em eventos de sistema.
+This update brings a strong focus on **Quality of Life (QoL)**, delivering an even friendlier terminal interface, optimized flows and greater structural safety on system events.
 
-## ✨ Novidades e Melhorias de UX (QoL)
+## ✨ New Features and UX Improvements (QoL)
 
-- **Histórico de Restore (Audit Log):** Uma nova aba (`4. History`) foi adicionada. Agora o Cambalhota rastreia e exibe todo o histórico de backups restaurados, relatando com precisão quando foi restaurado, o arquivo de origem, em qual motor de banco e qual o schema de destino.
-- **Guia Rápido Dinâmico (Sidebar):** Adicionada uma barra lateral interativa à direita da interface. Ela exibe tutoriais e atalhos úteis dependendo do menu ativo, facilitando muito o uso para novos usuários sem a necessidade de consultar manuais externos.
-- **Gestão Ágil de Conexões:** O menu de Configuração (Menu 1) foi sobrecarregado com produtividade:
-  - `[E]` **(Edit):** Agora é possível editar os dados de uma conexão existente.
-  - `[C]` **(Clone):** Novo recurso para duplicar uma configuração existente, ideal para cadastrar rapidamente um novo Schema sem precisar redigitar host/user/senha.
-- **Interface de Digitação Visível:** Os formulários da TUI (como a inserção de banco de dados) agora exibem um cursor de digitação retro/hacker (`█`). Isso fornece feedback tátil de onde a sua entrada de teclado está agindo.
-- **Escapamento e Cancelamentos:** O suporte a `ESC` e `Ctrl+C` durante formulários foi reforçado, abortando edições com segurança sem prender o estado do usuário.
-- **Detalhes de Conexões Mais Claros:** A listagem foi redesenhada para evidenciar, à primeira vista, de qual tipo de banco estamos falando. As tags `[PG]`, `[MYSQL]`, `[SQLITE]` etc., acompanham o nome do DB e o Schema para não deixar margens a erros durante um Restore crítico.
+- **Restore History (Audit Log):** A new tab (`4. History`) was added. Cambalhota now tracks and displays the full history of restored backups, reporting precisely when it was restored, the source file, which database engine and which target schema.
+- **Dynamic Quick Guide (Sidebar):** An interactive sidebar was added on the right side of the interface. It shows tutorials and useful shortcuts depending on the active menu, making it much easier for new users without having to consult external manuals.
+- **Agile Connection Management:** The Configuration menu (Menu 1) was loaded with productivity:
+  - `[E]` **(Edit):** You can now edit the details of an existing connection.
+  - `[C]` **(Clone):** New feature to duplicate an existing configuration, ideal for quickly registering a new Schema without retyping host/user/password.
+- **Visible Typing Interface:** The TUI forms (such as database entry) now show a retro/hacker typing cursor (`█`). This gives tactile feedback on where your keyboard input is acting.
+- **Escaping and Cancellations:** Support for `ESC` and `Ctrl+C` during forms was reinforced, safely aborting edits without trapping the user's state.
+- **Clearer Connection Details:** The listing was redesigned to make it obvious, at first glance, which type of database we are talking about. The `[PG]`, `[MYSQL]`, `[SQLITE]` tags, etc., accompany the DB name and the Schema to leave no room for errors during a critical Restore.
 
-## 🐛 Correções de Bugs (Bug Fixes)
+## 🐛 Bug Fixes
 
-- **Correção Crítica (Terminal Resize Crash):** Resolvido um problema onde a alteração do tamanho da janela do terminal disparava um fechamento repentino do Cambalhota.
-  - *Detalhes técnicos:* O redimensionamento do terminal emite o sinal nativo `SIGWINCH`, que interrompe imediatamente chamadas de sistema IO (`fwrite/fflush`) em processamento. O evento resultava em `EINTR`, que a stack transbordava como `IOError`. Implementamos um colete à prova de falhas (`try...except`) no renderizador principal, permitindo que a UI absorva o tranco e redesenhe os buffers instantaneamente após a queda do sinal.
+- **Critical Fix (Terminal Resize Crash):** Fixed an issue where resizing the terminal window caused Cambalhota to close abruptly.
+  - *Technical details:* Resizing the terminal emits the native `SIGWINCH` signal, which immediately interrupts IO system calls (`fwrite/fflush`) in progress. The event resulted in `EINTR`, which the stack surfaced as an `IOError`. We implemented a fail-safe vest (`try...except`) in the main renderer, letting the UI absorb the jolt and redraw the buffers instantly once the signal is gone.
 
-## 🤖 Operacional
+## 🤖 Operations
 
-- **Organização da Bateria de Testes:** Instruímos nossos agentes de QA para consolidar e gerar arquivos de testes (.nim) nativamente centralizados e operacionais a partir da pasta `/tests/`, refinando o pipeline e deixando o repositório principal sempre limpo.
+- **Test Suite Organization:** We instructed our QA agents to consolidate and generate test files (.nim) natively centralized and operational from the `/tests/` folder, refining the pipeline and keeping the main repository always clean.

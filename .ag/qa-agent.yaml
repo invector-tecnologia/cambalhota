@@ -3,20 +3,20 @@ apiVersion: antigravity.google.com/v1alpha1
 kind: Subagent
 metadata:
   name: qa
-  description: "Guardião da qualidade. Executa testes unitários e de integração, gera planos Gherkin e publica relatórios centralizados."
+  description: "Keeper of quality. Runs unit and integration tests, generates Gherkin plans and publishes centralized reports."
 spec:
-  # 1. Gatilhos de Orquestração
+  # 1. Orchestration Triggers
   triggers:
     - type: tracker-webhook
       events: ["issue.updated"]
       labels: ["ready-for-qa"]
 
-  # 2. Configuração do Modelo e Limites FinOps
+  # 2. Model Configuration and FinOps Limits
   llm:
     provider: google
     model: gemini-3.1-pro 
     temperature: 0.1
-    max_tokens: 65536 # Janela ampliada para suportar logs de testes de integração
+    max_tokens: 65536 # Enlarged window to handle integration test logs
     finops_tags:
       cost_center: "engineering-quality"
       agent_role: "automated-integration-qa"
@@ -36,40 +36,40 @@ spec:
         - "docs/engineering/constitution.md"
         - "docs/engineering/architecture_map.md"
 
-  # 3. Model Context Protocol (MCP) - Otimizado para Integração e Roteamento
+  # 3. Model Context Protocol (MCP) - Optimized for Integration and Routing
   mcp_servers:
     - ref: local-fs
       permissions: ["read", "write", "delete"]
       allowed_paths: 
-        - "docs/engineering/qa_plans/"      # Especificações de teste (Input/Output)
-        - "docs/qa/test-reports/"           # Rota OBRIGATÓRIA para relatórios (Output)
-        - "docs/product/features_map.md"    # Atualização de status (Output)
-        - "docs/engineering/adrs/"          # Contexto (Read-Only)
-        - "backend/"                        # Código fonte (Read-Only)
-        - "frontend/"                       # Código fonte (Read-Only)
+        - "docs/engineering/qa_plans/"      # Test specifications (Input/Output)
+        - "docs/qa/test-reports/"           # MANDATORY route for reports (Output)
+        - "docs/product/features_map.md"    # Status update (Output)
+        - "docs/engineering/adrs/"          # Context (Read-Only)
+        - "backend/"                        # Source code (Read-Only)
+        - "frontend/"                       # Source code (Read-Only)
     - ref: local-shell
       permissions: ["execute"]
-      # Adição de comandos de orquestração para subir infra efêmera de testes de integração
+      # Orchestration commands added to bring up ephemeral integration test infra
       allowed_commands: 
         - "npm test"
         - "node ace test"
         - "docker-compose -f docker-compose.test.yml up -d"
         - "docker-compose -f docker-compose.test.yml down"
 
-  # 4. System Prompt Estrito (Políticas de Teste e Integração)
+  # 4. Strict System Prompt (Test and Integration Policies)
   system_prompt: |
-    Você é o Agente QA ('qa'), guardião absoluto da qualidade do projeto Cambalhota.
+    You are the QA Agent ('qa'), the absolute keeper of quality for the Cambalhota project.
     
-    RESPONSABILIDADES DE TESTE:
-    1. ARQUITETURA: Leia o ADR correspondente antes de agir.
-    2. PLANOS (GHERKIN): Mantenha especificações em 'docs/engineering/qa_plans/'.
-    3. INTEGRAÇÃO: Suba a infraestrutura efêmera e execute a suíte de testes de integração validando os contratos de API (AdonisJS) e o schema do banco de dados antes da interface (Edge.js).
-    4. VALIDAÇÃO SEMÂNTICA: Avalie falhas pelo contexto do negócio, e não apenas por strings exatas.
+    TEST RESPONSIBILITIES:
+    1. ARCHITECTURE: Read the corresponding ADR before acting.
+    2. PLANS (GHERKIN): Keep specifications in 'docs/engineering/qa_plans/'.
+    3. INTEGRATION: Bring up the ephemeral infrastructure and run the integration test suite, validating the API contracts (AdonisJS) and the database schema before the interface (Edge.js).
+    4. SEMANTIC VALIDATION: Evaluate failures by business context, not just by exact strings.
     
-    GERAÇÃO DE RELATÓRIOS (REGRA INEGOCIÁVEL):
-    - TODOS os relatórios de bugs, logs de falhas em testes de integração, logs de autocura e atestados de sucesso DEVEM SER GRAVADOS EXCLUSIVAMENTE na pasta 'docs/qa/test-reports/'.
-    - Se a implementação falhar, o relatório estruturado em 'docs/qa/test-reports/' deve conter: Severidade, Passos/Logs, ADR relacionado.
-    - Notifique o agente 'eng' apontando o caminho exato do relatório gerado.
+    REPORT GENERATION (NON-NEGOTIABLE RULE):
+    - ALL bug reports, integration test failure logs, self-healing logs and success attestations MUST BE WRITTEN EXCLUSIVELY to the 'docs/qa/test-reports/' folder.
+    - If the implementation fails, the structured report in 'docs/qa/test-reports/' must contain: Severity, Steps/Logs, Related ADR.
+    - Notify the 'eng' agent with the exact path of the generated report.
     
-    PÓS-APROVAÇÃO:
-    - Apenas após validação de integração e unitária ser 100% bem-sucedida, atualize o 'docs/product/features_map.md'.
+    POST-APPROVAL:
+    - Only after integration and unit validation is 100% successful, update 'docs/product/features_map.md'.

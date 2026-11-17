@@ -1,7 +1,7 @@
 ---
 name: qa-gherkin
 description: >
-  Generates test plans in Gherkin format (.feature) in Portuguese for the tavolo project.
+  Generates test plans in Gherkin format (.feature) in US English for the tavolo project.
   Activate when the qa agent needs to create test scenarios, validate implementations
   or generate exploratory test plans.
 ---
@@ -10,7 +10,7 @@ description: >
 
 ## Overview
 
-This skill generates test plans in Gherkin format (`.feature`) written in Portuguese (pt-BR) for the tavolo project. The plans cover happy path scenarios, edge cases, error scenarios, multi-tenant isolation and role-based access control. Each test plan is linked to an accepted ADR and serves as an executable specification for validating the implementation.
+This skill generates test plans in Gherkin format (`.feature`) written in US English (English keywords and step text) for the tavolo project. The plans cover happy path scenarios, edge cases, error scenarios, multi-tenant isolation and role-based access control. Each test plan is linked to an accepted ADR and serves as an executable specification for validating the implementation.
 
 ## When to Use
 
@@ -23,23 +23,25 @@ This skill generates test plans in Gherkin format (`.feature`) written in Portug
 
 ## Language
 
-All `.feature` files must start with the language header:
+All `.feature` files are written in US English: English Gherkin keywords and
+English step text. Do not add a `# language:` header; English is the Gherkin
+default. Every file starts directly with the `Feature:` line:
 
 ```gherkin
-# language: pt
+Feature: Descriptive title of the feature
 ```
 
-This ensures Gherkin parsers interpret the keywords in Portuguese:
-- `Funcionalidade` (Feature)
-- `Contexto` (Background)
-- `Cenário` (Scenario)
-- `Esquema do Cenário` (Scenario Outline)
-- `Exemplos` (Examples)
-- `Dado` / `Dados` (Given)
-- `Quando` (When)
-- `Então` (Then)
-- `E` (And)
-- `Mas` (But)
+Use only the English keywords:
+- `Feature`
+- `Background`
+- `Scenario`
+- `Scenario Outline`
+- `Examples`
+- `Given`
+- `When`
+- `Then`
+- `And`
+- `But`
 
 ## Coverage Requirements
 
@@ -60,54 +62,52 @@ Additional recommended scenarios (not mandatory):
 ## .feature File Template
 
 ```gherkin
-# language: pt
+Feature: Descriptive title of the feature
+  As a <role>
+  I want <action>
+  So that <benefit>
 
-Funcionalidade: Título descritivo da funcionalidade
-  Como um <role>
-  Eu quero <ação>
-  Para que <benefício>
+  Background:
+    Given the system is operational
+    And a tenant "Example Clinic" is registered
 
-  Contexto:
-    Dado que o sistema está operacional
-    E que existe um tenant "Clínica Exemplo" cadastrado
+  # --- Happy Path ---
 
-  # --- Caminho Feliz ---
+  Scenario: Description of the success scenario
+    Given the user "<role>" is authenticated in the tenant "Example Clinic"
+    And <precondition>
+    When <user action>
+    Then <expected result>
+    And <additional check>
 
-  Cenário: Descrição do cenário de sucesso
-    Dado que o usuário "<role>" está autenticado no tenant "Clínica Exemplo"
-    E que <pré-condição>
-    Quando <ação do usuário>
-    Então <resultado esperado>
-    E <verificação adicional>
+  # --- Edge Cases ---
 
-  # --- Casos de Borda ---
+  Scenario: Description of edge case 1
+    Given <edge case context>
+    When <action>
+    Then <expected result>
 
-  Cenário: Descrição do caso de borda 1
-    Dado que <contexto do caso de borda>
-    Quando <ação>
-    Então <resultado esperado>
+  Scenario: Description of edge case 2
+    Given <edge case context>
+    When <action>
+    Then <expected result>
 
-  Cenário: Descrição do caso de borda 2
-    Dado que <contexto do caso de borda>
-    Quando <ação>
-    Então <resultado esperado>
+  # --- Error Scenario ---
 
-  # --- Cenário de Erro ---
+  Scenario: Description of the error scenario
+    Given <context>
+    When <invalid action>
+    Then the system must return an error
+    And the message must state the reason for the failure
 
-  Cenário: Descrição do cenário de erro
-    Dado que <contexto>
-    Quando <ação inválida>
-    Então o sistema deve retornar um erro
-    E a mensagem deve indicar o motivo da falha
+  # --- Multi-Tenant Isolation ---
 
-  # --- Isolamento Multi-Tenant ---
-
-  Cenário: Dados de um tenant não são visíveis para outro tenant
-    Dado que existe um tenant "Clínica A" com dados cadastrados
-    E que existe um tenant "Clínica B" com dados cadastrados
-    Quando o usuário do tenant "Clínica B" consulta os dados
-    Então os dados do tenant "Clínica A" não devem ser retornados
-    E apenas os dados do tenant "Clínica B" devem ser visíveis
+  Scenario: Data of one tenant is not visible to another tenant
+    Given a tenant "Clinic A" exists with registered data
+    And a tenant "Clinic B" exists with registered data
+    When the user of tenant "Clinic B" queries the data
+    Then the data of tenant "Clinic A" must not be returned
+    And only the data of tenant "Clinic B" must be visible
 ```
 
 ## Naming Convention
@@ -115,19 +115,19 @@ Funcionalidade: Título descritivo da funcionalidade
 `.feature` files must follow the pattern:
 
 ```
-NNN_nome_do_adr.feature
+NNN_adr_name.feature
 ```
 
 - **NNN**: number of the ADR that originated the feature.
-- **nome_do_adr**: same name used in the corresponding ADR, in snake_case, without accents.
+- **adr_name**: same name used in the corresponding ADR, in snake_case, without accents.
 
 ### Examples
 
 | ADR | .feature file |
 |-----|-----------------|
-| `001_autenticacao_jwt.md` | `001_autenticacao_jwt.feature` |
-| `002_estrategia_multi_tenant.md` | `002_estrategia_multi_tenant.feature` |
-| `003_migracao_banco_dados.md` | `003_migracao_banco_dados.feature` |
+| `001_jwt_authentication.md` | `001_jwt_authentication.feature` |
+| `002_multi_tenant_strategy.md` | `002_multi_tenant_strategy.feature` |
+| `003_database_migration.md` | `003_database_migration.feature` |
 
 ## Location
 
@@ -146,29 +146,29 @@ Prefer contextual assertions over exact text matching. This makes tests more res
 ### ❌ Avoid — exact matching
 
 ```gherkin
-Então a mensagem exibida deve ser "Animal cadastrado com sucesso!"
+Then the displayed message must be "Animal registered successfully!"
 ```
 
 ### ✅ Prefer — contextual assertion
 
 ```gherkin
-Então o sistema deve confirmar o cadastro do animal
-E o animal deve constar na lista de animais do tenant
+Then the system must confirm the animal registration
+And the animal must appear in the tenant's animal list
 ```
 
 ### Guidelines
 
 - Use assertions that validate **behavior** and **state**, not literal texts.
 - Check **side effects** (database records, emitted events) when relevant.
-- Validate **absence of data** in multi-tenant isolation scenarios (e.g.: "não devem ser retornados").
-- Validate **HTTP status codes** in API scenarios when applicable (e.g.: "o sistema deve retornar status 403").
+- Validate **absence of data** in multi-tenant isolation scenarios (e.g.: "must not be returned").
+- Validate **HTTP status codes** in API scenarios when applicable (e.g.: "the system must return status 403").
 
 ## Role-Based Scenarios
 
 Each test plan must consider the tavolo role hierarchy and include scenarios that validate access control. The hierarchy is:
 
 ```
-superadmin > admin > coordenador > voluntário > tavoloário > visualização
+superadmin > admin > coordinator > volunteer > veterinarian > viewer
 ```
 
 ### Scenario types per role
@@ -177,110 +177,108 @@ superadmin > admin > coordenador > voluntário > tavoloário > visualização
 |------|-----------------|
 | **superadmin** | Full access, tenant management, cross-tenant operations |
 | **admin** | Management of tenant users and settings |
-| **coordenador** | Coordination of volunteers and scheduling |
-| **voluntário** | Activity logging, animal follow-up |
-| **tavoloário** | Medical records, prescriptions, clinical procedures |
-| **visualização** | Read-only, no write permission |
+| **coordinator** | Coordination of volunteers and scheduling |
+| **volunteer** | Activity logging, animal follow-up |
+| **veterinarian** | Medical records, prescriptions, clinical procedures |
+| **viewer** | Read-only, no write permission |
 
 ### Template for a permission scenario
 
 ```gherkin
-  Esquema do Cenário: Acesso à funcionalidade por role
-    Dado que o usuário com role "<role>" está autenticado
-    Quando o usuário tenta <ação>
-    Então o sistema deve <resultado>
+  Scenario Outline: Access to the feature by role
+    Given the user with role "<role>" is authenticated
+    When the user tries to <action>
+    Then the system must <result>
 
-    Exemplos:
-      | role          | resultado                          |
-      | superadmin    | permitir a operação                |
-      | admin         | permitir a operação                |
-      | coordenador   | permitir a operação                |
-      | voluntário    | negar a operação com status 403    |
-      | tavoloário   | negar a operação com status 403    |
-      | visualização  | negar a operação com status 403    |
+    Examples:
+      | role          | result                             |
+      | superadmin    | allow the operation                |
+      | admin         | allow the operation                |
+      | coordinator   | allow the operation                |
+      | volunteer    | deny the operation with status 403 |
+      | veterinarian   | deny the operation with status 403 |
+      | viewer  | deny the operation with status 403 |
 ```
 
 ## Full Example — Animal Registration
 
 ```gherkin
-# language: pt
+Feature: Animal registration
+  As a coordinator
+  I want to register a new animal in the system
+  So that it can receive veterinary follow-up
 
-Funcionalidade: Cadastro de animal
-  Como um coordenador
-  Eu quero cadastrar um novo animal no sistema
-  Para que ele possa receber acompanhamento tavoloário
+  Background:
+    Given the system is operational
+    And a tenant "Hope Clinic" is registered
+    And the database schema is configured via DATABASE_SCHEMA
 
-  Contexto:
-    Dado que o sistema está operacional
-    E que existe um tenant "Clínica Esperança" cadastrado
-    E que o schema do banco de dados está configurado via DATABASE_SCHEMA
+  # --- Happy Path ---
 
-  # --- Caminho Feliz ---
+  Scenario: Register an animal with valid data
+    Given the user "coordinator" is authenticated in the tenant "Hope Clinic"
+    And the following animal data is provided:
+      | field     | value         |
+      | name      | Rex           |
+      | species   | Canine        |
+      | breed     | Mixed breed   |
+      | age       | 3 years       |
+      | weight    | 12.5 kg       |
+    When the user submits the registration request
+    Then the system must confirm the animal registration
+    And the animal "Rex" must appear in the animal list of tenant "Hope Clinic"
+    And the record must contain the current registration date
 
-  Cenário: Cadastrar animal com dados válidos
-    Dado que o usuário "coordenador" está autenticado no tenant "Clínica Esperança"
-    E que os seguintes dados do animal são fornecidos:
-      | campo     | valor         |
-      | nome      | Rex           |
-      | especie   | Canino        |
-      | raca      | SRD           |
-      | idade     | 3 anos        |
-      | peso      | 12.5 kg       |
-    Quando o usuário envia a solicitação de cadastro
-    Então o sistema deve confirmar o cadastro do animal
-    E o animal "Rex" deve constar na lista de animais do tenant "Clínica Esperança"
-    E o registro deve conter a data de cadastro atual
+  # --- Edge Cases ---
 
-  # --- Casos de Borda ---
+  Scenario: Register an animal with a name at the maximum character limit
+    Given the user "coordinator" is authenticated in the tenant "Hope Clinic"
+    When the user registers an animal with a 255-character name
+    Then the system must accept the registration normally
 
-  Cenário: Cadastrar animal com nome no limite máximo de caracteres
-    Dado que o usuário "coordenador" está autenticado no tenant "Clínica Esperança"
-    Quando o usuário cadastra um animal com nome de 255 caracteres
-    Então o sistema deve aceitar o cadastro normalmente
+  Scenario: Register an animal with zero weight
+    Given the user "coordinator" is authenticated in the tenant "Hope Clinic"
+    When the user registers an animal with weight "0"
+    Then the system must reject the registration
+    And it must state that the weight must be greater than zero
 
-  Cenário: Cadastrar animal com peso zero
-    Dado que o usuário "coordenador" está autenticado no tenant "Clínica Esperança"
-    Quando o usuário cadastra um animal com peso "0"
-    Então o sistema deve rejeitar o cadastro
-    E deve indicar que o peso deve ser maior que zero
+  # --- Error Scenario ---
 
-  # --- Cenário de Erro ---
+  Scenario: Register an animal without required fields
+    Given the user "coordinator" is authenticated in the tenant "Hope Clinic"
+    When the user submits the registration request without the "name" field
+    Then the system must return a validation error
+    And it must state that the "name" field is required
 
-  Cenário: Cadastrar animal sem campos obrigatórios
-    Dado que o usuário "coordenador" está autenticado no tenant "Clínica Esperança"
-    Quando o usuário envia a solicitação de cadastro sem o campo "nome"
-    Então o sistema deve retornar um erro de validação
-    E deve indicar que o campo "nome" é obrigatório
+  # --- Multi-Tenant Isolation ---
 
-  # --- Isolamento Multi-Tenant ---
+  Scenario: Animals of one tenant are not visible to another tenant
+    Given the tenant "Hope Clinic" has the animal "Rex" registered
+    And the tenant "Pet Health" has the animal "Luna" registered
+    When the user "coordinator" of tenant "Pet Health" lists the animals
+    Then the animal "Rex" of tenant "Hope Clinic" must not be returned
+    And only the animal "Luna" must be visible
 
-  Cenário: Animais de um tenant não são visíveis para outro tenant
-    Dado que o tenant "Clínica Esperança" possui o animal "Rex" cadastrado
-    E que o tenant "Pet Saúde" possui o animal "Luna" cadastrado
-    Quando o usuário "coordenador" do tenant "Pet Saúde" lista os animais
-    Então o animal "Rex" do tenant "Clínica Esperança" não deve ser retornado
-    E apenas o animal "Luna" deve ser visível
+  # --- Role-Based Access Control ---
 
-  # --- Controle de Acesso por Role ---
+  Scenario Outline: Animal registration permission by role
+    Given the user with role "<role>" is authenticated in the tenant "Hope Clinic"
+    When the user tries to register a new animal
+    Then the system must <result>
 
-  Esquema do Cenário: Permissão de cadastro de animal por role
-    Dado que o usuário com role "<role>" está autenticado no tenant "Clínica Esperança"
-    Quando o usuário tenta cadastrar um novo animal
-    Então o sistema deve <resultado>
+    Examples:
+      | role          | result                                |
+      | superadmin    | allow the registration                |
+      | admin         | allow the registration                |
+      | coordinator   | allow the registration                |
+      | volunteer    | allow the registration                |
+      | veterinarian   | allow the registration                |
+      | viewer  | deny the registration with status 403 |
 
-    Exemplos:
-      | role          | resultado                          |
-      | superadmin    | permitir o cadastro                |
-      | admin         | permitir o cadastro                |
-      | coordenador   | permitir o cadastro                |
-      | voluntário    | permitir o cadastro                |
-      | tavoloário   | permitir o cadastro                |
-      | visualização  | negar o cadastro com status 403    |
-
-  Cenário: Usuário com role visualização não pode editar animal
-    Dado que o usuário com role "visualização" está autenticado no tenant "Clínica Esperança"
-    E que o animal "Rex" está cadastrado
-    Quando o usuário tenta editar os dados do animal "Rex"
-    Então o sistema deve negar a operação
-    E deve retornar status 403
+  Scenario: User with role viewer cannot edit an animal
+    Given the user with role "viewer" is authenticated in the tenant "Hope Clinic"
+    And the animal "Rex" is registered
+    When the user tries to edit the data of animal "Rex"
+    Then the system must deny the operation
+    And it must return status 403
 ```

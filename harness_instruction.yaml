@@ -2,20 +2,20 @@ apiVersion: antigravity.google.com/v1alpha1
 kind: BootstrapRunbook
 metadata:
   name: cambalhota-ignition
-  description: "Ignition file para instrumentação automática da arquitetura multiagentes do projeto Cambalhota."
+  description: "Ignition file for automatic instrumentation of the Cambalhota project's multi-agent architecture."
   author: "Max (AI Driven Engineer)"
 
 # ---------------------------------------------------------------------------
-# INSTRUÇÕES PARA O AGENTE EXECUTOR (AI INSTRUCTIONS):
-# 1. Leia este arquivo sequencialmente.
-# 2. Execute os comandos de shell na ordem especificada.
-# 3. Crie os arquivos com os paths exatos mapeados na seção de scaffolding.
-# 4. Valide a topologia no final utilizando o Antigravity CLI.
+# INSTRUCTIONS FOR THE EXECUTING AGENT (AI INSTRUCTIONS):
+# 1. Read this file sequentially.
+# 2. Run the shell commands in the specified order.
+# 3. Create the files with the exact paths mapped in the scaffolding section.
+# 4. Validate the topology at the end using the Antigravity CLI.
 # ---------------------------------------------------------------------------
 
 phases:
   - name: 01-workspace-initialization
-    description: "Inicializa a malha de observabilidade e FinOps"
+    description: "Initializes the observability and FinOps mesh"
     execution:
       type: shell
       commands:
@@ -23,29 +23,29 @@ phases:
         - "ag config set telemetry.enabled true"
 
   - name: 02-structural-scaffolding
-    description: "Criação da árvore de diretórios conforme plano de instrumentação do Cambalhota"
+    description: "Creates the directory tree according to the Cambalhota instrumentation plan"
     execution:
       type: shell
       commands:
-        # Diretórios do código fonte Nim e assets
+        # Nim source code and asset directories
         - "mkdir -p src/"
         - "mkdir -p tests/"
-        # Diretórios para migrations e configurações de CDN
+        # Directories for migrations and CDN settings
         - "mkdir -p migrations/up migrations/down"
         - "mkdir -p config/"
-        # Diretórios de documentação e engenharia
+        # Documentation and engineering directories
         - "mkdir -p docs/product/"
         - "mkdir -p docs/engineering/adrs/"
-        # Diretórios de agentes e skills
+        # Agent and skill directories
         - "mkdir -p .agents/arch .agents/eng .agents/qa"
         - "mkdir -p .agents/skills/nim-cli-backend"
         - "mkdir -p .agents/skills/tatui-frontend"
         - "mkdir -p .agents/skills/migration-engine"
-        # Criação de placeholders
+        # Placeholder creation
         - "touch AGENTS.md src/main.nim"
 
   - name: 03-mcp-and-hooks-configuration
-    description: "Configuração do Model Context Protocol e Guardrails de Segurança"
+    description: "Model Context Protocol and Security Guardrails configuration"
     execution:
       type: file-generation
       files:
@@ -55,12 +55,12 @@ phases:
               "mcp_servers": {
                 "relational-dbs": {
                   "type": "database",
-                  "description": "MCP para conexão primária com PostgreSQL, MySQL e SQL Server.",
+                  "description": "MCP for the primary connection to PostgreSQL, MySQL and SQL Server.",
                   "connection_env": ["DB_URL", "DB_SCHEMA"]
                 },
                 "cdn-provider": {
                   "type": "storage",
-                  "description": "MCP para acesso à CDN/Git (GDrive, AWS S3, GCP, etc) para persistência de backups.",
+                  "description": "MCP for CDN/Git access (GDrive, AWS S3, GCP, etc) for backup persistence.",
                   "connection_env": ["CDN_PROVIDER_URL", "CDN_AUTH_TOKEN"]
                 }
               }
@@ -72,42 +72,42 @@ phases:
                 {
                   "name": "credentials-guard",
                   "trigger": "PreToolUse",
-                  "description": "Bloqueia qualquer escrita de credenciais de CDN ou Banco de Dados em arquivos de código plano."
+                  "description": "Blocks any writing of CDN or Database credentials into plain code files."
                 },
                 {
                   "name": "migration-validation",
                   "trigger": "PreToolUse",
-                  "description": "Garante a existência de rotinas de down correspondentes para qualquer migration gerada."
+                  "description": "Ensures matching down routines exist for any generated migration."
                 }
               ]
             }
 
   - name: 04-skills-injection
-    description: "Provisionamento das habilidades granulares de domínio"
+    description: "Provisioning of the granular domain skills"
     execution:
       type: file-generation
       files:
         - path: ".agents/skills/nim-cli-backend/SKILL.md"
-          content: "# Padrões Nim (Backend & CLI)\n- Priorizar bibliotecas nativas de db. Usar compilação com ORC. Foco em estabilidade e performance de I/O para geração e comparação rápida de diffs estruturais."
+          content: "# Nim Standards (Backend & CLI)\n- Prefer native db libraries. Use ORC compilation. Focus on I/O stability and performance for fast generation and comparison of structural diffs."
         - path: ".agents/skills/tatui-frontend/SKILL.md"
-          content: "# Padrões Tatuí (TUI)\n- Utilizar o Design System dark-mode da doc de escopo. Paleta: #2E3440, #88C0D0 (info). Layout baseado em tabs para separar Migrations, Backups e Configurações."
+          content: "# Tatuí Standards (TUI)\n- Use the dark-mode Design System from the scope doc. Palette: #2E3440, #88C0D0 (info). Tab-based layout to separate Migrations, Backups and Settings."
         - path: ".agents/skills/migration-engine/SKILL.md"
-          content: "# Gestão de Migrations\n- Seguir benchmarks rigorosos como Flyway/Liquibase. Versões sequenciais ex: V1__init.sql, V2__add_table.sql. Arquivos de testes (DDL/DML) acoplados."
+          content: "# Migration Management\n- Follow rigorous benchmarks such as Flyway/Liquibase. Sequential versions e.g.: V1__init.sql, V2__add_table.sql. Coupled test files (DDL/DML)."
 
   - name: 05-agents-manifests
-    description: "Instanciação dos subagentes no workspace"
+    description: "Instantiates the subagents in the workspace"
     execution:
       type: file-generation
       files:
         - path: ".agents/arch/agent.md"
-          content: "> [!NOTE]\n> Agente focado na arquitetura do sistema Nim e design da integração CDN/Git."
+          content: "> [!NOTE]\n> Agent focused on the Nim system architecture and the design of the CDN/Git integration."
         - path: ".agents/eng/agent.md"
-          content: "> [!NOTE]\n> Agente responsável pela implementação do core engine de migrations e UI no Tatuí."
+          content: "> [!NOTE]\n> Agent responsible for implementing the core migration engine and the UI in Tatuí."
         - path: ".agents/qa/agent.md"
-          content: "> [!NOTE]\n> Agente de validação, encarregado de testar as rotinas de backup, restore e execução de migrations up/down."
+          content: "> [!NOTE]\n> Validation agent, in charge of testing the backup, restore and up/down migration execution routines."
 
   - name: 06-final-binding
-    description: "Aplica e valida a configuração na CLI"
+    description: "Applies and validates the configuration in the CLI"
     execution:
       type: shell
       commands:

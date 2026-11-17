@@ -1,77 +1,77 @@
-# ADR 002: Arquitetura de Interface de Terminal (TUI) e Streaming
+# ADR 002: Terminal User Interface (TUI) and Streaming Architecture
 
 ## Status
-Implementado
+Implemented
 
-## Contexto
-O projeto Cambalhota, sendo uma ferramenta nativa em Nim focada em controle de banco de dados, necessita de uma interface visual rica para usuários no terminal (TUI) e da capacidade de executar operações de I/O pesadas, como extração de banco de dados (`pg_dump` ou similar), sem congelar a interface. 
+## Context
+The Cambalhota project, a native Nim tool focused on database control, needs a rich visual interface for terminal users (TUI) and the ability to run heavy I/O operations, such as database extraction (`pg_dump` or similar), without freezing the interface. 
 
-O Épico 2 exige a implementação de uma TUI usando o framework `tatui` da ecologia Nim, e o Épico 3 introduz a extração em streaming de bancos de dados. Quando executamos sub-processos ou fazemos leituras extensas (I/O assíncrono), o loop principal de renderização não pode ser bloqueado, do contrário a interface ficaria não-responsiva e a experiência do usuário seria degradada. Além disso, precisamos garantir um log de status transparente (promessa fail-safe), onde qualquer erro do utilitário subjacente seja exibido claramente ao usuário.
+Epic 2 requires a TUI built with the `tatui` framework from the Nim ecosystem, and Epic 3 introduces streaming database extraction. When we run subprocesses or perform long reads (asynchronous I/O), the main render loop must not be blocked; otherwise the interface would become unresponsive and the user experience would degrade. We also need a transparent status log (fail-safe promise), where any error from the underlying utility is shown clearly to the user.
 
-## Decisão Técnica
+## Technical Decision
 
-1. **Renderização da TUI (Framework Tatui):**
-   A camada de apresentação utilizará o framework `tatui`, que oferece uma arquitetura para criar interfaces visuais no terminal. O estado da UI será mantido na thread principal, que reagirá a eventos do usuário (teclado) e mensagens de threads e processos em *background*.
+1. **TUI Rendering (Tatui Framework):**
+   The presentation layer will use the `tatui` framework, which provides an architecture for building visual interfaces in the terminal. The UI state will live in the main thread, which will react to user events (keyboard) and to messages from *background* threads and processes.
 
-2. **Concorrência e Streaming do Utilitário de Dump (`pg_dump`):**
-   Para garantir que a UI se mantenha fluida durante a extração, o processamento de utilitários externos adotará a **Camada de IO Assíncrono / Multithreading**.
-   - Devido às peculiaridades de frameworks de TUI de bloquear na leitura de eventos (`stdin`), utilizaremos **Threads nativas** do Nim combinadas com **Channels (`Channel[Msg]`)** para isolar as chamadas bloqueantes de processos (`osproc`) ou I/O pesado.
-   - Uma *Worker Thread* inicializará o processo do `pg_dump` e lerá a saída padrão (STDOUT) e a saída de erros (STDERR) em tempo real (em *streaming*).
-   - O componente de UI (Tatuí) fará *polling* não-bloqueante no *Channel* ou será notificado via eventos de loop para buscar novos "chunks" de log sem travar a interface.
+2. **Concurrency and Streaming of the Dump Utility (`pg_dump`):**
+   To keep the UI fluid during extraction, processing of external utilities will adopt the **Asynchronous IO / Multithreading Layer**.
+   - Because TUI frameworks tend to block while reading events (`stdin`), we will use native Nim **Threads** combined with **Channels (`Channel[Msg]`)** to isolate blocking process calls (`osproc`) or heavy I/O.
+   - A *Worker Thread* will start the `pg_dump` process and read the standard output (STDOUT) and the error output (STDERR) in real time (*streaming*).
+   - The UI component (Tatuí) will do non-blocking *polling* on the *Channel* or will be notified through loop events to fetch new log "chunks" without locking the interface.
 
-3. **Log de Status Transparente (Fail-safe):**
-   - A interface possuirá uma área de "Console" ou "Log de Status". Todas as saídas interceptadas via STDERR e mensagens críticas serão transmitidas ao *Channel* e renderizadas no painel em tempo real.
-   - O modelo de dados armazenará o histórico parcial em um buffer para exibição (limitando a `N` linhas visíveis).
-   - Caso o `pg_dump` apresente falha (exit code diferente de zero), a camada de I/O despachará um evento de `Erro Crítico`, travando o encerramento da TUI para permitir que o usuário investigue o terminal e visualize o erro original antes do desligamento.
+3. **Transparent Status Log (Fail-safe):**
+   - The interface will have a "Console" or "Status Log" area. All output intercepted via STDERR and critical messages will be sent to the *Channel* and rendered in the panel in real time.
+   - The data model will keep the partial history in a display buffer (limited to `N` visible lines).
+   - If `pg_dump` fails (non-zero exit code), the I/O layer will dispatch a `Critical Error` event, holding the TUI shutdown so the user can inspect the terminal and see the original error before exit.
 
-## Diagrama de Sequência (Streaming Assíncrono com TUI)
+## Sequence Diagram (Asynchronous Streaming with TUI)
 
 ```mermaid
 sequenceDiagram
-    participant U as Usuário
+    participant U as User
     participant UI as TUI Thread (tatui)
     participant C as Channel (Msg)
     participant W as Worker Thread (IO)
     participant P as Subprocess (pg_dump)
 
-    U->>UI: Inicia Extração (Click/Atalho)
-    UI->>W: Spawn Worker Thread (Dados de Dump)
-    UI-->>U: Atualiza TUI (Status: Inicializando)
+    U->>UI: Starts Extraction (Click/Shortcut)
+    UI->>W: Spawn Worker Thread (Dump Data)
+    UI-->>U: Updates TUI (Status: Initializing)
     
     W->>P: startProcess("pg_dump ...")
     
-    loop Leitura em Streaming (Linha a Linha)
+    loop Streaming Read (Line by Line)
         P-->>W: Chunk (STDOUT / STDERR)
-        W->>C: Envia Msg(Log, texto)
+        W->>C: Sends Msg(Log, text)
     end
     
-    opt A cada tick do Event Loop / Polling
-        UI->>C: Verifica (tryRecv)
-        C-->>UI: Msg disponível
-        UI-->>U: Renderiza novo Log no Console
+    opt On each Event Loop tick / Polling
+        UI->>C: Checks (tryRecv)
+        C-->>UI: Msg available
+        UI-->>U: Renders new Log in the Console
     end
     
-    P-->>W: Fim do processo (Exit Code)
+    P-->>W: Process end (Exit Code)
     
-    alt Sucesso (Exit Code 0)
-        W->>C: Envia Msg(Sucesso)
-        UI->>C: Recebe Msg
-        UI-->>U: Notifica Sucesso (Verde)
-    else Falha (Exit Code != 0)
-        W->>C: Envia Msg(Falha, Log de Erro)
-        UI->>C: Recebe Msg
-        UI-->>U: Notifica Falha Fail-safe (Vermelho, exibe Log bruto)
+    alt Success (Exit Code 0)
+        W->>C: Sends Msg(Success)
+        UI->>C: Receives Msg
+        UI-->>U: Notifies Success (Green)
+    else Failure (Exit Code != 0)
+        W->>C: Sends Msg(Failure, Error Log)
+        UI->>C: Receives Msg
+        UI-->>U: Notifies Fail-safe Failure (Red, shows raw Log)
     end
 ```
 
 ## Trade-offs
-- **Complexidade de Integração:** Usar Threads nativas com Channels em conjunção ao ARC/ORC de Nim introduz desafios com cópia profunda (`deepCopy`) de strings e estruturas de dados ao passar informações pelo canal.
-- **Overhead de Renderização:** Taxas altíssimas de I/O em STDOUT do `pg_dump` podem inundar a TUI com dezenas de mensagens por segundo. A worker thread deve consolidar (*batching* / *debouncing*) ou a TUI só desenhar após processar um certo volume de eventos no mesmo ciclo.
+- **Integration Complexity:** Using native Threads with Channels together with Nim's ARC/ORC introduces challenges with deep copies (`deepCopy`) of strings and data structures when passing information through the channel.
+- **Rendering Overhead:** Very high I/O rates on `pg_dump` STDOUT can flood the TUI with dozens of messages per second. The worker thread must consolidate (*batching* / *debouncing*), or the TUI must draw only after processing a certain volume of events in the same cycle.
 
-## Consequências
-- **Experiência do Usuário (UX):** A aplicação não trava/congela sob nenhuma hipótese (nem mesmo I/O de rede ou disco).
-- **Rastreabilidade (Fail-safe):** Erros de banco ou configurações incorretas são imedia-tamente visíveis no painel de console da ferramenta, simplificando depurações e alinhando-se aos princípios da arquitetura.
-- **Design Desacoplado:** A camada de UI fica absolutamente isolada dos mecanismos de I/O e lógica estrutural (`db_core.nim`).
+## Consequences
+- **User Experience (UX):** The application never locks up or freezes under any circumstance (not even with network or disk I/O).
+- **Traceability (Fail-safe):** Database errors or incorrect settings are immediately visible in the tool's console panel, simplifying debugging and aligning with the architecture principles.
+- **Decoupled Design:** The UI layer is fully isolated from the I/O mechanisms and structural logic (`db_core.nim`).
 
-## Esquema de Banco de Dados
-Lembrete: Toda e qualquer comunicação/query para o banco de dados gerada por esta engine utilizará referências ao schema `Cambalhota` e nunca ao esquema `public`, seguindo as diretrizes de operação de segurança definidas na constituição do agente arquiteto.
+## Database Schema
+Reminder: every communication/query to the database produced by this engine will reference the `Cambalhota` schema and never the `public` schema, following the security operation guidelines defined in the architect agent's constitution.

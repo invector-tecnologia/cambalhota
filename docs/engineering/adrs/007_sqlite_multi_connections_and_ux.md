@@ -1,18 +1,18 @@
 # ADR 007: SQLite Multi-Connections and UX Refinement
 
-## Contexto
-O Cambalhota v1.0.1 introduz o gerenciamento de múltiplas conexões de banco de dados diretamente através da TUI, eliminando a dependência de arquivos `.env` para armazenamento de credenciais. A necessidade de backups de uma origem e restaurações em diferentes destinos (cross-database restore) exige uma nova abordagem de persistência local, utilizando SQLite com criptografia, e uma atualização na interface do usuário.
+## Context
+Cambalhota v1.0.1 introduces management of multiple database connections directly through the TUI, removing the dependency on `.env` files to store credentials. The need to back up from one source and restore into different targets (cross-database restore) requires a new local persistence approach, using SQLite with encryption, and an update to the user interface.
 
-## Decisão Técnica
+## Technical Decision
 
-### 1. Estrutura de Armazenamento Local (SQLite)
-A aplicação utilizará um banco de dados local SQLite localizado em `~/.cambalhota/connections.db`. A estrutura da tabela de conexões será a seguinte:
+### 1. Local Storage Structure (SQLite)
+The application will use a local SQLite database located at `~/.cambalhota/connections.db`. The connections table structure will be:
 
 ```sql
 CREATE TABLE connections (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL UNIQUE,
-    engine TEXT NOT NULL, -- ex: pg, mysql
+    engine TEXT NOT NULL, -- e.g.: pg, mysql
     host TEXT NOT NULL,
     port INTEGER NOT NULL,
     username TEXT NOT NULL,
@@ -21,29 +21,29 @@ CREATE TABLE connections (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 ```
-*(Nota: O schema/tabela em PostgreSQL deve continuar referenciando `Cambalhota` e nunca `public`, conforme regras de arquitetura).*
+*(Note: The PostgreSQL schema/table must keep referencing `Cambalhota` and never `public`, according to the architecture rules).*
 
-### 2. Criptografia de Senhas (AES via `nimcrypto`)
-As senhas de banco de dados serão criptografadas antes de serem armazenadas no SQLite. A criptografia será feita em AES-256 (CTR ou CBC com IV randômico único por registro) utilizando a biblioteca `nimcrypto` em Nim.
+### 2. Password Encryption (AES via `nimcrypto`)
+Database passwords will be encrypted before being stored in SQLite. Encryption will use AES-256 (CTR or CBC with a unique random IV per record) through the `nimcrypto` library in Nim.
 
-**Gerenciamento da Chave Mestra:**
-A chave mestra para encriptação e decriptação (AES Key) não será chumbada no código. Ela será derivada de uma forma segura utilizando o *keyring / credential manager* do sistema operacional nativo (como `Secret Service` no Linux, `Keychain` no macOS ou `Credential Locker` no Windows). A aplicação recupera a Master Key via keyring nativo e então decripta as credenciais do SQLite. Caso a integração com keyring não esteja disponível, pode ser adotada uma "Master Password" solicitada ao iniciar a ferramenta.
+**Master Key Management:**
+The master key for encryption and decryption (AES Key) will not be hardcoded. It will be derived securely using the native operating system *keyring / credential manager* (such as `Secret Service` on Linux, `Keychain` on macOS or `Credential Locker` on Windows). The application retrieves the Master Key through the native keyring and then decrypts the credentials from SQLite. If keyring integration is not available, a "Master Password" requested at tool startup may be adopted.
 
-### 3. Abstração de 'Cross-Database Restore' (via `osproc`)
-Para permitir o restore cruzado, a aplicação utilizará a biblioteca `osproc` do Nim para orquestrar os processos.
+### 3. 'Cross-Database Restore' Abstraction (via `osproc`)
+To allow cross restores, the application will use Nim's `osproc` library to orchestrate the processes.
 
-- **Backup (Origem):** A aplicação busca a conexão "Origem" no SQLite, descriptografa a senha e passa os dados para a chamada do CLI nativo (ex: `pg_dump`). Para evitar vazar credenciais nos logs, a senha descriptografada deve ser passada via variável de ambiente do processo injetado pelo `osproc` (como `PGPASSWORD`) ou por um arquivo temporário restrito (como `.pgpass`).
-- **Restore Cruzado (Destino):** A aplicação injetará o dump selecionado da máquina local e aplicará na conexão "Destino", novamente recuperando e descriptografando a credencial respectiva, e acionando o utilitário nativo (ex: `psql` para PostgreSQL ou `mysql` para MySQL) via `osproc`, passando o arquivo de dump via `stdin`.
+- **Backup (Source):** The application fetches the "Source" connection from SQLite, decrypts the password and passes the data to the native CLI call (e.g., `pg_dump`). To avoid leaking credentials in logs, the decrypted password must be passed through an environment variable of the process injected by `osproc` (such as `PGPASSWORD`) or through a restricted temporary file (such as `.pgpass`).
+- **Cross Restore (Target):** The application will take the selected dump from the local machine and apply it to the "Target" connection, again retrieving and decrypting the corresponding credential, and invoking the native utility (e.g., `psql` for PostgreSQL or `mysql` for MySQL) through `osproc`, passing the dump file via `stdin`.
 
-### 4. Componentes UI (Biblioteca `tatui`)
-A biblioteca `tatui` será refatorada para adotar os novos requisitos visuais e de fluxo de UX:
-- **Identidade Visual:** A Logo Retrowave (ASCII) será acoplada como um `Label` (ou componente similar de layout de texto) estático no bloco superior esquerdo do Frame/Tela principal, atuando como o Header global junto com uma barra de status à direita exibindo métricas da tabela `connections`.
-- **Menu Side-by-side (Cross-Restore):** Na aba de Restore, a biblioteca `tatui` empregará um `HorizontalLayout` (ou equivalente de sistema de grid) separando a UI em dois painéis paralelos:
-  - **Esquerda ("O quê?"):** Uma listagem de Dumps (arquivos) extraídos, selecionável.
-  - **Direita ("Para onde?"):** Uma combobox/lista com as conexões cadastradas no SQLite, para escolha do Target.
-  - A confirmação só ficará habilitada após seleção de ambos, concretizando de forma cognitiva o fluxo Origem -> Destino.
+### 4. UI Components (`tatui` Library)
+The `tatui` library will be refactored to adopt the new visual and UX flow requirements:
+- **Visual Identity:** The Retrowave Logo (ASCII) will be attached as a static `Label` (or a similar text layout component) in the top-left block of the main Frame/Screen, acting as the global Header together with a status bar on the right showing metrics from the `connections` table.
+- **Side-by-side Menu (Cross-Restore):** In the Restore tab, the `tatui` library will use a `HorizontalLayout` (or an equivalent grid system) that splits the UI into two parallel panels:
+  - **Left ("What?"):** A selectable list of extracted Dumps (files).
+  - **Right ("Where to?"):** A combobox/list with the connections registered in SQLite, to choose the Target.
+  - Confirmation will only be enabled after both are selected, cognitively reinforcing the Source -> Target flow.
 
-### Diagrama Arquitetural (Sequência)
+### Architecture Diagram (Sequence)
 ```mermaid
 sequenceDiagram
     participant U as User (TUI)
@@ -72,12 +72,12 @@ sequenceDiagram
 ```
 
 ## Trade-offs
-- **Complexidade de Keystore:** Utilizar o keyring nativo (OS) para proteger a chave mestre adiciona complexidade e possíveis problemas de compatibilidade cross-platform (exigindo fallbacks como pedir a senha ao abrir o app).
-- **Dependência Contínua de Client CLI:** Utilizar `osproc` mantém o acoplamento do Cambalhota com binários externos do sistema host (`pg_dump`, `mysql`), limitando a total portabilidade se o SO não as tiver no PATH.
+- **Keystore Complexity:** Using the native (OS) keyring to protect the master key adds complexity and possible cross-platform compatibility issues (requiring fallbacks such as asking for the password when the app opens).
+- **Ongoing Dependency on the Client CLI:** Using `osproc` keeps Cambalhota coupled to external binaries of the host system (`pg_dump`, `mysql`), limiting full portability if the OS does not have them in the PATH.
 
-## Consequências
-- Substituição do arquivo `.env` para centralização de todas as credenciais no SQLite com encriptação AES.
-- Interface aprimorada visualmente com os painéis paralelos em `tatui`, trazendo uma UX robusta para transição entre origens e destinos.
+## Consequences
+- The `.env` file is replaced by centralizing all credentials in SQLite with AES encryption.
+- A visually improved interface with parallel panels in `tatui`, bringing a robust UX for moving between sources and targets.
 
 ## Status
-Implementado
+Implemented

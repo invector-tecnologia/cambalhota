@@ -1,7 +1,7 @@
 import unittest, os, atomics
 import ../src/core/cloud
 
-suite "Sincronização Assíncrona de Backups na Nuvem (S3)":
+suite "Asynchronous Cloud Backup Sync (S3)":
   var
     testChan: Channel[CloudStatusMsg]
     testCancel: Atomic[bool]
@@ -15,7 +15,7 @@ suite "Sincronização Assíncrona de Backups na Nuvem (S3)":
     if fileExists("test_upload.enc"): removeFile("test_upload.enc")
     if fileExists("test_download.enc"): removeFile("test_download.enc")
 
-  test "Upload assíncrono de backup com sucesso (Caminho Feliz)":
+  test "Asynchronous backup upload succeeds (happy path)":
     writeFile("test_upload.enc", "mock data")
     let conf = CloudConfig(accessKey: "valid", secretKey: "valid", region: "us-east-1", bucket: "bck", endpoint: "")
     let args = CloudTaskArgs(op: opUpload, config: conf, localFile: "test_upload.enc", remoteKey: "remote.enc", chanPtr: addr testChan, cancelPtr: addr testCancel)
@@ -34,7 +34,7 @@ suite "Sincronização Assíncrona de Backups na Nuvem (S3)":
     joinThread(thr)
     check finalState == stSuccess
 
-  test "Download assíncrono de backup com sucesso (Caminho Feliz)":
+  test "Asynchronous backup download succeeds (happy path)":
     let conf = CloudConfig(accessKey: "valid", secretKey: "valid", region: "us-east-1", bucket: "bck", endpoint: "")
     let args = CloudTaskArgs(op: opDownload, config: conf, localFile: "test_download.enc", remoteKey: "remote.enc", chanPtr: addr testChan, cancelPtr: addr testCancel)
     
@@ -53,7 +53,7 @@ suite "Sincronização Assíncrona de Backups na Nuvem (S3)":
     check finalState == stSuccess
     check fileExists("test_download.enc")
 
-  test "Tratamento de falha de rede durante transferência":
+  test "Handles a network failure during transfer":
     let conf = CloudConfig(accessKey: "valid", secretKey: "valid", region: "us-east-1", bucket: "bck", endpoint: "simulate_drop")
     let args = CloudTaskArgs(op: opUpload, config: conf, localFile: "test_upload.enc", remoteKey: "remote.enc", chanPtr: addr testChan, cancelPtr: addr testCancel)
     
@@ -72,9 +72,9 @@ suite "Sincronização Assíncrona de Backups na Nuvem (S3)":
           
     joinThread(thr)
     check finalState == stError
-    check errMsg == "Erro de conexão de rede"
+    check errMsg == "Network connection error"
 
-  test "Uso de chaves S3 inválidas":
+  test "Rejects invalid S3 keys":
     let conf = CloudConfig(accessKey: "invalid", secretKey: "invalid", region: "us-east-1", bucket: "bck", endpoint: "")
     let args = CloudTaskArgs(op: opUpload, config: conf, localFile: "test_upload.enc", remoteKey: "remote.enc", chanPtr: addr testChan, cancelPtr: addr testCancel)
     
@@ -93,9 +93,9 @@ suite "Sincronização Assíncrona de Backups na Nuvem (S3)":
           
     joinThread(thr)
     check finalState == stError
-    check errMsg == "Erro de autenticação: Verifique suas credenciais S3"
+    check errMsg == "Authentication error: check your S3 credentials"
 
-  test "Cancelamento de um envio em andamento":
+  test "Cancels a transfer in progress":
     let conf = CloudConfig(accessKey: "valid", secretKey: "valid", region: "us-east-1", bucket: "bck", endpoint: "")
     let args = CloudTaskArgs(op: opUpload, config: conf, localFile: "test_upload.enc", remoteKey: "remote.enc", chanPtr: addr testChan, cancelPtr: addr testCancel)
     
@@ -117,4 +117,4 @@ suite "Sincronização Assíncrona de Backups na Nuvem (S3)":
           
     joinThread(thr)
     check finalState == stError
-    check errMsg == "Operação cancelada pelo usuário"
+    check errMsg == "Operation canceled by the user"

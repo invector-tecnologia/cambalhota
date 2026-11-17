@@ -1,33 +1,33 @@
-Feature: Core de Conexão e Extração (Backup)
-  Como um DBA ou sysadmin utilizando o Cambalhota
-  Eu quero que o sistema valide as dependências locais (como o pg_dump) e se conecte utilizando schemas seguros
-  Para garantir um processo de extração transparente, fail-safe e livre de impactos no banco de dados.
+Feature: Connection and Extraction Core (Backup)
+  As a DBA or sysadmin using Cambalhota
+  I want the system to validate the local dependencies (such as pg_dump) and connect using safe schemas
+  So that the extraction process is transparent, fail-safe and free of impact on the database.
 
-  Scenario: Validação bem-sucedida das dependências do sistema (Happy Path)
-    Given que a aplicação Cambalhota é inicializada
-    And o utilitário "pg_dump" está instalado e disponível no PATH do sistema operacional
-    When o sistema executa o pre-flight check de dependências
-    Then o pre-flight check deve ser bem-sucedido
-    And nenhuma exceção deve ser levantada
-    And o sistema deve permitir o prosseguimento da execução
+  Scenario: Successful validation of system dependencies (Happy Path)
+    Given the Cambalhota application is initialized
+    And the "pg_dump" utility is installed and available in the operating system PATH
+    When the system runs the dependency pre-flight check
+    Then the pre-flight check must succeed
+    And no exception must be raised
+    And the system must allow execution to proceed
 
-  Scenario: Utilitário pg_dump não encontrado no sistema (Error Case)
-    Given que a aplicação Cambalhota é inicializada
-    And o utilitário "pg_dump" NÃO está disponível no PATH do sistema operacional
-    When o sistema executa o pre-flight check de dependências
-    Then o pre-flight check deve falhar
-    And o sistema deve registrar um erro semântico amigável avisando sobre a ausência do utilitário
-    And o sistema deve adotar uma postura fail-safe e prevenir qualquer tentativa de dump que pudesse causar crash em runtime
+  Scenario: pg_dump utility not found on the system (Error Case)
+    Given the Cambalhota application is initialized
+    And the "pg_dump" utility is NOT available in the operating system PATH
+    When the system runs the dependency pre-flight check
+    Then the pre-flight check must fail
+    And the system must log a friendly semantic error warning about the missing utility
+    And the system must adopt a fail-safe posture and prevent any dump attempt that could cause a runtime crash
 
-  Scenario: Inicialização da configuração default do PostgreSQL usando schema Cambalhota (Happy Path)
-    Given a configuração de inicialização do PostgreSQL
-    When o sistema cria a instância padrão de `PgConfig`
-    Then o schema alvo interno de uso deve ser estritamente "Cambalhota"
-    And o schema alvo não deve ser "public"
-    And a configuração de sslMode deve ser "require"
+  Scenario: Initialization of the default PostgreSQL configuration using the Cambalhota schema (Happy Path)
+    Given the PostgreSQL initialization configuration
+    When the system creates the default `PgConfig` instance
+    Then the internal target schema must be strictly "Cambalhota"
+    And the target schema must not be "public"
+    And the sslMode setting must be "require"
 
-  Scenario: Sobrescrita explícita de schema e opções (Edge Case)
-    Given a configuração de inicialização do PostgreSQL
-    When o usuário sobreescreve intencionalmente as opções via construtor customizado de PgConfig para usar um schema diferente de "Cambalhota"
-    Then o sistema deve honrar a substituição para atender as razões válidas
-    But deve manter os parâmetros de conexão essenciais consistentes
+  Scenario: Explicit override of schema and options (Edge Case)
+    Given the PostgreSQL initialization configuration
+    When the user intentionally overrides the options via a custom PgConfig constructor to use a schema other than "Cambalhota"
+    Then the system must honor the override to serve the valid reasons
+    But it must keep the essential connection parameters consistent

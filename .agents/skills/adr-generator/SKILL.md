@@ -25,7 +25,7 @@ Every ADR must follow the structure below. **No section may be omitted.**
 ```markdown
 # ADR-NNN: Decision Title (E.g.: Caching Strategy for Fiscal Reports)
 
-- **Status:** Proposto | Aceito | Implementado | Substituído | Arquivado
+- **Status:** Proposed | Accepted | Implemented | Superseded | Archived
 - **Date:** YYYY-MM-DD
 - **Authors:** arch agent (Tavolo AI)
 
@@ -67,5 +67,5 @@ When proposing solutions, the **arch** agent must unconditionally respect the de
 1. Analyze the business request.
 2. Identify the technology solution in the AdonisJS/Node.js ecosystem.
 3. Write the ADR using the `write_to_file` command.
-4. Set `Status: Proposto`.
-5. Present a summary for validation (if interactive) or advance the status to `Aceito` in the asynchronous flow.
+4. Set `Status: Proposed`.
+5. Present a summary for validation (if interactive) or advance the status to `Accepted` in the asynchronous flow.
