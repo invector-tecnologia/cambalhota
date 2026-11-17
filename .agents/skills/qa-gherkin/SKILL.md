@@ -1,35 +1,35 @@
 ---
 name: qa-gherkin
 description: >
-  Gera planos de teste em formato Gherkin (.feature) em português para o projeto tavolo.
-  Ativar quando o agente qa precisar criar cenários de teste, validar implementações
-  ou gerar planos de teste exploratórios.
+  Generates test plans in Gherkin format (.feature) in Portuguese for the tavolo project.
+  Activate when the qa agent needs to create test scenarios, validate implementations
+  or generate exploratory test plans.
 ---
 
 # QA Gherkin
 
-## Visão Geral
+## Overview
 
-Esta skill gera planos de teste em formato Gherkin (`.feature`) escritos em português (pt-BR) para o projeto tavolo. Os planos cobrem cenários de caminho feliz, casos de borda, cenários de erro, isolamento multi-tenant e controle de acesso baseado em roles. Cada plano de teste é vinculado a um ADR aceito e serve como especificação executável para validação da implementação.
+This skill generates test plans in Gherkin format (`.feature`) written in Portuguese (pt-BR) for the tavolo project. The plans cover happy path scenarios, edge cases, error scenarios, multi-tenant isolation and role-based access control. Each test plan is linked to an accepted ADR and serves as an executable specification for validating the implementation.
 
-## Quando Usar
+## When to Use
 
-- Após um ADR ser aceito e o código correspondente estar implementado (ou em implementação).
-- Ao validar que uma funcionalidade atende aos critérios de aceitação definidos.
-- Ao gerar planos de teste exploratórios para funcionalidades existentes.
-- Ao verificar isolamento de dados entre tenants.
-- Ao validar que a hierarquia de permissões está corretamente aplicada.
-- Ao documentar regressões identificadas durante revisão de código.
+- After an ADR is accepted and the corresponding code is implemented (or being implemented).
+- When validating that a feature meets the defined acceptance criteria.
+- When generating exploratory test plans for existing features.
+- When verifying data isolation between tenants.
+- When validating that the permission hierarchy is applied correctly.
+- When documenting regressions identified during code review.
 
-## Idioma
+## Language
 
-Todos os arquivos `.feature` devem iniciar com o cabeçalho de idioma:
+All `.feature` files must start with the language header:
 
 ```gherkin
 # language: pt
 ```
 
-Isso garante que os parsers Gherkin interpretem as palavras-chave em português:
+This ensures Gherkin parsers interpret the keywords in Portuguese:
 - `Funcionalidade` (Feature)
 - `Contexto` (Background)
 - `Cenário` (Scenario)
@@ -41,23 +41,23 @@ Isso garante que os parsers Gherkin interpretem as palavras-chave em português:
 - `E` (And)
 - `Mas` (But)
 
-## Requisitos de Cobertura
+## Coverage Requirements
 
-Todo plano de teste deve incluir, no mínimo:
+Every test plan must include, at a minimum:
 
-| Tipo de Cenário | Quantidade Mínima | Descrição |
+| Scenario Type | Minimum Quantity | Description |
 |-----------------|-------------------|-----------|
-| Caminho feliz (happy path) | 1 | Fluxo principal com dados válidos |
-| Casos de borda (edge cases) | 2 | Limites, valores extremos, entradas atípicas |
-| Cenário de erro | 1 | Entradas inválidas, falhas esperadas, mensagens de erro |
-| Isolamento multi-tenant | 1 | Verificação de que dados de um tenant não vazam para outro |
+| Happy path | 1 | Main flow with valid data |
+| Edge cases | 2 | Limits, extreme values, atypical inputs |
+| Error scenario | 1 | Invalid inputs, expected failures, error messages |
+| Multi-tenant isolation | 1 | Verification that one tenant's data does not leak to another |
 
-Cenários adicionais recomendados (não obrigatórios):
-- Cenários de concorrência (operações simultâneas no mesmo recurso).
-- Cenários de idempotência (repetição da mesma operação).
-- Cenários de performance (limites de tempo de resposta).
+Additional recommended scenarios (not mandatory):
+- Concurrency scenarios (simultaneous operations on the same resource).
+- Idempotency scenarios (repeating the same operation).
+- Performance scenarios (response time limits).
 
-## Template do Arquivo .feature
+## .feature File Template
 
 ```gherkin
 # language: pt
@@ -110,79 +110,79 @@ Funcionalidade: Título descritivo da funcionalidade
     E apenas os dados do tenant "Clínica B" devem ser visíveis
 ```
 
-## Convenção de Nomenclatura
+## Naming Convention
 
-Os arquivos `.feature` devem seguir o padrão:
+`.feature` files must follow the pattern:
 
 ```
 NNN_nome_do_adr.feature
 ```
 
-- **NNN**: número correspondente ao ADR que originou a funcionalidade.
-- **nome_do_adr**: mesmo nome usado no ADR correspondente, em snake_case, sem acentos.
+- **NNN**: number of the ADR that originated the feature.
+- **nome_do_adr**: same name used in the corresponding ADR, in snake_case, without accents.
 
-### Exemplos
+### Examples
 
-| ADR | Arquivo .feature |
+| ADR | .feature file |
 |-----|-----------------|
 | `001_autenticacao_jwt.md` | `001_autenticacao_jwt.feature` |
 | `002_estrategia_multi_tenant.md` | `002_estrategia_multi_tenant.feature` |
 | `003_migracao_banco_dados.md` | `003_migracao_banco_dados.feature` |
 
-## Localização
+## Location
 
-Todos os planos de teste devem ser armazenados em:
+All test plans must be stored in:
 
 ```
 docs/engineering/qa_plans/
 ```
 
-Não crie subdiretórios dentro desta pasta. Todos os arquivos `.feature` residem no mesmo nível.
+Do not create subdirectories inside this folder. All `.feature` files live at the same level.
 
-## Validação Semântica
+## Semantic Validation
 
-Prefira asserções contextuais em vez de correspondência exata de texto. Isso torna os testes mais resilientes a mudanças de UI e internacionalização.
+Prefer contextual assertions over exact text matching. This makes tests more resilient to UI changes and internationalization.
 
-### ❌ Evitar — correspondência exata
+### ❌ Avoid — exact matching
 
 ```gherkin
 Então a mensagem exibida deve ser "Animal cadastrado com sucesso!"
 ```
 
-### ✅ Preferir — asserção contextual
+### ✅ Prefer — contextual assertion
 
 ```gherkin
 Então o sistema deve confirmar o cadastro do animal
 E o animal deve constar na lista de animais do tenant
 ```
 
-### Diretrizes
+### Guidelines
 
-- Use asserções que validem **comportamento** e **estado**, não textos literais.
-- Verifique **efeitos colaterais** (registros no banco, eventos emitidos) quando relevante.
-- Valide **ausência de dados** em cenários de isolamento multi-tenant (ex.: "não devem ser retornados").
-- Valide **códigos de status HTTP** em cenários de API quando aplicável (ex.: "o sistema deve retornar status 403").
+- Use assertions that validate **behavior** and **state**, not literal texts.
+- Check **side effects** (database records, emitted events) when relevant.
+- Validate **absence of data** in multi-tenant isolation scenarios (e.g.: "não devem ser retornados").
+- Validate **HTTP status codes** in API scenarios when applicable (e.g.: "o sistema deve retornar status 403").
 
-## Cenários Baseados em Roles
+## Role-Based Scenarios
 
-Cada plano de teste deve considerar a hierarquia de roles do tavolo e incluir cenários que validem o controle de acesso. A hierarquia é:
+Each test plan must consider the tavolo role hierarchy and include scenarios that validate access control. The hierarchy is:
 
 ```
 superadmin > admin > coordenador > voluntário > tavoloário > visualização
 ```
 
-### Tipos de cenários por role
+### Scenario types per role
 
-| Role | Cenários típicos |
+| Role | Typical scenarios |
 |------|-----------------|
-| **superadmin** | Acesso total, gerenciamento de tenants, operações cross-tenant |
-| **admin** | Gerenciamento de usuários e configurações do tenant |
-| **coordenador** | Coordenação de voluntários e agendamentos |
-| **voluntário** | Registro de atividades, acompanhamento de animais |
-| **tavoloário** | Prontuários, prescrições, procedimentos clínicos |
-| **visualização** | Somente leitura, sem permissão de escrita |
+| **superadmin** | Full access, tenant management, cross-tenant operations |
+| **admin** | Management of tenant users and settings |
+| **coordenador** | Coordination of volunteers and scheduling |
+| **voluntário** | Activity logging, animal follow-up |
+| **tavoloário** | Medical records, prescriptions, clinical procedures |
+| **visualização** | Read-only, no write permission |
 
-### Template para cenário de permissão
+### Template for a permission scenario
 
 ```gherkin
   Esquema do Cenário: Acesso à funcionalidade por role
@@ -200,7 +200,7 @@ superadmin > admin > coordenador > voluntário > tavoloário > visualização
       | visualização  | negar a operação com status 403    |
 ```
 
-## Exemplo Completo — Cadastro de Animal
+## Full Example — Animal Registration
 
 ```gherkin
 # language: pt
