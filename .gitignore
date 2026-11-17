@@ -7,3 +7,13 @@ nimble.develop
 nimble.paths
 nimbledeps
 cambalhota
+
+# Build outputs and backups (ADR 013): never commit binaries or backup files.
+src/main
+src/db/storage
+tests/*
+!tests/*.nim
+!tests/scratch/
+tests/scratch/*
+!tests/scratch/*.nim
+*.enc

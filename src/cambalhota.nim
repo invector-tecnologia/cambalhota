@@ -11,7 +11,7 @@ when isMainModule:
   var db = "postgres"
   var schema = "Cambalhota"
   var dbType = dbPostgres
-  var encKey = "0123456789abcdef0123456789abcdef"
+  var encKey = ""  # No default (ADR 013): pass --key.
   var outPath = "backup_output.bin.enc"
 
   var p = initOptParser()

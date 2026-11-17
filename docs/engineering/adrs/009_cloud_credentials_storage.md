@@ -1,6 +1,6 @@
 # 009 - Flexible and Secure Storage of Cloud Credentials
 
-**Status**: Implemented
+**Status**: Implemented; key storage superseded by [ADR 013](013_per_machine_master_key.md)
 ## Context
 
 The user approved the UX flow for managing Cloud provider settings in Cambalhota. The architecture must support a growing, heterogeneous list of providers, such as AWS, MinIO, R2, Git, Google Drive, Dropbox, OneDrive and Apple Cloud. Each provider has its own authentication mechanism: S3-like providers require *Access Keys*, while virtual-drive or Git-based providers usually use *OAuth Tokens* or SSH keys/PATs. In addition, these credentials are highly sensitive and must be persisted in the local environment in a unified, secure way.
