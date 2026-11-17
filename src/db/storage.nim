@@ -1,4 +1,4 @@
-import std/[os, strutils]
+import std/[os, strutils, sysrand, posix]
 import db_connector/db_sqlite
 import nimcrypto
 import std/oids
@@ -33,15 +33,86 @@ type
     created_at*: string
     updated_at*: string
 
-const MasterKey = "cambalhota_master_key_12345678" # 32 bytes for AES-256
+const
+  MasterKeyFileName = "master.key"
+  MasterKeySize = 32
+  NonceSize = 12
+  TagSize = 16
+  V2Prefix = "v2:"
+  # Burned key: it is in the public git history (ADR 013). Used only to read legacy values.
+  LegacyMasterKey = "cambalhota_master_key_12345678"
+
+proc cambalhotaDir(): string =
+  result = getHomeDir() / ".cambalhota"
+  createDir(result)
+  setFilePermissions(result, {fpUserRead, fpUserWrite, fpUserExec})
+
+proc createMasterKeyFile(keyFile: string) =
+  ## Writes the key to a temporary file first and links it into place, so a
+  ## crash never leaves a partial key and a concurrent first run keeps one key.
+  var fresh: array[MasterKeySize, byte]
+  if not urandom(fresh):
+    raise newException(OSError, "Could not read random bytes for the master key")
+  let tmpFile = keyFile & ".tmp-" & $getCurrentProcessId()
+  block writeTemp:
+    let f = open(tmpFile, fmWrite)
+    defer: f.close()
+    # Restrict the file before any key byte is written.
+    setFilePermissions(tmpFile, {fpUserRead, fpUserWrite})
+    if f.writeBytes(fresh, 0, MasterKeySize) != MasterKeySize:
+      raise newException(IOError, "Could not write the master key file: " & tmpFile)
+  defer: removeFile(tmpFile)
+  if posix.link(tmpFile.cstring, keyFile.cstring) != 0 and errno != EEXIST:
+    raiseOSError(osLastError(), "Could not create the master key file: " & keyFile)
+
+proc masterKey(): array[MasterKeySize, byte] =
+  ## Per-machine key (ADR 013): created on first use, readable only by the owner.
+  let keyFile = cambalhotaDir() / MasterKeyFileName
+  if fileExists(keyFile):
+    setFilePermissions(keyFile, {fpUserRead, fpUserWrite})
+  else:
+    createMasterKeyFile(keyFile)
+  let content = readFile(keyFile)
+  if content.len != MasterKeySize:
+    raise newException(ValueError, "Invalid master key file (expected 32 bytes): " & keyFile)
+  copyMem(result[0].addr, content[0].unsafeAddr, MasterKeySize)
+
+proc toHexString(data: openArray[byte]): string =
+  for b in data: result &= toHex(int(b), 2)
+
+proc fromHexString(hex: string): seq[byte] =
+  if hex.len mod 2 != 0:
+    raise newException(ValueError, "Invalid encrypted value: odd hex length")
+  result = newSeq[byte](hex.len div 2)
+  for i in 0 ..< result.len:
+    result[i] = byte(parseHexInt(hex[i*2 .. i*2+1]))
+
+proc decryptLegacy(encryptedHex: string): string =
+  ## Pre-ADR-013 values: AES-256-CTR, zero IV, legacy key.
+  var key: array[32, byte]
+  for i in 0..<min(LegacyMasterKey.len, 32): key[i] = byte(LegacyMasterKey[i])
+  var iv: array[16, byte]
+  var ctx: CTR[aes256]
+  ctx.init(key, iv)
+  # The old code ignored an odd trailing hex digit; keep that behavior.
+  let ct = fromHexString(encryptedHex[0 ..< encryptedHex.len - encryptedHex.len mod 2])
+  var pt = newSeq[byte](ct.len)
+  if ct.len > 0: ctx.decrypt(ct, pt)
+  ctx.clear()
+  result = newString(pt.len)
+  for i, b in pt: result[i] = char(b)
+
+proc isLegacyValue(value: string): bool =
+  value != "" and not value.startsWith(V2Prefix)
 
 proc getDbPath*(): string =
-  let dir = getHomeDir() / ".cambalhota"
-  createDir(dir)
-  result = dir / "connections.db"
+  result = cambalhotaDir() / "connections.db"
+
+proc migrateLegacyValues(db: DbConn)
 
 proc initDb*() =
   let db = open(getDbPath(), "", "", "")
+  defer: db.close()
   db.exec(sql"""
     CREATE TABLE IF NOT EXISTS connections (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -77,43 +148,68 @@ proc initDb*() =
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   """)
-  db.close()
+  migrateLegacyValues(db)
 
 proc encryptPassword*(password: string): string =
+  ## AES-256-GCM with a random nonce: "v2:" & hex(nonce & ciphertext & tag).
   if password == "": return ""
-  var key: array[32, byte]
-  for i in 0..<min(MasterKey.len, 32): key[i] = byte(MasterKey[i])
-  var iv: array[16, byte]
-  var ctx: CTR[aes256]
-  ctx.init(key, iv)
+  var nonce: array[NonceSize, byte]
+  if not urandom(nonce):
+    raise newException(OSError, "Could not read random bytes for the nonce")
+  let key = masterKey()
+  var ctx: GCM[aes256]
+  ctx.init(key, nonce, [])
   var pt = newSeq[byte](password.len)
   for i in 0..<password.len: pt[i] = byte(password[i])
-  var ct = newSeq[byte](password.len)
-  ctx.encrypt(pt, ct)
+  var ct = newSeq[byte](pt.len)
+  var tag: array[TagSize, byte]
+  ctx.encrypt(pt, ct, tag)
   ctx.clear()
-  
-  var hex = ""
-  for b in ct: hex &= toHex(int(b), 2)
-  return hex
+  result = V2Prefix & toHexString(nonce) & toHexString(ct) & toHexString(tag)
 
 proc decryptPassword*(encryptedHex: string): string =
+  ## Reads v2 values and, for migration, legacy values. Raises ValueError when
+  ## the value was changed or was encrypted with another machine's key.
   if encryptedHex == "": return ""
-  var key: array[32, byte]
-  for i in 0..<min(MasterKey.len, 32): key[i] = byte(MasterKey[i])
-  var iv: array[16, byte]
-  var ctx: CTR[aes256]
-  ctx.init(key, iv)
-  
-  var ct = newSeq[byte](encryptedHex.len div 2)
-  for i in 0..<ct.len:
-    ct[i] = byte(parseHexInt(encryptedHex[i*2 .. i*2+1]))
-  
+  if isLegacyValue(encryptedHex): return decryptLegacy(encryptedHex)
+  let raw = fromHexString(encryptedHex[V2Prefix.len .. ^1])
+  if raw.len <= NonceSize + TagSize:
+    raise newException(ValueError, "Invalid encrypted value: too short")
+  let nonce = raw[0 ..< NonceSize]
+  let ct = raw[NonceSize ..< raw.len - TagSize]
+  let tag = raw[raw.len - TagSize .. ^1]
+  let key = masterKey()
+  var ctx: GCM[aes256]
+  ctx.init(key, nonce, [])
   var pt = newSeq[byte](ct.len)
-  ctx.decrypt(ct, pt)
+  let authentic = ctx.decrypt(ct, pt, tag)
   ctx.clear()
-  
-  result = ""
-  for b in pt: result &= char(b)
+  if not authentic:
+    raise newException(ValueError, "Encrypted value failed the integrity check (changed, or another machine's master key)")
+  result = newString(pt.len)
+  for i, b in pt: result[i] = char(b)
+
+proc readSecret*(encrypted: string): tuple[ok: bool, value: string] =
+  ## For the UI: an unreadable value (lost master key, changed or malformed
+  ## value) is reported instead of raised, so the user can re-enter it.
+  try:
+    result = (ok: true, value: decryptPassword(encrypted))
+  except ValueError:
+    result = (ok: false, value: "")
+
+proc migrateLegacyValues(db: DbConn) =
+  ## ADR 013: re-encrypts legacy values with the per-machine key, once. Each
+  ## row is updated on its own; an unreadable row stays as it was (the UI
+  ## reports it and the user re-enters it) and never blocks startup.
+  for (table, column, idColumn) in [("connections", "encrypted_password", "id"),
+                                    ("cloud_providers", "encrypted_credentials", "id")]:
+    for row in db.getAllRows(sql("SELECT " & idColumn & ", " & column & " FROM " & table)):
+      if not isLegacyValue(row[1]): continue
+      try:
+        db.exec(sql("UPDATE " & table & " SET " & column & " = ? WHERE " & idColumn & " = ?"),
+          encryptPassword(decryptLegacy(row[1])), row[0])
+      except ValueError:
+        discard
 
 proc saveConnection*(rec: ConnectionRecord) =
   let db = open(getDbPath(), "", "", "")

@@ -4,7 +4,9 @@ import ../src/db/storage
 suite "Secure Cloud Credentials Management":
   setup:
     # Use a temporary DB for tests
-    putEnv("HOME", getTempDir())
+    let home = getTempDir() / "cambalhota_credentials_test"
+    createDir(home)
+    putEnv("HOME", home)
     initDb()
 
   test "Creates a new S3 provider from the TUI (storage/logic)":

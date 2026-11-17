@@ -31,6 +31,14 @@ proc getFiles(path: string): seq[string] =
         if file.endsWith(".sql") or file.endsWith(".enc"):
           result.add(file)
 
+const UnreadableSecretMsg = "STATUS: [Red] A stored password or credential could not be decrypted (ADR 013). Edit it and enter it again."
+
+proc secretForForm(encrypted: string, statusMsg: var string): string =
+  ## Fills an edit/copy form; an unreadable secret leaves the field empty for re-entry.
+  let secret = readSecret(encrypted)
+  if not secret.ok: statusMsg = UnreadableSecretMsg
+  secret.value
+
 proc runTui*(initialConf: ExtractorConfig = ExtractorConfig()) =
   # Initialize SQLite DB
   initDb()
@@ -414,48 +422,56 @@ proc runTui*(initialConf: ExtractorConfig = ExtractorConfig()) =
             statusMsg = "STATUS: Cloud Provider deleted."
           elif confirmAction == 3:
             let conn = connections[backupFilesIdx]
-            let isUpload = false
-            let outPath = getHomeDir() / ".cambalhota" / "db_dump" /
-                selectedYear / (conn.name & "_dump_" & $now().toTime().toUnix() & ".enc")
-            let conf = ExtractorConfig(dbType: if conn.engine ==
-                "pg": dbPostgres elif conn.engine ==
-                "mysql": dbMysql else: dbMongo, host: conn.host,
-                port: conn.port, user: conn.user, password: decryptPassword(
-                conn.encrypted_password), database: conn.dbname,
-                schema: conn.schema, encryptionKey: decryptPassword(
-                conn.encrypted_password), outputPath: outPath)
-            isDbOpActive = true
-            consoleLogs = @["Starting backup for " & conn.name & "..."]
-            startExtraction(conf)
-            statusMsg = "STATUS: Backup created at " & outPath
+            let secret = readSecret(conn.encrypted_password)
+            if not secret.ok:
+              statusMsg = UnreadableSecretMsg
+            else:
+              let isUpload = false
+              let outPath = getHomeDir() / ".cambalhota" / "db_dump" /
+                  selectedYear / (conn.name & "_dump_" & $now().toTime().toUnix() & ".enc")
+              let conf = ExtractorConfig(dbType: if conn.engine ==
+                  "pg": dbPostgres elif conn.engine ==
+                  "mysql": dbMysql else: dbMongo, host: conn.host,
+                  port: conn.port, user: conn.user, password: secret.value, database: conn.dbname,
+                  schema: conn.schema, encryptionKey: secret.value, outputPath: outPath)
+              isDbOpActive = true
+              consoleLogs = @["Starting backup for " & conn.name & "..."]
+              startExtraction(conf)
+              statusMsg = "STATUS: Backup created at " & outPath
           elif confirmAction == 4:
             let dumpFile = dumps[restoreDumpIdx]
             let conn = connections[restoreConnIdx]
-            let conf = RestoreConfig(dbType: if conn.engine ==
-                "pg": dbPostgres elif conn.engine ==
-                "mysql": dbMysql else: dbMongo, host: conn.host,
-                port: conn.port, user: conn.user, password: decryptPassword(
-                conn.encrypted_password), database: conn.dbname,
-                schema: conn.schema, encryptionKey: decryptPassword(
-                conn.encrypted_password), inputPath: dumpFile)
-            isDbOpActive = true
-            consoleLogs = @["Starting restore from " & dumpFile & " to " &
-                conn.name & "..."]
-            startRestore(conf)
+            let secret = readSecret(conn.encrypted_password)
+            if not secret.ok:
+              statusMsg = UnreadableSecretMsg
+            else:
+              let conf = RestoreConfig(dbType: if conn.engine ==
+                  "pg": dbPostgres elif conn.engine ==
+                  "mysql": dbMysql else: dbMongo, host: conn.host,
+                  port: conn.port, user: conn.user, password: secret.value, database: conn.dbname,
+                  schema: conn.schema, encryptionKey: secret.value, inputPath: dumpFile)
+              isDbOpActive = true
+              consoleLogs = @["Starting restore from " & dumpFile & " to " &
+                  conn.name & "..."]
+              startRestore(conf)
           elif confirmAction == 5:
             let conn = connections[migrateConnIdx]
-            let mFile = migrationFiles[migrateFileIdx]
-            var actualPath = mFile
-            if not actualPath.startsWith("migrations"):
-              actualPath = "migrations/up" / mFile.extractFilename()
-            let args = MigrationArgs(
-              dbHost: conn.host, dbPort: $conn.port, dbUser: conn.user, 
-              dbPass: decryptPassword(conn.encrypted_password), dbName: conn.dbname,
-              migrationFile: actualPath
-            )
-            isDbOpActive = true
-            consoleLogs = @["Starting migration " & actualPath & " on " & conn.name & "..."]
-            startMigration(args)
+            let secret = readSecret(conn.encrypted_password)
+            if not secret.ok:
+              statusMsg = UnreadableSecretMsg
+            else:
+              let mFile = migrationFiles[migrateFileIdx]
+              var actualPath = mFile
+              if not actualPath.startsWith("migrations"):
+                actualPath = "migrations/up" / mFile.extractFilename()
+              let args = MigrationArgs(
+                dbHost: conn.host, dbPort: $conn.port, dbUser: conn.user, 
+                dbPass: secret.value, dbName: conn.dbname,
+                migrationFile: actualPath
+              )
+              isDbOpActive = true
+              consoleLogs = @["Starting migration " & actualPath & " on " & conn.name & "..."]
+              startMigration(args)
           confirmAction = 0
         continue
 
@@ -623,14 +639,13 @@ proc runTui*(initialConf: ExtractorConfig = ExtractorConfig()) =
             let c = connections[configFilesIdx]
             editingConnId = c.id
             formValues = [c.name, c.engine, c.host, $c.port, c.user, c.dbname,
-                decryptPassword(c.encrypted_password), c.schema]
+                secretForForm(c.encrypted_password, statusMsg), c.schema]
             isAddingConn = true
         elif selectedMenu == 3:
           if cloudProviders.len > 0 and cloudFilesIdx < cloudProviders.len:
             let c = cloudProviders[cloudFilesIdx]
             editingCloudId = c.id
-            cloudFormValues = [c.name, c.provider_type, decryptCredentials(
-                c.encrypted_credentials), c.metadata]
+            cloudFormValues = [c.name, c.provider_type, secretForForm(c.encrypted_credentials, statusMsg), c.metadata]
             isAddingCloud = true
       elif k.code == kcChar and (k.rune == Rune('c'.ord) or k.rune == Rune(
           'C'.ord)):
@@ -639,14 +654,14 @@ proc runTui*(initialConf: ExtractorConfig = ExtractorConfig()) =
             let c = connections[configFilesIdx]
             editingConnId = -1
             formValues = [c.name & "_copy", c.engine, c.host, $c.port, c.user,
-                c.dbname, decryptPassword(c.encrypted_password), c.schema]
+                c.dbname, secretForForm(c.encrypted_password, statusMsg), c.schema]
             isAddingConn = true
         elif selectedMenu == 3:
           if cloudProviders.len > 0 and cloudFilesIdx < cloudProviders.len:
             let c = cloudProviders[cloudFilesIdx]
             editingCloudId = ""
             cloudFormValues = [c.name & "_copy", c.provider_type,
-                decryptCredentials(c.encrypted_credentials), c.metadata]
+                secretForForm(c.encrypted_credentials, statusMsg), c.metadata]
             isAddingCloud = true
       elif k.code == kcChar and (k.rune == Rune('d'.ord) or k.rune == Rune('D'.ord)):
         if selectedMenu == 0:
