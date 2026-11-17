@@ -6,12 +6,20 @@ import ../src/tui/msg
 import ../src/core/restore
 import ../src/core/extract
 
+
+# The log channel is opened once per test binary. Closing and reopening the same
+# system Channel leaves a dangling buffer pointer in Nim's channels_builtin
+# (close frees `data` without resetting it; open does not reset it either), and the
+# next send frees it again: heap corruption. Each test drains it instead.
+open(logChannel)
+
+proc drainLogChannel() =
+  while logChannel.tryRecv().dataAvailable: discard
+
 suite "Restore Worker Tests":
   setup:
-    open(logChannel)
+    drainLogChannel()
   
-  teardown:
-    close(logChannel)
 
   test "Worker reports error when schema is public":
     let conf = RestoreConfig(dbType: dbPostgres, schema: "public", encryptionKey: "12345678901234567890123456789012", inputPath: "in.enc")

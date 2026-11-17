@@ -5,12 +5,20 @@ import nimcrypto
 import ../src/tui/msg
 import ../src/core/extract
 
+
+# The log channel is opened once per test binary. Closing and reopening the same
+# system Channel leaves a dangling buffer pointer in Nim's channels_builtin
+# (close frees `data` without resetting it; open does not reset it either), and the
+# next send frees it again: heap corruption. Each test drains it instead.
+open(logChannel)
+
+proc drainLogChannel() =
+  while logChannel.tryRecv().dataAvailable: discard
+
 suite "Extraction Worker Tests":
   setup:
-    open(logChannel)
+    drainLogChannel()
   
-  teardown:
-    close(logChannel)
 
   test "Worker reports error when schema is public":
     let conf = ExtractorConfig(dbType: dbPostgres, schema: "public", encryptionKey: "12345678901234567890123456789012", outputPath: "out.enc")
@@ -111,3 +119,26 @@ suite "Extraction Worker Tests":
 
     # Cleanup
     removeDir(mockDir)
+
+suite "Extraction after a channel reopen (regression)":
+  # Regression: a third extraction crashed (SIGSEGV in rawAlloc) when each test
+  # closed and reopened the log channel; see drainLogChannel above.
+  setup:
+    drainLogChannel()
+
+
+  test "a third extraction runs to completion":
+    let outPath = getTempDir() / "reopen_regression.enc"
+    let conf = ExtractorConfig(dbType: dbPostgres, host: "127.0.0.1", port: 1, user: "u",
+      database: "db", schema: "app", encryptionKey: "12345678901234567890123456789012",
+      outputPath: outPath)
+    startExtraction(conf)
+    var finished = false
+    while not finished:
+      let msgOpt = logChannel.tryRecv()
+      if msgOpt.dataAvailable:
+        finished = msgOpt.msg.kind in {mkSuccess, mkError}
+      else:
+        sleep(10)
+    joinExtraction()
+    check finished
